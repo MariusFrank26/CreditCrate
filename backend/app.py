@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://creditcrate-1.onrender.com", "http://localhost:8080"])
 
 # ── CONFIG ── Paste your Genius token here:
 GENIUS_ACCESS_TOKEN = "DN7-IZJBGU5-I0OkZDPI63hhApYFgi34XwBr5C4L8mkhZD7e4718lUxWs8oJNLdm"
