@@ -145,21 +145,22 @@ def extract_email_from_bio(bio):
 
 
 def get_instagram_email(ig_handle):
-    if not ig_handle or not INSTALOADER_AVAILABLE:
+    if not ig_handle:
         return None
-    loader = get_instaloader()
     try:
-        profile = instaloader.Profile.from_username(loader.context, ig_handle)
-        bio = profile.biography or ""
-        email = extract_email_from_bio(bio)
-        ext_url = profile.external_url or ""
-        if not email and "@" in ext_url:
-            email = extract_email_from_bio(ext_url)
-        return {"email": email, "full_name": profile.full_name, "bio": bio, "followers": profile.followers, "external_url": ext_url}
-    except instaloader.exceptions.ProfileNotExistsException:
-        return None
-    except instaloader.exceptions.LoginRequiredException:
-        return {"error": "Login required", "email": None}
+        url = f"https://www.instagram.com/{ig_handle}/"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+        }
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return {"email": None, "error": f"HTTP {resp.status_code}"}
+        
+        # Email in page source
+        email = extract_email_from_bio(resp.text)
+        return {"email": email}
     except Exception as e:
         logger.warning(f"Error fetching Instagram for {ig_handle}: {e}")
         return None
@@ -208,7 +209,7 @@ def get_album_credits(album_id):
                 credit["instagram_handle"] = ig_handle
                 if ig_handle:
                     logger.info(f"Found IG: @{ig_handle}")
-                    credit["instagram_data"] = None
+                    credit["instagram_data"] = get_instagram_email(ig_handle)
                 time.sleep(0.3)
 
         return jsonify({"credits": list(all_credits.values())})
