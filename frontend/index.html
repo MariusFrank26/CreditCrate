@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CreditCrate — Album Production Lookup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111;
+    --surface2: #1a1a1a;
+    --border: #252525;
+    --accent: #b8f0c8;
+    --accent2: #f0b8c8;
+    --accent3: #b8d8f0;
+    --text: #e8e8e8;
+    --muted: #555;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --display: 'Bebas Neue', sans-serif;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); }
+
+  #root { min-height: 100vh; }
+
+  /* ── LAYOUT ── */
+  .page { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* ── HEADER ── */
+  header {
+    padding: 48px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: var(--display);
+    font-size: clamp(52px, 8vw, 96px);
+    letter-spacing: 4px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .logo span { color: var(--text); }
+  .tagline {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* ── SEARCH BAR ── */
+  .search-block { margin-bottom: 48px; }
+  .search-row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .search-input-wrap {
+    position: relative;
+    flex: 1;
+  }
+  .search-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 8px;
+  }
+  input[type="text"] {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 15px;
+    padding: 14px 18px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder { color: var(--muted); }
+
+  .search-btn {
+    align-self: flex-end;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    font-family: var(--display);
+    font-size: 18px;
+    letter-spacing: 2px;
+    padding: 0 32px;
+    height: 49px;
+    cursor: pointer;
+    transition: opacity .15s;
+    white-space: nowrap;
+  }
+  .search-btn:hover { opacity: 1; background: #d4f5df; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(184,240,200,0.2); }
+  .search-btn { transition: all .2s; }
+  .search-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── ALBUM RESULTS ── */
+  .album-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .album-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: border-color .2s, transform .15s;
+    overflow: hidden;
+  }
+  .album-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(184,240,200,0.08); }
+  .album-card.selected { border-color: var(--accent); outline: 2px solid var(--accent); }
+  .album-cover {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+    background: var(--surface2);
+  }
+  .album-cover-placeholder {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    color: var(--muted);
+  }
+  .album-info { padding: 12px; }
+  .album-name {
+    font-family: var(--display);
+    font-size: 18px;
+    letter-spacing: 1px;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+  .album-artist { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+  /* ── CREDITS TABLE ── */
+  .credits-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .credits-title {
+    font-family: var(--display);
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .filter-btn.active, .filter-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(184,240,200,0.06);
+  }
+
+  .export-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all .15s;
+    margin-left: auto;
+  }
+  .export-btn:hover { background: var(--accent); color: #0a0a0a; box-shadow: 0 2px 12px rgba(184,240,200,0.2); }
+
+  .credits-grid {
+    display: grid;
+    gap: 2px;
+  }
+
+  .credit-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 200px 1fr 160px 200px 240px;
+    gap: 0;
+    align-items: stretch;
+    transition: background .15s;
+    animation: fadeIn .3s ease both;
+  }
+  .credit-row:hover { background: var(--surface2); }
+  .credit-row:hover .cell-name { color: var(--accent); transition: color .2s; }
+  .cell-name { transition: color .2s; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .credit-row.header-row {
+    background: transparent;
+    border-color: transparent;
+    animation: none;
+  }
+  .credit-row.header-row .cell {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+    border: none;
+  }
+
+  .cell {
+    padding: 14px 16px;
+    border-right: 1px solid var(--border);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+  }
+  .cell:last-child { border-right: none; }
+
+  .cell-name { font-weight: 500; letter-spacing: .3px; }
+  .cell-roles { flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+  .role-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .role-tag.producer { border-color: #b8f0c844; color: #b8f0c8; background: #b8f0c811; }
+  .role-tag.engineer { border-color: #f0d0b844; color: #f0d0b8; background: #f0d0b811; }
+  .role-tag.mixer    { border-color: #d4b8f044; color: #d4b8f0; background: #d4b8f011; }
+  .role-tag.writer   { border-color: #b8d8f044; color: #b8d8f0; background: #b8d8f011; }
+
+  .ig-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-family: var(--mono);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ig-link:hover { color: #d4f5df; text-decoration: none; letter-spacing: 0.5px; }
+  .ig-icon { flex-shrink: 0; }
+
+  .email-val {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .email-val.none { color: var(--muted); font-style: italic; }
+  .email-copy {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+  .email-copy:hover { border-color: var(--accent); color: var(--accent); }
+
+  .songs-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .songs-count strong { color: var(--text); }
+
+  /* ── STATUS / LOADER ── */
+  .status-bar {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    padding: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    background: #ff5c5c11;
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 12px 16px;
+    margin: 16px 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 80px 0;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+  .empty-state .big { font-family: var(--display); font-size: 64px; display: block; color: var(--border); margin-bottom: 16px; }
+
+  /* ── STEP INDICATORS ── */
+  .step-indicator {
+    display: flex;
+    gap: 0;
+    margin-bottom: 32px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .step {
+    flex: 1;
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .step:last-child { border-right: none; }
+  .step.active { color: var(--accent); }
+  .step.done { color: var(--text); }
+  .step-num {
+    width: 18px; height: 18px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    flex-shrink: 0;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .credit-row { grid-template-columns: 1fr 1fr; }
+    .credit-row.header-row { display: none; }
+    .cell { border-right: none; border-bottom: 1px solid var(--border); }
+    .cell:last-child { border-bottom: none; }
+    header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .tagline { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useCallback } = React;
+
+const API = "http://localhost:5000/api";
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+function roleClass(role) {
+  const r = role.toLowerCase();
+  if (r.includes("producer") || r.includes("executive producer")) return "producer";
+  if (r.includes("engineer") || r.includes("record")) return "engineer";
+  if (r.includes("mix")) return "mixer";
+  if (r.includes("writ") || r.includes("compos")) return "writer";
+  return "";
+}
+
+function csvExport(credits) {
+  const rows = [["Name","Roles","Songs","Instagram","Email"]];
+  for (const c of credits) {
+    rows.push([
+      c.name,
+      c.roles.join(" / "),
+      c.songs.map(s => s.title).join(" | "),
+      c.instagram_handle ? `@${c.instagram_handle}` : "",
+      c.instagram_data?.email || "",
+    ]);
+  }
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "credits.csv"; a.click();
+}
+
+// ── Components ───────────────────────────────────────────────────────────────
+
+function RoleTag({ role }) {
+  return <span className={`role-tag ${roleClass(role)}`}>{role}</span>;
+}
+
+function CreditRow({ credit, delay }) {
+  const [copied, setCopied] = useState(false);
+  const email = credit.instagram_data?.email;
+
+  function copyEmail() {
+    if (!email) return;
+    navigator.clipboard.writeText(email).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
+  const songTitles = credit.songs.map(s => s.title).join(", ");
+
+  return (
+    <div className="credit-row" style={{ animationDelay: `${delay}ms` }} title={`Songs: ${songTitles}`}>
+      <div className="cell cell-name">{credit.name}</div>
+      <div className="cell cell-roles">
+        {credit.roles.map(r => <RoleTag key={r} role={r} />)}
+      </div>
+      <div className="cell">
+        <span className="songs-count">
+          <strong>{credit.songs.length}</strong> track{credit.songs.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+      <div className="cell">
+        {credit.instagram_handle ? (
+          <a
+            className="ig-link"
+            href={`https://instagram.com/${credit.instagram_handle}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <svg className="ig-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+              <circle cx="12" cy="12" r="4"/>
+              <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
+            </svg>
+            @{credit.instagram_handle}
+          </a>
+        ) : (
+          <span style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 11 }}>—</span>
+        )}
+      </div>
+      <div className="cell">
+        {email ? (
+          <>
+            <span className="email-val">{email}</span>
+            <button className="email-copy" onClick={copyEmail}>{copied ? "✓" : "COPY"}</button>
+          </>
+        ) : credit.instagram_data?.error ? (
+          <span className="email-val none">login required</span>
+        ) : credit.instagram_handle ? (
+          <span className="email-val none">not in bio</span>
+        ) : (
+          <span className="email-val none">no instagram</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [albumQuery, setAlbumQuery] = useState("");
+  const [artistQuery, setArtistQuery] = useState("");
+  const [searchResults, setSearchResults] = useState(null);
+  const [selectedAlbum, setSelectedAlbum] = useState(null);
+  const [credits, setCredits] = useState(null);
+  const [step, setStep] = useState(1); // 1=search, 2=pick album, 3=credits
+  const [loading, setLoading] = useState(false);
+  const [statusMsg, setStatusMsg] = useState("");
+  const [error, setError] = useState(null);
+  const [roleFilter, setRoleFilter] = useState("ALL");
+
+  async function handleSearch() {
+    if (!albumQuery.trim()) return;
+    setLoading(true);
+    setError(null);
+    setSearchResults(null);
+    setCredits(null);
+    setSelectedAlbum(null);
+    setStep(2);
+    setStatusMsg("Searching Genius…");
+    try {
+      const res = await fetch(`${API}/search?album=${encodeURIComponent(albumQuery)}&artist=${encodeURIComponent(artistQuery)}`);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setSearchResults(data.results);
+      if (data.results.length === 0) setStatusMsg("No albums found. Try a different query.");
+      else setStatusMsg(`Found ${data.results.length} album${data.results.length !== 1 ? "s" : ""}. Pick one.`);
+    } catch (e) {
+      setError(e.message);
+      setStep(1);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSelectAlbum(album) {
+    setSelectedAlbum(album);
+    setStep(3);
+    setLoading(true);
+    setError(null);
+    setCredits(null);
+    setStatusMsg(`Fetching track credits for "${album.name}"… this may take a minute.`);
+    try {
+      const res = await fetch(`${API}/album/${album.id}/credits`);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setCredits(data.credits);
+      setStatusMsg(`Found ${data.credits.length} credited person${data.credits.length !== 1 ? "s" : ""}.`);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const filteredCredits = credits ? credits.filter(c => {
+    if (roleFilter === "ALL") return true;
+    return c.roles.some(r => roleClass(r) === roleFilter.toLowerCase());
+  }) : [];
+
+  const allRoles = credits ? [...new Set(credits.flatMap(c => c.roles.map(roleClass)).filter(Boolean))] : [];
+
+  return (
+    <div className="page">
+      <header>
+        <div className="logo">CREDIT<span>CRATE</span></div>
+        <div className="tagline">
+          Album production lookup<br/>
+          Genius · Instagram · Credits
+        </div>
+      </header>
+
+      {/* Step Indicator */}
+      <div className="step-indicator">
+        {[["1","SEARCH ALBUM"],["2","SELECT ALBUM"],["3","VIEW CREDITS"]].map(([n, label]) => (
+          <div key={n} className={`step ${step === +n ? "active" : step > +n ? "done" : ""}`}>
+            <span className="step-num">{step > +n ? "✓" : n}</span>
+            {label}
+          </div>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div className="search-block">
+        <div className="search-row">
+          <div className="search-input-wrap">
+            <label className="search-label">Album name</label>
+            <input
+              type="text"
+              placeholder="e.g. good kid, m.A.A.d city"
+              value={albumQuery}
+              onChange={e => setAlbumQuery(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleSearch()}
+            />
+          </div>
+          <div className="search-input-wrap" style={{ maxWidth: 260 }}>
+            <label className="search-label">Artist (optional)</label>
+            <input
+              type="text"
+              placeholder="e.g. Kendrick Lamar"
+              value={artistQuery}
+              onChange={e => setArtistQuery(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleSearch()}
+            />
+          </div>
+          <button className="search-btn" onClick={handleSearch} disabled={loading || !albumQuery.trim()}>
+            SEARCH
+          </button>
+        </div>
+      </div>
+
+      {/* Error */}
+      {error && <div className="error-msg">⚠ {error}</div>}
+
+      {/* Status */}
+      {loading && (
+        <div className="status-bar">
+          <div className="spinner" />
+          {statusMsg}
+        </div>
+      )}
+      {!loading && statusMsg && <div className="status-bar">{statusMsg}</div>}
+
+      {/* Album Results */}
+      {searchResults && searchResults.length > 0 && !selectedAlbum && (
+        <div className="album-results">
+          {searchResults.map(alb => (
+            <div
+              key={alb.id}
+              className={`album-card ${selectedAlbum?.id === alb.id ? "selected" : ""}`}
+              onClick={() => handleSelectAlbum(alb)}
+            >
+              {alb.cover_art ? (
+                <img className="album-cover" src={alb.cover_art} alt={alb.name} />
+              ) : (
+                <div className="album-cover-placeholder">♪</div>
+              )}
+              <div className="album-info">
+                <div className="album-name">{alb.name}</div>
+                <div className="album-artist">{alb.artist}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Credits */}
+      {credits && credits.length > 0 && (
+        <>
+          <div className="credits-header">
+            <div className="credits-title">
+              {selectedAlbum?.name.toUpperCase()}
+            </div>
+            <div className="filter-row">
+              {["ALL", "PRODUCER", "ENGINEER", "MIXER", "WRITER"].map(f => (
+                <button
+                  key={f}
+                  className={`filter-btn ${roleFilter === f ? "active" : ""}`}
+                  onClick={() => setRoleFilter(f)}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+            <button className="export-btn" onClick={() => csvExport(filteredCredits)}>
+              ↓ EXPORT CSV
+            </button>
+          </div>
+
+          <div className="credits-grid">
+            <div className="credit-row header-row">
+              <div className="cell">NAME</div>
+              <div className="cell">ROLES</div>
+              <div className="cell">TRACKS</div>
+              <div className="cell">INSTAGRAM</div>
+              <div className="cell">EMAIL</div>
+            </div>
+            {filteredCredits.map((c, i) => (
+              <CreditRow key={c.name} credit={c} delay={i * 30} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {credits && credits.length === 0 && !loading && (
+        <div className="empty-state">
+          <span className="big">∅</span>
+          No credits found for this album on Genius.
+        </div>
+      )}
+
+      {step === 1 && !loading && !error && (
+        <div className="empty-state">
+          <span className="big">♪</span>
+          Search an album above to see who made it.
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
