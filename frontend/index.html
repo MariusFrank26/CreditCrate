@@ -354,6 +354,66 @@
   }
   .empty-state .big { font-family: var(--display); font-size: 64px; display: block; color: var(--border); margin-bottom: 16px; }
 
+  /* ── HOW IT WORKS ── */
+  .how-it-works {
+    margin-bottom: 56px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+  }
+  .how-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .how-step::before {
+    content: attr(data-n);
+    font-family: var(--display);
+    font-size: 72px;
+    color: var(--border);
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .how-step-icon {
+    font-size: 22px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .how-step-title {
+    font-family: var(--display);
+    font-size: 17px;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .how-step-desc {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  @media (max-width: 700px) {
+    .how-it-works { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ── CACHE BADGE ── */
+  .cache-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border: 1px solid #b8d8f044;
+    color: #b8d8f0;
+    background: #b8d8f008;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
   /* ── STEP INDICATORS ── */
   .step-indicator {
     display: flex;
@@ -447,7 +507,9 @@ function RoleTag({ role }) {
 
 function CreditRow({ credit, delay }) {
   const [copied, setCopied] = useState(false);
-  const email = credit.instagram_data?.email;
+  const email      = credit.instagram_data?.email;
+  const fromCache  = credit.instagram_data?.from_cache;
+  const songTitles = credit.songs.map(s => s.title).join(", ");
 
   function copyEmail() {
     if (!email) return;
@@ -456,8 +518,6 @@ function CreditRow({ credit, delay }) {
       setTimeout(() => setCopied(false), 1500);
     });
   }
-
-  const songTitles = credit.songs.map(s => s.title).join(", ");
 
   return (
     <div className="credit-row" style={{ animationDelay: `${delay}ms` }} title={`Songs: ${songTitles}`}>
@@ -494,6 +554,7 @@ function CreditRow({ credit, delay }) {
           <>
             <span className="email-val">{email}</span>
             <button className="email-copy" onClick={copyEmail}>{copied ? "✓" : "COPY"}</button>
+            {fromCache && <span className="cache-badge" title="Loaded from local cache">CACHED</span>}
           </>
         ) : credit.instagram_data?.error ? (
           <span className="email-val none">login required</span>
@@ -577,8 +638,8 @@ function App() {
       <header>
         <div className="logo">CREDIT<span>CRATE</span></div>
         <div className="tagline">
-          Album production lookup<br/>
-          Genius · Instagram · Credits
+          Search any album → find every producer<br/>
+          &amp; engineer → get their contact email
         </div>
       </header>
 
@@ -702,9 +763,39 @@ function App() {
       )}
 
       {step === 1 && !loading && !error && (
-        <div className="empty-state">
-          <span className="big">♪</span>
-          Search an album above to see who made it.
+        <div className="how-it-works">
+          <div className="how-step" data-n="1">
+            <span className="how-step-icon">🔍</span>
+            <div className="how-step-title">SEARCH</div>
+            <p className="how-step-desc">
+              Type any album name above — add the artist name to narrow results.
+              We search Genius's database of millions of releases.
+            </p>
+          </div>
+          <div className="how-step" data-n="2">
+            <span className="how-step-icon">💿</span>
+            <div className="how-step-title">PICK ALBUM</div>
+            <p className="how-step-desc">
+              Select the right album from the results.
+              We'll pull every track and fetch the full production credits.
+            </p>
+          </div>
+          <div className="how-step" data-n="3">
+            <span className="how-step-icon">🎛️</span>
+            <div className="how-step-title">GET CREDITS</div>
+            <p className="how-step-desc">
+              See every producer, engineer, mixer and writer — with their roles,
+              how many tracks they worked on, and their Instagram handle.
+            </p>
+          </div>
+          <div className="how-step" data-n="4">
+            <span className="how-step-icon">📧</span>
+            <div className="how-step-title">FIND EMAILS</div>
+            <p className="how-step-desc">
+              We scan each person's Instagram bio for a contact email.
+              Results are cached locally for 6 months to keep things fast.
+            </p>
+          </div>
         </div>
       )}
     </div>
