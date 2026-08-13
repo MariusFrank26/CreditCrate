@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: creditcrate
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    volumes:
+      - flask_data:/app/data
+
+volumes:
+  flask_data:
