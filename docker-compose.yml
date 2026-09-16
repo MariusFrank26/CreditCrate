@@ -1,17 +1,14 @@
+version: "3.8"
+
 services:
   backend:
     build: ./backend
     container_name: creditcrate-backend
     restart: unless-stopped
     environment:
-      - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN}
-    networks:
-      - proxy
-    expose:
-      - "5000"
-    # Uncomment for local testing without a reverse proxy:
-    # ports:
-    #   - "5000:5000"
+      - GENIUS_ACCESS_TOKEN=NJoASTtU9KVu9oYmEsq_4UHVLVrpDbvvEI7853EpXAL3OwFbs-t0InPLaC5V-qjE
+    ports:
+      - "5001:5000" # Exponiert das Backend lokal auf Port 5001
 
   frontend:
     build: ./frontend
@@ -19,18 +16,5 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    networks:
-      - proxy
-    expose:
-      - "80"
-    # ports:
-    #   - "8080:80"
-
-networks:
-  proxy:
-    external: true
-    # This assumes a Docker network named "proxy" already exists
-    # (e.g. the one your reverse proxy / umbrel app network uses).
-    # If it doesn't exist yet, either create it first:
-    #   docker network create proxy
-    # or drop "external: true" to let Compose create its own network.
+    ports:
+      - "8085:80" # Exponiert das Frontend lokal auf Port 8085
