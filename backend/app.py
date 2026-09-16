@@ -23,9 +23,8 @@ app = Flask(__name__)
 CORS(app, origins=["*"])  # Oder spezifisch: ["https://creditcrate.deinedomain.de", "http://localhost:8085"]
 
 # ── TOKENS AUS ENVIRONMENT-VARIABLEN ZIEHEN ──
-GENIUS_ACCESS_TOKEN = os.getenv("GENIUS_ACCESS_TOKEN", "Torr2Gb8UwYDgbCVTwMI2tDp-lVSLD_OVsTMWTAJMsISfkqxu_48Tjfwe22USqfi")
+GENIUS_ACCESS_TOKEN = os.getenv("GENIUS_ACCESS_TOKEN", "fallback_token_falls_leer")
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "fallback_token_falls_leer")
-])
 
 # ── CONFIG ── Paste your tokens here:
 GENIUS_ACCESS_TOKEN = "DN7-IZJBGU5-I0OkZDPI63hhApYFgi34XwBr5C4L8mkhZD7e4718lUxWs8oJNLdm"
