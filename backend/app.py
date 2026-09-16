@@ -17,12 +17,14 @@ from bs4 import BeautifulSoup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ── CORS ANPASSEN ──
 app = Flask(__name__)
-CORS(app, origins=[
-    "https://creditcrate.app",
-    "https://www.creditcrate.app",
-    "https://creditcrate-1.onrender.com",
-    "http://localhost:8080"
+# Erlaubt CORS für Ihre lokalen Tests & Ihre Cloudflare-Domains:
+CORS(app, origins=["*"])  # Oder spezifisch: ["https://creditcrate.deinedomain.de", "http://localhost:8085"]
+
+# ── TOKENS AUS ENVIRONMENT-VARIABLEN ZIEHEN ──
+GENIUS_ACCESS_TOKEN = os.getenv("GENIUS_ACCESS_TOKEN", "Torr2Gb8UwYDgbCVTwMI2tDp-lVSLD_OVsTMWTAJMsISfkqxu_48Tjfwe22USqfi")
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "fallback_token_falls_leer")
 ])
 
 # ── CONFIG ── Paste your tokens here:
@@ -218,6 +220,6 @@ def get_album_credits(album_id):
 def health():
     return jsonify({"status": "ok"})
 
-
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # WICHTIG: host='0.0.0.0' ist nötig, damit Docker Anfragen annimmt
+    app.run(host="0.0.0.0", port=5000)
