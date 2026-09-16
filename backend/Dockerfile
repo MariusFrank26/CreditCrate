@@ -1,20 +1,21 @@
-version: "3.8"
+# 1. Schlankes Python-Basis-Image
+FROM python:3.11-slim
 
-services:
-  backend:
-    build: ./backend
-    container_name: creditcrate-backend
-    restart: unless-stopped
-    environment:
-      - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN}
-    ports:
-      - "5001:5000" # Exponiert das Backend lokal auf Port 5001
+# 2. Arbeitsverzeichnis im Container festlegen
+WORKDIR /app
 
-  frontend:
-    build: ./frontend
-    container_name: creditcrate-frontend
-    restart: unless-stopped
-    depends_on:
-      - backend
-    ports:
-      - "8085:80" # Exponiert das Frontend lokal auf Port 8085
+# 3. Pip aktualisieren
+RUN pip install --no-cache-dir --upgrade pip
+
+# 4. requirements.txt kopieren und Pakete installieren
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 5. Den restlichen Backend-Code kopieren
+COPY . .
+
+# 6. Flask-Port dokumentieren
+EXPOSE 5000
+
+# 7. App starten
+CMD ["python", "app.py"]
