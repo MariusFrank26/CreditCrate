@@ -1,19 +1,20 @@
-FROM python:3.12-slim
+version: "3.8"
 
-WORKDIR /app
+services:
+  backend:
+    build: ./backend
+    container_name: creditcrate-backend
+    restart: unless-stopped
+    environment:
+      - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN}
+    ports:
+      - "5001:5000" # Exponiert das Backend lokal auf Port 5001
 
-# System deps: lxml/instaloader sometimes need these to build wheels
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libxml2-dev \
-    libxslt1-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-EXPOSE 5000
-
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "app:app"]
+  frontend:
+    build: ./frontend
+    container_name: creditcrate-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8085:80" # Exponiert das Frontend lokal auf Port 8085
