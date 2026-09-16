@@ -7,8 +7,9 @@ services:
     restart: unless-stopped
     environment:
       - GENIUS_ACCESS_TOKEN=NJoASTtU9KVu9oYmEsq_4UHVLVrpDbvvEI7853EpXAL3OwFbs-t0InPLaC5V-qjE
+      - RAPIDAPI_KEY=${RAPIDAPI_KEY}
     ports:
-      - "5001:5000" # Exponiert das Backend lokal auf Port 5001
+      - "5001:5000"
 
   frontend:
     build: ./frontend
@@ -17,4 +18,4 @@ services:
     depends_on:
       - backend
     ports:
-      - "8085:80" # Exponiert das Frontend lokal auf Port 8085
+      - "8085:80"
