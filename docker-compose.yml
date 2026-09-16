@@ -2,17 +2,21 @@ version: "3.8"
 
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      network: host
     container_name: creditcrate-backend
     restart: unless-stopped
     environment:
-  - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN}
-  - RAPIDAPI_KEY=${RAPIDAPI_KEY}
+      - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN}
+      - RAPIDAPI_KEY=${RAPIDAPI_KEY}
     ports:
       - "5001:5000"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      network: host
     container_name: creditcrate-frontend
     restart: unless-stopped
     depends_on:
