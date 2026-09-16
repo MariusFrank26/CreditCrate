@@ -6,8 +6,8 @@ services:
     container_name: creditcrate-backend
     restart: unless-stopped
     environment:
-      - GENIUS_ACCESS_TOKEN=NJoASTtU9KVu9oYmEsq_4UHVLVrpDbvvEI7853EpXAL3OwFbs-t0InPLaC5V-qjE
-      - RAPIDAPI_KEY=${RAPIDAPI_KEY}
+  - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN}
+  - RAPIDAPI_KEY=${RAPIDAPI_KEY}
     ports:
       - "5001:5000"
 
