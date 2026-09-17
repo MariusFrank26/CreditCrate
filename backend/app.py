@@ -1,18 +1,30 @@
 """
 CreditCrate - Backend
 Requirements:
-    pip install flask flask-cors requests instaloader beautifulsoup4 gunicorn
+    pip install flask flask-cors requests instaloader gunicorn
+
+Einmaliges Setup für Instagram (Instaloader-Session statt RapidAPI):
+    python login.py
+    -> legt ein Session-File für IG_SESSION_USERNAME an, das app.py danach
+       bei jedem Start wiederverwendet (kein erneuter Login pro Request).
 """
 
 import os
-import re
 import time
-import json
+import random
+import sqlite3
 import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
-from bs4 import BeautifulSoup
+import instaloader
+from instaloader.exceptions import (
+    ProfileNotExistsException,
+    LoginRequiredException,
+    ConnectionException,
+    TooManyRequestsException,
+    InstaloaderException,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,20 +36,20 @@ CORS(app, origins=["*"])  # Oder spezifisch: ["https://creditcrate.deinedomain.d
 
 # ── TOKENS AUS ENVIRONMENT-VARIABLEN ZIEHEN ──
 GENIUS_ACCESS_TOKEN = os.getenv("GENIUS_ACCESS_TOKEN", "fallback_token_falls_leer")
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "fallback_token_falls_leer")
-
-# ── CONFIG ── Paste your tokens here:
-GENIUS_ACCESS_TOKEN = "DN7-IZJBGU5-I0OkZDPI63hhApYFgi34XwBr5C4L8mkhZD7e4718lUxWs8oJNLdm"
-RAPIDAPI_KEY = "a931159602mshc052a773bf091ecp14c985jsn4eebab3ee251"
 GENIUS_BASE = "https://api.genius.com"
 HEADERS = {"Authorization": f"Bearer {GENIUS_ACCESS_TOKEN}"}
 
-BROWSER_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.5",
-    "Connection": "keep-alive",
-}
+# ── INSTAGRAM (Instaloader statt RapidAPI) ──
+# Login läuft einmalig über login.py und legt ein Session-File an, das hier wiederverwendet wird.
+IG_SESSION_USERNAME = os.getenv("IG_SESSION_USERNAME", "creditcrate.app")
+# Wenn ein Fetch fehlschlägt (z.B. rate limit), erst nach X Stunden erneut versuchen.
+# Erfolgreiche Treffer (auch email=None, aber Profil existiert) bleiben unbegrenzt im Cache -
+# public business emails ändern sich praktisch nie, neu scrapen bringt nichts.
+RETRY_FAILED_AFTER_HOURS = 12
+
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "creditcrate.db")
+
+_ig_loader = None
 
 
 def genius_search_album(album_name, artist_name=""):
@@ -124,42 +136,136 @@ def get_artist_instagram(genius_artist_id):
     return None
 
 
-def extract_email_from_bio(text):
-    if not text:
-        return None
-    match = re.search(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", text)
-    return match.group(0) if match else None
+def init_cache_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS artist_cache (
+                genius_id INTEGER PRIMARY KEY,
+                name TEXT,
+                instagram_handle TEXT,
+                instagram_email TEXT,
+                instagram_bio TEXT,
+                instagram_full_name TEXT,
+                instagram_followers INTEGER,
+                instagram_error TEXT,
+                last_updated REAL
+            )
+        """)
 
 
-def get_instagram_email(ig_handle):
+init_cache_db()
+
+
+def get_cached_ig(genius_id):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM artist_cache WHERE genius_id = ?", (genius_id,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def store_cached_ig(genius_id, name, handle, email=None, full_name=None, followers=None, error=None):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
+            INSERT INTO artist_cache
+                (genius_id, name, instagram_handle, instagram_email,
+                 instagram_full_name, instagram_followers, instagram_error, last_updated)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(genius_id) DO UPDATE SET
+                name=excluded.name,
+                instagram_handle=excluded.instagram_handle,
+                instagram_email=excluded.instagram_email,
+                instagram_full_name=excluded.instagram_full_name,
+                instagram_followers=excluded.instagram_followers,
+                instagram_error=excluded.instagram_error,
+                last_updated=excluded.last_updated
+        """, (genius_id, name, handle, email, full_name, followers, error, time.time()))
+
+
+def get_instaloader_context():
+    """Ein einziger, wiederverwendeter eingeloggter Instaloader-Context für den ganzen Prozess -
+    kein Re-Login pro Request (das würde Instagram sofort auffallen)."""
+    global _ig_loader
+    if _ig_loader is None:
+        loader = instaloader.Instaloader(
+            download_pictures=False,
+            download_videos=False,
+            download_video_thumbnails=False,
+            download_geotags=False,
+            download_comments=False,
+            save_metadata=False,
+            compress_json=False,
+            quiet=True,
+        )
+        try:
+            loader.load_session_from_file(IG_SESSION_USERNAME)
+            logger.info(f"Instagram-Session für @{IG_SESSION_USERNAME} geladen")
+        except FileNotFoundError:
+            logger.warning(
+                "Kein Instagram-Session-File gefunden. Einmalig 'python login.py' ausführen, "
+                "um dich mit dem Scraper-Account einzuloggen und die Session zu speichern."
+            )
+        _ig_loader = loader
+    return _ig_loader
+
+
+def fetch_instagram_business_email(ig_handle):
+    """Holt AUSSCHLIESSLICH die public business email (Contact-Button-Feld) eines Profils.
+    Kein Bio-Parsing, kein Download von Posts/Followern - ein einzelner, leichtgewichtiger
+    Profil-Request pro Aufruf."""
+    loader = get_instaloader_context()
+    time.sleep(random.uniform(2.0, 5.0))  # kein Burst-Pattern, sieht "menschlicher" aus
+    try:
+        profile = instaloader.Profile.from_username(loader.context, ig_handle)
+        return {
+            "email": getattr(profile, "business_email", None),
+            "full_name": profile.full_name,
+            "followers": profile.followers,
+            "error": None,
+        }
+    except ProfileNotExistsException:
+        return {"email": None, "full_name": None, "followers": None, "error": "profile_not_found"}
+    except LoginRequiredException:
+        return {"email": None, "full_name": None, "followers": None, "error": "login_required"}
+    except TooManyRequestsException:
+        return {"email": None, "full_name": None, "followers": None, "error": "rate_limited"}
+    except ConnectionException as e:
+        return {"email": None, "full_name": None, "followers": None, "error": f"connection_error: {e}"}
+    except InstaloaderException as e:
+        return {"email": None, "full_name": None, "followers": None, "error": f"instaloader_error: {e}"}
+
+
+def get_instagram_email(genius_id, name, ig_handle):
+    """Aggressiv gecacht: Instagram wird nur angefragt, wenn für diesen Artist noch
+    nichts Brauchbares im Cache liegt. Treffer (auch 'kein Business-Email hinterlegt')
+    bleiben dauerhaft gecacht; nur gescheiterte Versuche (rate limit etc.) werden nach
+    RETRY_FAILED_AFTER_HOURS erneut versucht."""
     if not ig_handle:
         return None
-    try:
-        url = "https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/profile"
-        headers = {
-            "x-rapidapi-key": RAPIDAPI_KEY,
-            "x-rapidapi-host": "instagram-api-fast-reliable-data-scraper.p.rapidapi.com"
-        }
-        resp = requests.get(url, headers=headers, params={"username": ig_handle}, timeout=10)
-        if resp.status_code != 200:
-            return {"email": None, "error": f"HTTP {resp.status_code}"}
 
-        data = resp.json()
-        bio = data.get("biography") or data.get("bio") or ""
-        email = extract_email_from_bio(bio)
-        ext_url = data.get("external_url") or data.get("website") or ""
-        if not email and ext_url:
-            email = extract_email_from_bio(ext_url)
+    cached = get_cached_ig(genius_id)
+    if cached:
+        error_is_stale = (
+            cached["instagram_error"]
+            and (time.time() - cached["last_updated"]) > RETRY_FAILED_AFTER_HOURS * 3600
+        )
+        if not error_is_stale:
+            logger.info(f"Cache-Hit für @{ig_handle} (genius_id={genius_id})")
+            return {
+                "email": cached["instagram_email"],
+                "full_name": cached["instagram_full_name"],
+                "followers": cached["instagram_followers"],
+            }
 
-        return {
-            "email": email,
-            "full_name": data.get("full_name") or data.get("fullName"),
-            "bio": bio,
-            "followers": data.get("followers") or data.get("follower_count"),
-        }
-    except Exception as e:
-        logger.warning(f"Error fetching Instagram for {ig_handle}: {e}")
-        return None
+    logger.info(f"Cache-Miss - hole Instagram-Profil @{ig_handle}")
+    result = fetch_instagram_business_email(ig_handle)
+    store_cached_ig(
+        genius_id, name, ig_handle,
+        email=result["email"], full_name=result["full_name"],
+        followers=result["followers"], error=result["error"],
+    )
+    return {"email": result["email"], "full_name": result["full_name"], "followers": result["followers"]}
 
 
 @app.route("/api/search", methods=["GET"])
@@ -204,9 +310,7 @@ def get_album_credits(album_id):
                 ig_handle = get_artist_instagram(genius_id)
                 credit["instagram_handle"] = ig_handle
                 if ig_handle:
-                    logger.info(f"Fetching IG for @{ig_handle}")
-                    credit["instagram_data"] = get_instagram_email(ig_handle)
-                time.sleep(0.3)
+                    credit["instagram_data"] = get_instagram_email(genius_id, name, ig_handle)
 
         return jsonify({"credits": list(all_credits.values())})
 
