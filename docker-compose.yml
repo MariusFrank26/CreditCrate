@@ -13,7 +13,7 @@ services:
       - IG_SESSION_USERNAME=${IG_SESSION_USERNAME}
     volumes:
       - ig_session:/root/.config/instaloader   # Instagram-Session überlebt Rebuilds/Redeploys
-      - ./backend/creditcrate.db:/app/creditcrate.db  # Cache-DB überlebt Rebuilds
+      - cache_data:/app/data                   # Verzeichnis statt Einzeldatei - vermeidet Mount-Fehler
     # Mit network_mode: host entfällt das Port-Mapping - Flask läuft direkt auf
     # Host-Port 5000 (siehe app.run(port=5000) in app.py). Falls bisher etwas auf
     # Port 5001 zeigte (Nginx, Reverse Proxy, Frontend-API-URL), auf 5000 umstellen!
@@ -31,3 +31,4 @@ services:
 
 volumes:
   ig_session:
+  cache_data:
