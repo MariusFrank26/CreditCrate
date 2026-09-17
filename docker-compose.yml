@@ -1,5 +1,5 @@
 version: "3.8"
-
+ 
 services:
   backend:
     build:
@@ -9,10 +9,13 @@ services:
     restart: unless-stopped
     environment:
       - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN}
-      - RAPIDAPI_KEY=${RAPIDAPI_KEY}
+      - IG_SESSION_USERNAME=${IG_SESSION_USERNAME}
+    volumes:
+      - ig_session:/root/.config/instaloader   # Instagram-Session überlebt Rebuilds/Redeploys
+      - ./backend/creditcrate.db:/app/creditcrate.db  # Cache-DB überlebt Rebuilds
     ports:
       - "5001:5000"
-
+ 
   frontend:
     build:
       context: ./frontend
@@ -23,3 +26,6 @@ services:
       - backend
     ports:
       - "8085:80"
+ 
+volumes:
+  ig_session:
