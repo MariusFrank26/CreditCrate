@@ -47,7 +47,9 @@ IG_SESSION_USERNAME = os.getenv("IG_SESSION_USERNAME", "creditcrate.app")
 # public business emails ändern sich praktisch nie, neu scrapen bringt nichts.
 RETRY_FAILED_AFTER_HOURS = 12
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "creditcrate.db")
+DB_DIR = os.getenv("CACHE_DB_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"))
+os.makedirs(DB_DIR, exist_ok=True)
+DB_PATH = os.path.join(DB_DIR, "creditcrate.db")
 
 _ig_loader = None
 
