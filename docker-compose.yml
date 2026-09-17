@@ -1,5 +1,5 @@
 version: "3.8"
- 
+
 services:
   backend:
     build:
@@ -7,15 +7,17 @@ services:
       network: host
     container_name: creditcrate-backend
     restart: unless-stopped
+    network_mode: host
     environment:
       - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN}
       - IG_SESSION_USERNAME=${IG_SESSION_USERNAME}
     volumes:
       - ig_session:/root/.config/instaloader   # Instagram-Session überlebt Rebuilds/Redeploys
       - ./backend/creditcrate.db:/app/creditcrate.db  # Cache-DB überlebt Rebuilds
-    ports:
-      - "5001:5000"
- 
+    # Mit network_mode: host entfällt das Port-Mapping - Flask läuft direkt auf
+    # Host-Port 5000 (siehe app.run(port=5000) in app.py). Falls bisher etwas auf
+    # Port 5001 zeigte (Nginx, Reverse Proxy, Frontend-API-URL), auf 5000 umstellen!
+
   frontend:
     build:
       context: ./frontend
@@ -26,6 +28,6 @@ services:
       - backend
     ports:
       - "8085:80"
- 
+
 volumes:
   ig_session:
