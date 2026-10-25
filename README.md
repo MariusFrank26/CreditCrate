@@ -1,72 +1,86 @@
-CREDITS — Album Production Lookup Tool
+# CreditCrate — Album Production Lookup
 
-Search any album → see every producer & engineer → find their Instagram → get their email.
+Search an album → see every producer, engineer and mixer → find their Instagram → get their public contact email.
 
-Setup
-1. Get a Genius API Token (free)
-Go to https://genius.com/api-clients
-Create a new app (name/URL can be anything)
-Copy your Client Access Token
-2. Instagram Session (Instaloader)
+## Setup
 
-Instagram requires a logged-in session for reliable profile lookups.
+### 1. Genius API token
+1. Create an app at https://genius.com/api-clients (name and URL can be anything).
+2. Copy the **Client Access Token**.
 
-cd backend
-Run python login.py once, enter your scraper account's username/password
-This saves a session file to ~/.config/instaloader/session-<username> — the backend reuses it on every start, no repeated logins
-3. Backend (Python)
-bash
+### 2. Environment file
+Create `.env` in the repo root (it is git-ignored):
+
+```env
+GENIUS_ACCESS_TOKEN=your_token_here
+IG_SESSION_USERNAME=your_scraper_ig_username
+```
+
+`IG_SESSION_USERNAME` must match the account you log in with in step 3.
+
+### 3. Instagram session (one time)
+Instagram needs a logged-in session for reliable profile lookups.
+
+```bash
 cd backend
 pip install -r requirements.txt
+python login.py
+```
 
-# Set your Genius token
-export GENIUS_ACCESS_TOKEN="your_token_here"
-# Must match the username you logged in with in login.py
-export IG_SESSION_USERNAME="your_scraper_ig_username"
+Enter the scraper account's password when prompted. It is never stored; only the session file is saved to `~/.config/instaloader/session-<username>`, and the backend reuses it on every start.
 
-python app.py
+### 4a. Run with Docker (recommended)
+```bash
+docker compose up -d --build
+```
+- Backend: http://localhost:5000
+- Frontend: http://localhost:8085
 
-Server runs at http://localhost:5000
+The SQLite cache and Instagram session live in Docker volumes, so they survive rebuilds.
 
-4. Frontend
+### 4b. Run locally without Docker
+```bash
+cd backend
+GENIUS_ACCESS_TOKEN=... IG_SESSION_USERNAME=... python app.py
+```
+Then serve the frontend: `cd frontend && python -m http.server 8080`, and open http://localhost:8080.
 
-Just open frontend/index.html in a browser. No build step needed.
+## How it works
+1. **Search** — the backend queries the Genius search API.
+2. **Pick album** — you choose the right release from the results.
+3. **Credits** — for every track the backend:
+   - fetches the Genius song page and reads `custom_performances` (producer, engineer, mixer, …),
+   - visits each credited person's Genius artist page to find their linked Instagram handle,
+   - uses the logged-in Instaloader session to read the profile's public business/contact email. Nothing else is read.
+4. **Results** — a table of name, roles, tracks, Instagram and email. Filter by role, copy emails, export CSV.
 
-If you want to serve it properly:
+Results are cached by Genius ID in `creditcrate.db` (`artist_cache` table), so repeat searches never hit Instagram again.
 
-bash
-cd frontend
-python -m http.server 8080
+## Instagram lookup notes
+- Instagram blocks bots aggressively. One shared session is reused for all requests, which avoids the repeated logins that usually trigger blocks.
+- Successful lookups, including "no email set", are cached indefinitely. Failed lookups (rate limit, connection error) are retried after 12 hours.
+- A 2–5 s random delay applies only on cache misses.
+- Private profiles, non-business accounts and profiles without a contact email show as "not available".
 
-Then open http://localhost:8080
-
-How It Works
-Search — You type an album name (+ optional artist). The backend hits the Genius search API.
-Pick Album — You select the right album from results.
-Credits Fetch — For every track, the backend:
-Fetches the Genius song page and extracts custom_performances (producer, engineer, mixer, etc.)
-Visits each credited person's Genius artist page to find their linked Instagram handle
-Uses instaloader (logged-in session) to fetch the profile's public business/contact email — the same email shown behind the "Contact" button on the profile, nothing else is read
-Results are cached by genius_id in creditcrate.db (artist_cache table), so a repeat search never re-hits Instagram
-Results — You see a table with name, roles, tracks, Instagram link, and email. Export to CSV anytime.
-Instagram Lookup Notes
-
-Instagram is aggressive about blocking bots. How this project handles it:
-
-Only the public business email is fetched — one lightweight profile request per handle, no bio scraping, no follower/post crawling
-One shared logged-in session is reused across all requests (login.py sets it up once, app.py loads it on startup) — no repeated logins, which is what usually triggers blocks
-Aggressive caching: any successful lookup (even "no email set") is cached indefinitely in creditcrate.db; only failed attempts (rate limit, connection error) are retried, and only after 12h
-A small random delay (2–5s) is added only on an actual cache miss
-Some profiles are private, not a Business/Creator account, or simply have no contact email set — those show as "not available"
-Folder Structure
-album-credits-tool/
+## Project structure
+```
+CreditCrate/
 ├── backend/
-│   ├── app.py            # Flask API server
-│   └── requirements.txt
-└── frontend/
-    └── index.html        # Single-file React web app
-API Endpoints
-Endpoint	Description
-GET /api/search?album=...&artist=...	Search for albums on Genius
-GET /api/album/{id}/credits	Get all credits for an album
-GET /api/health	Check server + instaloader status
+│   ├── app.py             # Flask API server, Genius + Instagram lookups, SQLite cache
+│   ├── login.py           # One-time Instagram session setup
+│   ├── requirements.txt
+│   └── Dockerfile
+├── frontend/
+│   ├── index.html         # Single-file React app (no build step)
+│   └── Dockerfile         # nginx static server
+├── docker-compose.yml
+└── requirements.txt
+```
+
+## API
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/search?album=…&artist=…` | Search albums on Genius |
+| `GET /api/album/{id}/credits` | All credits for an album |
+| `GET /api/health` | Server and Instaloader status |
