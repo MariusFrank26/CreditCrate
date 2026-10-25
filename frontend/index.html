@@ -409,13 +409,18 @@
   .empty-state .back-btn { margin-top: 20px; }
 
   /* ── EXPLAINER (landing) ── */
-  .explainer {
+  .explainer { padding: 56px 0 0; }
+  .section-title { font-size: 28px; font-weight: 510; letter-spacing: -0.02em; line-height: 1.2; color: var(--paper); }
+  .how-steps {
+    list-style: none;
     display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: 56px;
-    align-items: center;
-    padding: 40px 0 24px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    margin: 24px 0 40px;
   }
+  .how-step .num { font-family: var(--mono); font-size: 12px; color: var(--ash); }
+  .how-step-title { margin-top: 8px; font-size: 16px; font-weight: 510; color: var(--paper); }
+  .how-step-desc { margin-top: 6px; font-size: 14px; color: var(--fog); }
   .explainer > * {
     animation: rise .7s cubic-bezier(.2, .7, .2, 1) both;
     animation-delay: calc(var(--i, 0) * 120ms);
@@ -424,35 +429,6 @@
     from { opacity: 0; transform: translateY(14px); }
     to { opacity: 1; transform: none; }
   }
-  .explainer-title {
-    font-size: 48px;
-    font-weight: 510;
-    letter-spacing: -0.022em;
-    line-height: 1;
-    color: var(--paper);
-    text-wrap: balance;
-  }
-  .explainer-copy { margin-top: 16px; font-size: 16px; color: var(--fog); max-width: 44ch; }
-  .explainer-steps { list-style: none; margin-top: 32px; display: grid; gap: 4px; }
-  .explainer-step {
-    position: relative;
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: transparent;
-    border: 0;
-    border-radius: 6px;
-    padding: 10px 12px 14px;
-    color: var(--ash);
-    font: inherit;
-    cursor: pointer;
-    transition: color .2s, background-color .2s;
-  }
-  .explainer-step:hover { color: var(--mist); background: rgba(255, 255, 255, 0.02); }
-  .explainer-step[aria-pressed="true"] { color: var(--paper); background: rgba(255, 255, 255, 0.03); }
-  .explainer-step-title { display: block; font-size: 15px; font-weight: 510; }
-  .explainer-step-title .num { font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--ash); margin-right: 10px; }
-  .explainer-step-desc { display: block; font-size: 13px; color: var(--fog); margin-top: 2px; padding-left: 28px; }
 
   /* ── NEWSLETTER + SIGN-IN PANELS ── */
   .panel {
@@ -464,17 +440,26 @@
   .panel-title { font-size: 20px; font-weight: 510; letter-spacing: -0.016em; color: var(--paper); }
   .panel-copy { margin-top: 8px; font-size: 14px; color: var(--fog); }
   .panel-form { margin-top: 20px; }
-  .step-progress {
-    position: absolute; left: 12px; right: 12px; bottom: 4px;
-    height: 1px; background: var(--graphite); overflow: hidden;
+
+  /* ── HERO + SIGN-UP ── */
+  .hero { padding: 40px 0 0; max-width: 760px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
+  .hero-title {
+    margin-top: 16px;
+    font-size: clamp(36px, 5.5vw, 60px);
+    font-weight: 510;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    color: var(--paper);
+    text-wrap: balance;
   }
-  .step-progress > span {
-    display: block; height: 100%;
-    background: var(--mist);
-    transform-origin: left;
-    transform: scaleX(var(--p, 0));
-    transition: transform 50ms linear;
-  }
+  .hero-copy { margin-top: 20px; font-size: 18px; color: var(--fog); max-width: 56ch; }
+  .signup { margin-top: 32px; max-width: 560px; }
+  .signup-done { font-size: 15px; color: var(--mist); }
+
+  /* ── FOOTER ── */
+  .site-footer { margin-top: 96px; border-top: 1px solid var(--graphite); padding-top: 24px; }
+  .site-footer-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 13px; color: var(--ash); }
 
   .demo { position: relative; }
   .demo::before {
@@ -576,7 +561,6 @@
 
   @media (max-width: 900px) {
     .explainer { grid-template-columns: 1fr; gap: 32px; padding-top: 16px; }
-    .explainer-title { font-size: 36px; }
   }
   @media (max-width: 600px) {
     .demo-card { padding: 14px; }
@@ -587,6 +571,7 @@
   /* ── RESPONSIVE ── */
   @media (max-width: 700px) {
     .search-row { flex-direction: column; align-items: stretch; }
+    .how-steps { grid-template-columns: 1fr; }
     .search-input-artist { max-width: none; }
     .search-btn { justify-content: center; height: 52px; }
   }
@@ -630,7 +615,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     .credit-row, .explainer > *, .caret { animation: none; }
-    .fade, .demo-album, .step-progress > span { transition: none; }
+    .fade, .demo-album { transition: none; }
     .spinner { animation-duration: 2s; }
   }
 </style>
@@ -817,40 +802,20 @@ function Explainer() {
   const pressed = t >= 1450 && t < 1650;
   const albumIn = t >= 1700;
   const albumSelected = t >= 2300;
-  const activePhase = DEMO_PHASES.findIndex(p => t >= p.start && t < p.end);
-  const phase = DEMO_PHASES[activePhase];
-  const progress = (t - phase.start) / (phase.end - phase.start);
-
-  // Playing: replay the phase from its start. Paused or reduced motion: show its finished state.
-  function jumpTo(i) {
-    const p = DEMO_PHASES[i];
-    setT(playing ? p.start : p.end - DEMO_TICK);
-  }
-
   return (
     <section className="explainer" aria-labelledby="explainer-heading">
-      <div style={{ "--i": 0 }}>
-        <h2 id="explainer-heading" className="explainer-title">Who made that record?</h2>
-        <p className="explainer-copy">
-          Search any album. CreditCrate lists everyone who worked on it, from producers to mix engineers,
-          with their Instagram and public contact email.
-        </p>
-        <ol className="explainer-steps">
-          {DEMO_PHASES.map((p, i) => (
-            <li key={p.title}>
-              <button type="button" className="explainer-step" aria-pressed={i === activePhase} onClick={() => jumpTo(i)}>
-                <span className="explainer-step-title"><span className="num">0{i + 1}</span>{p.title}</span>
-                <span className="explainer-step-desc">{p.desc}</span>
-                <span className="step-progress" aria-hidden="true">
-                  <span style={{ "--p": i === activePhase && playing ? progress : 0 }} />
-                </span>
-              </button>
-            </li>
-          ))}
-        </ol>
-      </div>
+      <h2 id="explainer-heading" className="section-title">How it works</h2>
+      <ol className="how-steps">
+        {DEMO_PHASES.map((p, i) => (
+          <li key={p.title} className="how-step">
+            <span className="num">0{i + 1}</span>
+            <h3 className="how-step-title">{p.title}</h3>
+            <p className="how-step-desc">{p.desc}</p>
+          </li>
+        ))}
+      </ol>
 
-      <div className="demo" style={{ "--i": 1 }}>
+      <div className="demo">
         <div className="demo-card" aria-hidden="true">
           <div className="demo-bar">
             <div className="demo-input">
@@ -1008,15 +973,13 @@ function NewsletterForm() {
   }
 
   return (
-    <section className="panel" aria-labelledby="newsletter-heading">
-      <h2 id="newsletter-heading" className="panel-title">Get notified at launch</h2>
-      <p className="panel-copy">CreditCrate isn't public yet. Leave your email and we'll let you know the day it's released.</p>
+    <div className="signup">
       {status === "done" ? (
-        <p className="panel-copy panel-form" role="status">You're on the list.</p>
+        <p className="signup-done" role="status">You're on the list. We'll email you the day it's live.</p>
       ) : (
-        <form className="search-row panel-form" onSubmit={handleSubmit}>
+        <form className="search-row" onSubmit={handleSubmit}>
           <div className="search-input-wrap">
-            <label className="search-label" htmlFor="newsletter-email">Email</label>
+            <label className="search-label" htmlFor="newsletter-email">Get notified when it's live</label>
             <input
               id="newsletter-email"
               type="email"
@@ -1036,7 +999,7 @@ function NewsletterForm() {
         </form>
       )}
       {error && <div className="error-msg" role="alert">⚠ {error}</div>}
-    </section>
+    </div>
   );
 }
 
@@ -1161,23 +1124,15 @@ function App() {
         </h1>
         <div className="header-actions">
           <p className="tagline">
-            Album production lookup<br/>
-            Genius · Instagram · Credits
+            Producer credits<br/>
+            Public contacts
           </p>
-          {token ? (
-            <button type="button" className="back-btn" onClick={() => signOut()}>Sign out</button>
-          ) : (
-            <button type="button" className="back-btn" aria-expanded={showLogin} onClick={() => setShowLogin(s => !s)}>
-              {showLogin ? "Close" : "Sign in"}
-            </button>
-          )}
+          {token && <button type="button" className="back-btn" onClick={() => signOut()}>Sign out</button>}
         </div>
       </header>
 
       <main id="main">
         {error && <div className="error-msg" role="alert">⚠ {error}</div>}
-
-        {!token && showLogin && <LoginForm onSignedIn={handleSignedIn} />}
 
         {token && <>
         <ol className="step-indicator" aria-label="Progress">
@@ -1333,10 +1288,30 @@ function App() {
         </>}
 
         {!token && <>
+          <section className="hero" aria-labelledby="hero-heading">
+            <p className="eyebrow">Launching soon</p>
+            <h2 id="hero-heading" className="hero-title">Know who to send your beat to.</h2>
+            <p className="hero-copy">
+              CreditCrate lists every producer, engineer and mixer on an album, with their Instagram
+              and public contact email. Send your samples and beats to the people who made the records you love.
+            </p>
+            <NewsletterForm />
+          </section>
           <Explainer />
-          <NewsletterForm />
         </>}
       </main>
+
+      <footer className="site-footer">
+        {!token && showLogin && <LoginForm onSignedIn={handleSignedIn} />}
+        <div className="site-footer-row">
+          <span>CreditCrate © 2026</span>
+          {!token && (
+            <button type="button" className="back-btn" aria-expanded={showLogin} onClick={() => setShowLogin(s => !s)}>
+              {showLogin ? "Close" : "Member sign in"}
+            </button>
+          )}
+        </div>
+      </footer>
     </div>
   );
 }
