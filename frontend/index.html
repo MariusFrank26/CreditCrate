@@ -249,7 +249,7 @@
     color: var(--paper);
   }
   .filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .filter-btn, .export-btn, .back-btn, .email-copy {
+  .filter-btn, .export-btn, .back-btn, .email-copy, .demo-toggle {
     font-family: var(--sans);
     font-size: 13px;
     letter-spacing: -0.011em;
@@ -261,7 +261,7 @@
     cursor: pointer;
     transition: color .15s, border-color .15s, background-color .15s;
   }
-  .filter-btn:hover, .export-btn:hover:not(:disabled), .back-btn:hover:not(:disabled), .email-copy:hover {
+  .filter-btn:hover, .export-btn:hover:not(:disabled), .back-btn:hover:not(:disabled), .email-copy:hover, .demo-toggle:hover {
     border-color: var(--smoke);
     color: var(--paper);
   }
@@ -407,6 +407,167 @@
   .empty-state .big { display: block; font-size: 48px; font-weight: 510; color: var(--smoke); margin-bottom: 16px; }
   .empty-state .back-btn { margin-top: 20px; }
 
+  /* ── EXPLAINER (landing) ── */
+  .explainer {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 56px;
+    align-items: center;
+    padding: 40px 0 24px;
+  }
+  .explainer > * {
+    animation: rise .7s cubic-bezier(.2, .7, .2, 1) both;
+    animation-delay: calc(var(--i, 0) * 120ms);
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+  .explainer-title {
+    font-size: 48px;
+    font-weight: 510;
+    letter-spacing: -0.022em;
+    line-height: 1;
+    color: var(--paper);
+    text-wrap: balance;
+  }
+  .explainer-copy { margin-top: 16px; font-size: 16px; color: var(--fog); max-width: 44ch; }
+  .explainer-steps { list-style: none; margin-top: 32px; display: grid; gap: 4px; }
+  .explainer-step {
+    position: relative;
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    padding: 10px 12px 14px;
+    color: var(--ash);
+    font: inherit;
+    cursor: pointer;
+    transition: color .2s, background-color .2s;
+  }
+  .explainer-step:hover { color: var(--mist); background: rgba(255, 255, 255, 0.02); }
+  .explainer-step[aria-pressed="true"] { color: var(--paper); background: rgba(255, 255, 255, 0.03); }
+  .explainer-step-title { display: block; font-size: 15px; font-weight: 510; }
+  .explainer-step-title .num { font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--ash); margin-right: 10px; }
+  .explainer-step-desc { display: block; font-size: 13px; color: var(--fog); margin-top: 2px; padding-left: 28px; }
+  .step-progress {
+    position: absolute; left: 12px; right: 12px; bottom: 4px;
+    height: 1px; background: var(--graphite); overflow: hidden;
+  }
+  .step-progress > span {
+    display: block; height: 100%;
+    background: var(--mist);
+    transform-origin: left;
+    transform: scaleX(var(--p, 0));
+    transition: transform 50ms linear;
+  }
+
+  .demo { position: relative; }
+  .demo::before {
+    content: "";
+    position: absolute;
+    inset: 20% 0 -24%;
+    background: radial-gradient(60% 50% at 50% 100%, rgba(208, 214, 224, 0.08), transparent 70%);
+    pointer-events: none;
+  }
+  .demo-card {
+    position: relative;
+    background: var(--carbon);
+    border-radius: 12px;
+    box-shadow: rgb(35, 37, 42) 0 0 0 1px inset;
+    padding: 20px;
+    display: grid;
+    gap: 12px;
+  }
+  .demo-bar { display: flex; gap: 8px; }
+  .demo-input {
+    flex: 1;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+    font-size: 14px;
+    color: var(--mist);
+  }
+  .demo-input .ph { color: var(--ash); }
+  .caret {
+    display: inline-block; width: 1px; height: 16px; margin-left: 1px;
+    background: var(--mist);
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .demo-btn {
+    height: 36px;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    border-radius: 6px;
+    background: var(--acid);
+    color: var(--void);
+    font-size: 13px;
+    font-weight: 510;
+    transition: transform .15s;
+  }
+  .demo-btn.pressed { transform: scale(.94); }
+
+  .fade { opacity: 0; transform: translateY(6px); transition: opacity .35s ease, transform .35s ease; }
+  .fade.in { opacity: 1; transform: none; }
+
+  .demo-album {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--graphite);
+    transition: opacity .35s ease, transform .35s ease, border-color .2s, background-color .2s;
+  }
+  .demo-album.selected { border-color: var(--smoke); background: var(--obsidian); }
+  .demo-cover {
+    width: 36px; height: 36px; border-radius: 4px; flex-shrink: 0;
+    background: var(--graphite); color: var(--fog);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .demo-album-name { font-size: 14px; font-weight: 510; color: var(--paper); }
+  .demo-album-artist { font-size: 12px; color: var(--fog); }
+
+  .demo-rows { display: grid; gap: 4px; }
+  .demo-row {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: rgb(35, 37, 42) 0 0 0 1px inset;
+    font-size: 13px;
+    min-width: 0;
+  }
+  .demo-row > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .demo-name { color: var(--paper); font-weight: 510; }
+  .demo-handle { font-family: var(--mono); font-size: 12px; color: var(--ash); transition: color .3s; }
+  .demo-handle.found { color: var(--mist); }
+  .demo-email { font-size: 12px; color: var(--ash); transition: color .3s; }
+  .demo-email.found { color: var(--pulse); }
+
+  .demo-controls { position: relative; display: flex; justify-content: flex-end; margin-top: 10px; }
+
+  @media (max-width: 900px) {
+    .explainer { grid-template-columns: 1fr; gap: 32px; padding-top: 16px; }
+    .explainer-title { font-size: 36px; }
+  }
+  @media (max-width: 600px) {
+    .demo-card { padding: 14px; }
+    .demo-row { grid-template-columns: 1fr auto; }
+    .demo-row .demo-handle, .demo-row .demo-role { display: none; }
+  }
+
   /* ── RESPONSIVE ── */
   @media (max-width: 700px) {
     .search-row { flex-direction: column; align-items: stretch; }
@@ -451,7 +612,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .credit-row { animation: none; }
+    .credit-row, .explainer > *, .caret { animation: none; }
+    .fade, .demo-album, .step-progress > span { transition: none; }
     .spinner { animation-duration: 2s; }
   }
 </style>
@@ -593,6 +755,125 @@ function CreditRow({ credit, delay }) {
         )}
       </td>
     </tr>
+  );
+}
+
+// ── Landing explainer: a looping demo of the tool ───────────────────────────
+// Fictional album and people, so the demo never shows real contact details.
+
+const DEMO = {
+  album: "Midnight Static",
+  artist: "Ivy Lane",
+  credits: [
+    { name: "Mara Quinn", role: "Producer", cls: "producer", handle: "maraquinn" },
+    { name: "Theo Vance", role: "Mixing engineer", cls: "mixer", handle: "theovance" },
+    { name: "Jun Park", role: "Recording engineer", cls: "engineer", handle: "junpark.audio" },
+  ],
+};
+const DEMO_TICK = 50;
+const DEMO_LOOP = 9000;
+const DEMO_PHASES = [
+  { start: 0, end: 1700, title: "Search an album", desc: "Type the album name, and the artist if you like." },
+  { start: 1700, end: 4000, title: "See every credit", desc: "Producers, engineers and mixers across every track." },
+  { start: 4000, end: DEMO_LOOP, title: "Reach out", desc: "Their Instagram and public contact email, ready to copy or export." },
+];
+
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+function Explainer() {
+  const [reduced] = useState(prefersReducedMotion);
+  const [t, setT] = useState(reduced ? DEMO_LOOP - DEMO_TICK : 0);
+  const [playing, setPlaying] = useState(!reduced);
+
+  useEffect(() => {
+    if (!playing) return;
+    const id = setInterval(() => setT(prev => (prev + DEMO_TICK) % DEMO_LOOP), DEMO_TICK);
+    return () => clearInterval(id);
+  }, [playing]);
+
+  const typedLength = Math.max(0, Math.min(DEMO.album.length, Math.floor((t - 300) / 70)));
+  const typed = DEMO.album.slice(0, typedLength);
+  const pressed = t >= 1450 && t < 1650;
+  const albumIn = t >= 1700;
+  const albumSelected = t >= 2300;
+  const activePhase = DEMO_PHASES.findIndex(p => t >= p.start && t < p.end);
+  const phase = DEMO_PHASES[activePhase];
+  const progress = (t - phase.start) / (phase.end - phase.start);
+
+  // Playing: replay the phase from its start. Paused or reduced motion: show its finished state.
+  function jumpTo(i) {
+    const p = DEMO_PHASES[i];
+    setT(playing ? p.start : p.end - DEMO_TICK);
+  }
+
+  return (
+    <section className="explainer" aria-labelledby="explainer-heading">
+      <div style={{ "--i": 0 }}>
+        <h2 id="explainer-heading" className="explainer-title">Who made that record?</h2>
+        <p className="explainer-copy">
+          Search any album. CreditCrate lists everyone who worked on it, from producers to mix engineers,
+          with their Instagram and public contact email.
+        </p>
+        <ol className="explainer-steps">
+          {DEMO_PHASES.map((p, i) => (
+            <li key={p.title}>
+              <button type="button" className="explainer-step" aria-pressed={i === activePhase} onClick={() => jumpTo(i)}>
+                <span className="explainer-step-title"><span className="num">0{i + 1}</span>{p.title}</span>
+                <span className="explainer-step-desc">{p.desc}</span>
+                <span className="step-progress" aria-hidden="true">
+                  <span style={{ "--p": i === activePhase && playing ? progress : 0 }} />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="demo" style={{ "--i": 1 }}>
+        <div className="demo-card" aria-hidden="true">
+          <div className="demo-bar">
+            <div className="demo-input">
+              {typed ? <span>{typed}</span> : <span className="ph">Album name</span>}
+              {!albumIn && <span className="caret" />}
+            </div>
+            <div className={`demo-btn ${pressed ? "pressed" : ""}`}>Search</div>
+          </div>
+
+          <div className={`demo-album fade ${albumIn ? "in" : ""} ${albumSelected ? "selected" : ""}`}>
+            <div className="demo-cover">♪</div>
+            <div>
+              <div className="demo-album-name">{DEMO.album}</div>
+              <div className="demo-album-artist">{DEMO.artist}</div>
+            </div>
+          </div>
+
+          <div className="demo-rows">
+            {DEMO.credits.map((c, i) => {
+              const rowIn = t >= 2600 + i * 350;
+              const found = t >= 4000 + i * 450;
+              return (
+                <div key={c.name} className={`demo-row fade ${rowIn ? "in" : ""}`}>
+                  <span className="demo-name">{c.name}</span>
+                  <span className="demo-role"><span className={`role-tag ${c.cls}`}>{c.role}</span></span>
+                  <span className={`demo-handle ${found ? "found" : ""}`}>{found ? `@${c.handle}` : "looking…"}</span>
+                  <span className={`demo-email ${found ? "found" : ""}`}>{found ? "✓ Email found" : "—"}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {!reduced && (
+          <div className="demo-controls">
+            <button type="button" className="demo-toggle" aria-pressed={!playing} onClick={() => setPlaying(p => !p)}>
+              {playing ? "Pause demo" : "Play demo"}
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -852,12 +1133,7 @@ function App() {
           </div>
         )}
 
-        {step === 1 && !loading && !error && (
-          <div className="empty-state">
-            <span className="big" aria-hidden="true">♪</span>
-            <p>Search an album above to see who made it.</p>
-          </div>
-        )}
+        {step === 1 && !loading && !error && <Explainer />}
       </main>
     </div>
   );
