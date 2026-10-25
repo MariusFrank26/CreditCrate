@@ -3,13 +3,18 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Search an album and see every producer, engineer and mixer behind it, with their Instagram and public contact email." />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#0a0a0a" />
 <title>CreditCrate — Album Production Lookup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
+    color-scheme: dark;
     --bg: #0a0a0a;
     --surface: #111;
     --surface2: #1a1a1a;
@@ -18,7 +23,7 @@
     --accent2: #f0b8c8;
     --accent3: #b8d8f0;
     --text: #e8e8e8;
-    --muted: #555;
+    --muted: #8a8a8a;
     --mono: 'DM Mono', monospace;
     --sans: 'DM Sans', sans-serif;
     --display: 'Bebas Neue', sans-serif;
@@ -27,6 +32,21 @@
   html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); }
 
   #root { min-height: 100vh; }
+
+  a, button, input { touch-action: manipulation; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  .skip-link {
+    position: absolute; top: -100px; left: 16px; z-index: 10;
+    background: var(--accent); color: #000; font-family: var(--mono); font-size: 12px;
+    padding: 8px 14px; text-decoration: none;
+  }
+  .skip-link:focus { top: 16px; }
 
   /* ── LAYOUT ── */
   .page { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
@@ -42,6 +62,7 @@
   }
   .logo {
     font-family: var(--display);
+    font-weight: 400;
     font-size: clamp(52px, 8vw, 96px);
     letter-spacing: 4px;
     color: var(--accent);
@@ -58,6 +79,39 @@
     line-height: 1.6;
   }
 
+  /* ── STEP INDICATORS ── */
+  .step-indicator {
+    list-style: none;
+    display: flex;
+    margin-bottom: 32px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .step {
+    flex: 1;
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .step:last-child { border-right: none; }
+  .step.active { color: var(--accent); }
+  .step.done { color: var(--text); }
+  .step-num {
+    width: 18px; height: 18px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    flex-shrink: 0;
+  }
+
   /* ── SEARCH BAR ── */
   .search-block { margin-bottom: 48px; }
   .search-row {
@@ -65,10 +119,8 @@
     gap: 12px;
     align-items: stretch;
   }
-  .search-input-wrap {
-    position: relative;
-    flex: 1;
-  }
+  .search-input-wrap { position: relative; flex: 1; }
+  .search-input-artist { max-width: 260px; }
   .search-label {
     font-family: var(--mono);
     font-size: 10px;
@@ -84,9 +136,8 @@
     border: 1px solid var(--border);
     color: var(--text);
     font-family: var(--mono);
-    font-size: 15px;
+    font-size: 16px;
     padding: 14px 18px;
-    outline: none;
     transition: border-color .2s;
   }
   input[type="text"]:focus { border-color: var(--accent); }
@@ -94,6 +145,7 @@
 
   .search-btn {
     align-self: flex-end;
+    display: flex; align-items: center; gap: 10px;
     background: var(--accent);
     color: #000;
     border: none;
@@ -103,29 +155,34 @@
     padding: 0 32px;
     height: 49px;
     cursor: pointer;
-    transition: opacity .15s;
+    transition: background-color .2s, transform .2s, box-shadow .2s;
     white-space: nowrap;
   }
-  .search-btn:hover { opacity: 1; background: #d4f5df; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(184,240,200,0.2); }
-  .search-btn { transition: all .2s; }
-  .search-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .search-btn:hover { background: #d4f5df; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(184,240,200,0.2); }
+  .search-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .search-btn .spinner { border-color: rgba(0,0,0,.25); border-top-color: #000; }
 
   /* ── ALBUM RESULTS ── */
   .album-results {
+    list-style: none;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 16px;
     margin-bottom: 48px;
   }
   .album-card {
+    display: block;
+    width: 100%;
+    text-align: left;
+    color: inherit;
+    font: inherit;
     background: var(--surface);
     border: 1px solid var(--border);
     cursor: pointer;
-    transition: border-color .2s, transform .15s;
+    transition: border-color .2s, transform .15s, box-shadow .2s;
     overflow: hidden;
   }
   .album-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(184,240,200,0.08); }
-  .album-card.selected { border-color: var(--accent); outline: 2px solid var(--accent); }
   .album-cover {
     width: 100%;
     aspect-ratio: 1;
@@ -143,17 +200,18 @@
     font-size: 40px;
     color: var(--muted);
   }
-  .album-info { padding: 12px; }
+  .album-info { display: block; padding: 12px; }
   .album-name {
+    display: block;
     font-family: var(--display);
     font-size: 18px;
     letter-spacing: 1px;
     line-height: 1.2;
     margin-bottom: 4px;
   }
-  .album-artist { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .album-artist { display: block; font-size: 12px; color: var(--muted); font-family: var(--mono); }
 
-  /* ── CREDITS TABLE ── */
+  /* ── CREDITS ── */
   .credits-header {
     display: flex;
     align-items: center;
@@ -164,96 +222,92 @@
   }
   .credits-title {
     font-family: var(--display);
+    font-weight: 400;
     font-size: 28px;
     letter-spacing: 2px;
     color: var(--accent);
+    text-transform: uppercase;
   }
   .filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .filter-btn {
+  .filter-btn, .export-btn, .back-btn, .email-copy {
     font-family: var(--mono);
     font-size: 10px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
+    background: transparent;
+    cursor: pointer;
+    transition: color .15s, background-color .15s, border-color .15s;
+  }
+  .filter-btn {
     padding: 6px 14px;
     border: 1px solid var(--border);
-    background: transparent;
     color: var(--muted);
-    cursor: pointer;
-    transition: all .15s;
   }
-  .filter-btn.active, .filter-btn:hover {
+  .filter-btn[aria-pressed="true"], .filter-btn:hover {
     border-color: var(--accent);
     color: var(--accent);
     background: rgba(184,240,200,0.06);
   }
-
   .export-btn {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
     padding: 6px 16px;
     border: 1px solid var(--accent);
-    background: transparent;
     color: var(--accent);
-    cursor: pointer;
-    transition: all .15s;
     margin-left: auto;
   }
-  .export-btn:hover { background: var(--accent); color: #0a0a0a; box-shadow: 0 2px 12px rgba(184,240,200,0.2); }
+  .export-btn:hover:not(:disabled) { background: var(--accent); color: #0a0a0a; }
+  .export-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .back-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .back-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .back-btn:disabled { opacity: .4; cursor: not-allowed; }
 
-  .credits-grid {
-    display: grid;
-    gap: 2px;
+  .table-wrap { overflow-x: auto; }
+  .credits-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 2px;
+    text-align: left;
+  }
+  .credits-table th:nth-child(1) { width: 200px; }
+  .credits-table th:nth-child(3) { width: 130px; }
+  .credits-table th:nth-child(4) { width: 200px; }
+  .credits-table th:nth-child(5) { width: 260px; }
+  .credits-table thead th {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 16px 8px;
   }
 
-  .credit-row {
+  .credit-row { animation: fadeIn .3s ease both; }
+  .credit-row > * {
     background: var(--surface);
     border: 1px solid var(--border);
-    display: grid;
-    grid-template-columns: 200px 1fr 160px 200px 240px;
-    gap: 0;
-    align-items: stretch;
-    transition: background .15s;
-    animation: fadeIn .3s ease both;
+    transition: background-color .15s;
   }
-  .credit-row:hover { background: var(--surface2); }
-  .credit-row:hover .cell-name { color: var(--accent); transition: color .2s; }
-  .cell-name { transition: color .2s; }
+  .credit-row:hover > * { background: var(--surface2); }
+  .credit-row:hover .cell-name { color: var(--accent); }
+  .cell-name { font-weight: 500; letter-spacing: .3px; transition: color .2s; }
 
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .credit-row.header-row {
-    background: transparent;
-    border-color: transparent;
-    animation: none;
-  }
-  .credit-row.header-row .cell {
-    font-family: var(--mono);
-    font-size: 9px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-    padding-bottom: 8px;
-    border: none;
-  }
-
   .cell {
     padding: 14px 16px;
-    border-right: 1px solid var(--border);
     font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    vertical-align: middle;
     overflow: hidden;
   }
-  .cell:last-child { border-right: none; }
-
-  .cell-name { font-weight: 500; letter-spacing: .3px; }
-  .cell-roles { flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+  .role-list { display: flex; flex-wrap: wrap; gap: 6px; }
   .role-tag {
     font-family: var(--mono);
     font-size: 10px;
@@ -281,10 +335,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .ig-link:hover { color: #d4f5df; text-decoration: none; letter-spacing: 0.5px; }
+  .ig-link:hover { text-decoration: underline; }
   .ig-icon { flex-shrink: 0; }
 
+  .email-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .email-val {
+    flex: 1;
+    min-width: 0;
     font-family: var(--mono);
     font-size: 11px;
     color: var(--text);
@@ -294,24 +351,30 @@
   }
   .email-val.none { color: var(--muted); font-style: italic; }
   .email-copy {
-    background: none;
     border: 1px solid var(--border);
     color: var(--muted);
-    cursor: pointer;
-    font-family: var(--mono);
-    font-size: 10px;
     padding: 2px 8px;
     flex-shrink: 0;
-    transition: all .15s;
   }
   .email-copy:hover { border-color: var(--accent); color: var(--accent); }
+
+  .muted-dash { color: var(--muted); font-family: var(--mono); font-size: 11px; }
 
   .songs-count {
     font-family: var(--mono);
     font-size: 11px;
     color: var(--muted);
+    font-variant-numeric: tabular-nums;
   }
-  .songs-count strong { color: var(--text); }
+  .songs-count strong { color: var(--text); font-weight: 500; }
+
+  .inline-empty {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    padding: 24px 0;
+  }
+  .inline-empty button { margin-left: 8px; }
 
   /* ── STATUS / LOADER ── */
   .status-bar {
@@ -351,54 +414,66 @@
     font-family: var(--mono);
     font-size: 12px;
     letter-spacing: 1px;
+    text-wrap: balance;
   }
   .empty-state .big { font-family: var(--display); font-size: 64px; display: block; color: var(--border); margin-bottom: 16px; }
+  .empty-state .back-btn { margin-top: 20px; }
 
-  /* ── STEP INDICATORS ── */
-  .step-indicator {
-    display: flex;
-    gap: 0;
-    margin-bottom: 32px;
-    border: 1px solid var(--border);
-    overflow: hidden;
-  }
-  .step {
-    flex: 1;
-    padding: 10px 16px;
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--muted);
-    border-right: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .step:last-child { border-right: none; }
-  .step.active { color: var(--accent); }
-  .step.done { color: var(--text); }
-  .step-num {
-    width: 18px; height: 18px;
-    border: 1px solid currentColor;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 9px;
-    flex-shrink: 0;
+  /* ── SEARCH FORM ── */
+  @media (max-width: 700px) {
+    .search-row { flex-direction: column; }
+    .search-input-artist { max-width: none; }
+    .search-btn { align-self: stretch; justify-content: center; height: 52px; }
   }
 
   /* ── RESPONSIVE ── */
   @media (max-width: 900px) {
-    .credit-row { grid-template-columns: 1fr 1fr; }
-    .credit-row.header-row { display: none; }
-    .cell { border-right: none; border-bottom: 1px solid var(--border); }
-    .cell:last-child { border-bottom: none; }
     header { flex-direction: column; align-items: flex-start; gap: 12px; }
     .tagline { text-align: left; }
+
+    .credits-table, .credits-table tbody { display: block; width: 100%; }
+    .credits-table thead {
+      position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+    }
+    .credits-table tr.credit-row { display: grid; grid-template-columns: 1fr; margin-bottom: 2px; }
+    .credits-table td, .credits-table th.cell-name { display: block; width: auto; }
+    .credit-row > * { border-bottom: none; }
+    .cell-name { font-size: 16px; }
+    .cell[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .page { padding: 0 16px 64px; }
+    header { padding: 32px 0 24px; margin-bottom: 32px; }
+    .step-indicator { flex-direction: column; }
+    .step { border-right: none; border-bottom: 1px solid var(--border); }
+    .step:last-child { border-bottom: none; }
+    .export-btn { margin-left: 0; }
+  }
+
+  /* Pointer-coarse devices (touch): meet the 44px target guideline */
+  @media (pointer: coarse) {
+    .filter-btn, .export-btn, .back-btn, .email-copy, .search-btn { min-height: 44px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .credit-row { animation: none; }
+    .album-card:hover, .search-btn:hover { transform: none; }
+    .spinner { animation-duration: 2s; }
   }
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <div id="root"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -406,9 +481,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 
 <script type="text/babel">
-const { useState, useCallback } = React;
+const { useState, useEffect } = React;
 
 const API = "https://api.creditcrate.app/api";
+const ROLE_FILTERS = ["ALL", "PRODUCER", "ENGINEER", "MIXER", "WRITER"];
+const STEPS = [["1", "Search album"], ["2", "Select album"], ["3", "View credits"]];
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -421,7 +498,16 @@ function roleClass(role) {
   return "";
 }
 
-function csvExport(credits) {
+// Writes one query param, keeping the others. replaceState keeps the Back button untouched.
+function setUrlParam(key, value) {
+  const params = new URLSearchParams(window.location.search);
+  if (value) params.set(key, value);
+  else params.delete(key);
+  const qs = params.toString();
+  window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+}
+
+function csvExport(credits, albumName) {
   const rows = [["Name","Roles","Songs","Instagram","Email"]];
   for (const c of credits) {
     rows.push([
@@ -435,8 +521,12 @@ function csvExport(credits) {
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
+  const safeName = albumName.replace(/[^\w\- ]+/g, "").trim() || "credits";
   const a = document.createElement("a");
-  a.href = url; a.download = "credits.csv"; a.click();
+  a.href = url;
+  a.download = `${safeName}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ── Components ───────────────────────────────────────────────────────────────
@@ -446,39 +536,45 @@ function RoleTag({ role }) {
 }
 
 function CreditRow({ credit, delay }) {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState(null); // null | "copied" | "failed"
   const email = credit.instagram_data?.email;
-
-  function copyEmail() {
-    if (!email) return;
-    navigator.clipboard.writeText(email).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
-  }
-
   const songTitles = credit.songs.map(s => s.title).join(", ");
 
+  async function copyEmail() {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
+    setTimeout(() => setCopyState(null), 1500);
+  }
+
+  const copyLabel = copyState === "copied" ? "COPIED" : copyState === "failed" ? "FAILED" : "COPY";
+  const trackCount = credit.songs.length;
+
   return (
-    <div className="credit-row" style={{ animationDelay: `${delay}ms` }} title={`Songs: ${songTitles}`}>
-      <div className="cell cell-name">{credit.name}</div>
-      <div className="cell cell-roles">
-        {credit.roles.map(r => <RoleTag key={r} role={r} />)}
-      </div>
-      <div className="cell">
+    <tr className="credit-row" style={{ animationDelay: `${delay}ms` }}>
+      <th scope="row" className="cell cell-name">{credit.name}</th>
+      <td className="cell" data-label="Roles">
+        <div className="role-list">
+          {credit.roles.map(r => <RoleTag key={r} role={r} />)}
+        </div>
+      </td>
+      <td className="cell" data-label="Tracks" title={songTitles}>
         <span className="songs-count">
-          <strong>{credit.songs.length}</strong> track{credit.songs.length !== 1 ? "s" : ""}
+          <strong>{trackCount}</strong> track{trackCount !== 1 ? "s" : ""}
         </span>
-      </div>
-      <div className="cell">
+      </td>
+      <td className="cell" data-label="Instagram">
         {credit.instagram_handle ? (
           <a
             className="ig-link"
             href={`https://instagram.com/${credit.instagram_handle}`}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
           >
-            <svg className="ig-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className="ig-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
               <circle cx="12" cy="12" r="4"/>
               <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
@@ -486,50 +582,62 @@ function CreditRow({ credit, delay }) {
             @{credit.instagram_handle}
           </a>
         ) : (
-          <span style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 11 }}>—</span>
+          <span className="muted-dash">—</span>
         )}
-      </div>
-      <div className="cell">
+      </td>
+      <td className="cell" data-label="Email">
         {email ? (
-          <>
+          <div className="email-cell">
             <span className="email-val">{email}</span>
-            <button className="email-copy" onClick={copyEmail}>{copied ? "✓" : "COPY"}</button>
-          </>
-        ) : credit.instagram_data?.error ? (
-          <span className="email-val none">login required</span>
-        ) : credit.instagram_handle ? (
-          <span className="email-val none">not in bio</span>
+            <button
+              type="button"
+              className="email-copy"
+              onClick={copyEmail}
+              aria-label={`Copy email for ${credit.name}`}
+            >
+              {copyLabel}
+            </button>
+          </div>
         ) : (
-          <span className="email-val none">no instagram</span>
+          <span className="email-val none">
+            {credit.instagram_data?.error ? "login required" : credit.instagram_handle ? "not in bio" : "no instagram"}
+          </span>
         )}
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }
 
 function App() {
-  const [albumQuery, setAlbumQuery] = useState("");
-  const [artistQuery, setArtistQuery] = useState("");
+  const initialParams = new URLSearchParams(window.location.search);
+  const initialRole = initialParams.get("role");
+
+  const [albumQuery, setAlbumQuery] = useState(initialParams.get("q") || "");
+  const [artistQuery, setArtistQuery] = useState(initialParams.get("artist") || "");
   const [searchResults, setSearchResults] = useState(null);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [credits, setCredits] = useState(null);
-  const [step, setStep] = useState(1); // 1=search, 2=pick album, 3=credits
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
   const [error, setError] = useState(null);
-  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [roleFilter, setRoleFilter] = useState(ROLE_FILTERS.includes(initialRole) ? initialRole : "ALL");
 
-  async function handleSearch() {
-    if (!albumQuery.trim()) return;
+  // 1=search, 2=pick album, 3=credits
+  const step = selectedAlbum ? 3 : (searchResults || loading) ? 2 : 1;
+
+  async function runSearch(album, artist) {
+    const q = album.trim();
+    if (!q) return;
+    setUrlParam("q", q);
+    setUrlParam("artist", artist.trim());
     setLoading(true);
     setError(null);
     setSearchResults(null);
     setCredits(null);
     setSelectedAlbum(null);
-    setStep(2);
     setStatusMsg("Searching Genius…");
     try {
-      const res = await fetch(`${API}/search?album=${encodeURIComponent(albumQuery)}&artist=${encodeURIComponent(artistQuery)}`);
+      const res = await fetch(`${API}/search?album=${encodeURIComponent(q)}&artist=${encodeURIComponent(artist.trim())}`);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -538,15 +646,23 @@ function App() {
       else setStatusMsg(`Found ${data.results.length} album${data.results.length !== 1 ? "s" : ""}. Pick one.`);
     } catch (e) {
       setError(e.message);
-      setStep(1);
     } finally {
       setLoading(false);
     }
   }
 
+  // Re-run the search when the page was opened with ?q= in the URL
+  useEffect(() => {
+    if (albumQuery.trim()) runSearch(albumQuery, artistQuery);
+  }, []);
+
+  function handleSearch(e) {
+    e.preventDefault();
+    runSearch(albumQuery, artistQuery);
+  }
+
   async function handleSelectAlbum(album) {
     setSelectedAlbum(album);
-    setStep(3);
     setLoading(true);
     setError(null);
     setCredits(null);
@@ -565,148 +681,193 @@ function App() {
     }
   }
 
+  function handleBack() {
+    setSelectedAlbum(null);
+    setCredits(null);
+    setError(null);
+    setStatusMsg(`Found ${searchResults.length} album${searchResults.length !== 1 ? "s" : ""}. Pick one.`);
+  }
+
+  function changeRole(role) {
+    setRoleFilter(role);
+    setUrlParam("role", role === "ALL" ? "" : role);
+  }
+
   const filteredCredits = credits ? credits.filter(c => {
     if (roleFilter === "ALL") return true;
     return c.roles.some(r => roleClass(r) === roleFilter.toLowerCase());
   }) : [];
 
-  const allRoles = credits ? [...new Set(credits.flatMap(c => c.roles.map(roleClass)).filter(Boolean))] : [];
-
   return (
     <div className="page">
       <header>
-        <div className="logo">CREDIT<span>CRATE</span></div>
-        <div className="tagline">
+        <h1 className="logo">CREDIT<span>CRATE</span></h1>
+        <p className="tagline">
           Album production lookup<br/>
           Genius · Instagram · Credits
-        </div>
+        </p>
       </header>
 
-      {/* Step Indicator */}
-      <div className="step-indicator">
-        {[["1","SEARCH ALBUM"],["2","SELECT ALBUM"],["3","VIEW CREDITS"]].map(([n, label]) => (
-          <div key={n} className={`step ${step === +n ? "active" : step > +n ? "done" : ""}`}>
-            <span className="step-num">{step > +n ? "✓" : n}</span>
-            {label}
-          </div>
-        ))}
-      </div>
-
-      {/* Search */}
-      <div className="search-block">
-        <div className="search-row">
-          <div className="search-input-wrap">
-            <label className="search-label">Album name</label>
-            <input
-              type="text"
-              placeholder="e.g. good kid, m.A.A.d city"
-              value={albumQuery}
-              onChange={e => setAlbumQuery(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleSearch()}
-            />
-          </div>
-          <div className="search-input-wrap" style={{ maxWidth: 260 }}>
-            <label className="search-label">Artist (optional)</label>
-            <input
-              type="text"
-              placeholder="e.g. Kendrick Lamar"
-              value={artistQuery}
-              onChange={e => setArtistQuery(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleSearch()}
-            />
-          </div>
-          <button className="search-btn" onClick={handleSearch} disabled={loading || !albumQuery.trim()}>
-            SEARCH
-          </button>
-        </div>
-      </div>
-
-      {/* Error */}
-      {error && <div className="error-msg">⚠ {error}</div>}
-
-      {/* Status */}
-      {loading && (
-        <div className="status-bar">
-          <div className="spinner" />
-          {statusMsg}
-        </div>
-      )}
-      {!loading && statusMsg && <div className="status-bar">{statusMsg}</div>}
-
-      {/* Album Results */}
-      {searchResults && searchResults.length > 0 && !selectedAlbum && (
-        <div className="album-results">
-          {searchResults.map(alb => (
-            <div
-              key={alb.id}
-              className={`album-card ${selectedAlbum?.id === alb.id ? "selected" : ""}`}
-              onClick={() => handleSelectAlbum(alb)}
+      <main id="main">
+        <ol className="step-indicator" aria-label="Progress">
+          {STEPS.map(([n, label]) => (
+            <li
+              key={n}
+              className={`step ${step === +n ? "active" : step > +n ? "done" : ""}`}
+              aria-current={step === +n ? "step" : undefined}
             >
-              {alb.cover_art ? (
-                <img className="album-cover" src={alb.cover_art} alt={alb.name} />
-              ) : (
-                <div className="album-cover-placeholder">♪</div>
-              )}
-              <div className="album-info">
-                <div className="album-name">{alb.name}</div>
-                <div className="album-artist">{alb.artist}</div>
-              </div>
-            </div>
+              <span className="step-num" aria-hidden="true">{step > +n ? "✓" : n}</span>
+              {label}
+            </li>
           ))}
-        </div>
-      )}
+        </ol>
 
-      {/* Credits */}
-      {credits && credits.length > 0 && (
-        <>
-          <div className="credits-header">
-            <div className="credits-title">
-              {selectedAlbum?.name.toUpperCase()}
+        <form className="search-block" role="search" onSubmit={handleSearch}>
+          <div className="search-row">
+            <div className="search-input-wrap">
+              <label className="search-label" htmlFor="album-input">Album name</label>
+              <input
+                id="album-input"
+                type="text"
+                name="album"
+                placeholder="e.g. good kid, m.A.A.d city"
+                autoComplete="off"
+                spellCheck={false}
+                enterKeyHint="search"
+                required
+                value={albumQuery}
+                onChange={e => setAlbumQuery(e.target.value)}
+              />
             </div>
-            <div className="filter-row">
-              {["ALL", "PRODUCER", "ENGINEER", "MIXER", "WRITER"].map(f => (
-                <button
-                  key={f}
-                  className={`filter-btn ${roleFilter === f ? "active" : ""}`}
-                  onClick={() => setRoleFilter(f)}
-                >
-                  {f}
-                </button>
-              ))}
+            <div className="search-input-wrap search-input-artist">
+              <label className="search-label" htmlFor="artist-input">Artist (optional)</label>
+              <input
+                id="artist-input"
+                type="text"
+                name="artist"
+                placeholder="e.g. Kendrick Lamar"
+                autoComplete="off"
+                spellCheck={false}
+                enterKeyHint="search"
+                value={artistQuery}
+                onChange={e => setArtistQuery(e.target.value)}
+              />
             </div>
-            <button className="export-btn" onClick={() => csvExport(filteredCredits)}>
-              ↓ EXPORT CSV
+            <button
+              type="submit"
+              className="search-btn"
+              disabled={loading || !albumQuery.trim()}
+              aria-busy={loading}
+            >
+              {loading && <span className="spinner" aria-hidden="true" />}
+              SEARCH
             </button>
           </div>
+        </form>
 
-          <div className="credits-grid">
-            <div className="credit-row header-row">
-              <div className="cell">NAME</div>
-              <div className="cell">ROLES</div>
-              <div className="cell">TRACKS</div>
-              <div className="cell">INSTAGRAM</div>
-              <div className="cell">EMAIL</div>
+        {error && <div className="error-msg" role="alert">⚠ {error}</div>}
+
+        <div role="status" aria-live="polite">
+          {(loading || statusMsg) && (
+            <div className="status-bar">
+              {loading && <span className="spinner" aria-hidden="true" />}
+              <span>{statusMsg}</span>
             </div>
-            {filteredCredits.map((c, i) => (
-              <CreditRow key={c.name} credit={c} delay={i * 30} />
+          )}
+        </div>
+
+        {searchResults && searchResults.length > 0 && !selectedAlbum && (
+          <ul className="album-results">
+            {searchResults.map(alb => (
+              <li key={alb.id}>
+                <button type="button" className="album-card" onClick={() => handleSelectAlbum(alb)}>
+                  {alb.cover_art ? (
+                    <img className="album-cover" src={alb.cover_art} alt="" width="220" height="220" loading="lazy" decoding="async" />
+                  ) : (
+                    <div className="album-cover-placeholder" aria-hidden="true">♪</div>
+                  )}
+                  <span className="album-info">
+                    <span className="album-name">{alb.name}</span>
+                    <span className="album-artist">{alb.artist}</span>
+                  </span>
+                </button>
+              </li>
             ))}
+          </ul>
+        )}
+
+        {credits && credits.length > 0 && (
+          <section aria-labelledby="credits-heading">
+            <div className="credits-header">
+              <button type="button" className="back-btn" onClick={handleBack} disabled={loading}>← Results</button>
+              <h2 id="credits-heading" className="credits-title">{selectedAlbum.name}</h2>
+              <div className="filter-row" role="group" aria-label="Filter by role">
+                {ROLE_FILTERS.map(f => (
+                  <button
+                    type="button"
+                    key={f}
+                    className={`filter-btn ${roleFilter === f ? "active" : ""}`}
+                    aria-pressed={roleFilter === f}
+                    onClick={() => changeRole(f)}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="export-btn"
+                onClick={() => csvExport(filteredCredits, selectedAlbum.name)}
+                disabled={filteredCredits.length === 0}
+              >
+                <span aria-hidden="true">↓</span> Export CSV
+              </button>
+            </div>
+
+            {filteredCredits.length === 0 ? (
+              <p className="inline-empty">
+                No {roleFilter.toLowerCase()} credits on this album.
+                <button type="button" className="filter-btn" onClick={() => changeRole("ALL")}>Show all</button>
+              </p>
+            ) : (
+              <div className="table-wrap">
+                <table className="credits-table">
+                  <caption className="sr-only">Credits for {selectedAlbum.name}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Name</th>
+                      <th scope="col">Roles</th>
+                      <th scope="col">Tracks</th>
+                      <th scope="col">Instagram</th>
+                      <th scope="col">Email</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCredits.map((c, i) => (
+                      <CreditRow key={c.name} credit={c} delay={i * 30} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
+
+        {credits && credits.length === 0 && !loading && (
+          <div className="empty-state">
+            <span className="big" aria-hidden="true">∅</span>
+            <p>No credits found for this album on Genius.</p>
+            <button type="button" className="back-btn" onClick={handleBack}>← Back to results</button>
           </div>
-        </>
-      )}
+        )}
 
-      {credits && credits.length === 0 && !loading && (
-        <div className="empty-state">
-          <span className="big">∅</span>
-          No credits found for this album on Genius.
-        </div>
-      )}
-
-      {step === 1 && !loading && !error && (
-        <div className="empty-state">
-          <span className="big">♪</span>
-          Search an album above to see who made it.
-        </div>
-      )}
+        {step === 1 && !loading && !error && (
+          <div className="empty-state">
+            <span className="big" aria-hidden="true">♪</span>
+            <p>Search an album above to see who made it.</p>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
