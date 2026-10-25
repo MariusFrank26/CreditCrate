@@ -662,7 +662,7 @@ function setUrlParam(key, value) {
 }
 
 function csvExport(credits, albumName) {
-  const rows = [["Name","Roles","Songs","Instagram","Email"]];
+  const rows = [["Name","Roles","Songs","Instagram","Email","Email source"]];
   for (const c of credits) {
     rows.push([
       c.name,
@@ -670,6 +670,7 @@ function csvExport(credits, albumName) {
       c.songs.map(s => s.title).join(" | "),
       c.instagram_handle ? `@${c.instagram_handle}` : "",
       c.instagram_data?.email || "",
+      c.instagram_data?.source_url || c.instagram_data?.source || "",
     ]);
   }
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
@@ -742,7 +743,7 @@ function CreditRow({ credit, delay }) {
       <td className="cell" data-label="Email">
         {email ? (
           <div className="email-cell">
-            <span className="email-val">{email}</span>
+            <span className="email-val" title={credit.instagram_data?.source ? `Found via ${credit.instagram_data.source}` : undefined}>{email}</span>
             <button
               type="button"
               className="email-copy"
@@ -754,7 +755,7 @@ function CreditRow({ credit, delay }) {
           </div>
         ) : (
           <span className="email-val none">
-            {credit.instagram_data?.error ? "login required" : credit.instagram_handle ? "not in bio" : "no instagram"}
+            {credit.instagram_data?.error ? "lookup failed" : credit.instagram_data ? "not found" : "no socials"}
           </span>
         )}
       </td>

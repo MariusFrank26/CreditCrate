@@ -10,10 +10,13 @@ Einmaliges Setup für Instagram (Instaloader-Session statt RapidAPI):
 """
 
 import os
+import re
 import time
 import random
 import sqlite3
 import logging
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
@@ -25,6 +28,8 @@ from instaloader.exceptions import (
     TooManyRequestsException,
     InstaloaderException,
 )
+
+import contacts
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -46,12 +51,18 @@ IG_SESSION_USERNAME = os.getenv("IG_SESSION_USERNAME", "creditcrate.app")
 # Erfolgreiche Treffer (auch email=None, aber Profil existiert) bleiben unbegrenzt im Cache -
 # public business emails ändern sich praktisch nie, neu scrapen bringt nichts.
 RETRY_FAILED_AFTER_HOURS = 12
+# Kein Treffer bei den öffentlichen Quellen: nach X Tagen erneut suchen (Leute ergänzen ihre Links)
+RETRY_NOT_FOUND_AFTER_DAYS = 30
+# Instaloader (eingeloggt, rate-limitiert) nur als letzte Quelle, abschaltbar mit INSTAGRAM_FALLBACK=0
+INSTAGRAM_FALLBACK = os.getenv("INSTAGRAM_FALLBACK", "1") != "0"
+LOOKUP_WORKERS = 4
 
 DB_DIR = os.getenv("CACHE_DB_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"))
 os.makedirs(DB_DIR, exist_ok=True)
 DB_PATH = os.path.join(DB_DIR, "creditcrate.db")
 
 _ig_loader = None
+_ig_lock = threading.Lock()  # Instaloader-Requests nie parallel - eine Session, ein Request zur Zeit
 
 
 def genius_search_album(album_name, artist_name=""):
@@ -124,17 +135,27 @@ def get_song_credits(song_id):
     return credits
 
 
-def get_artist_instagram(genius_artist_id):
+def get_artist_profile(genius_artist_id):
+    """Instagram/Twitter-Handle und Bio (Text + Links) eines Genius-Artists."""
     if not genius_artist_id:
         return None
     try:
-        resp = requests.get(f"{GENIUS_BASE}/artists/{genius_artist_id}", headers=HEADERS, timeout=10)
+        resp = requests.get(
+            f"{GENIUS_BASE}/artists/{genius_artist_id}", headers=HEADERS,
+            params={"text_format": "html,plain"}, timeout=10,
+        )
         if resp.status_code != 200:
             return None
-        artist_data = resp.json().get("response", {}).get("artist", {})
-        return artist_data.get("instagram_name")
+        artist = resp.json().get("response", {}).get("artist", {})
+        description = artist.get("description") or {}
+        return {
+            "instagram": artist.get("instagram_name") or None,
+            "twitter": artist.get("twitter_name") or None,
+            "bio": description.get("plain", ""),
+            "bio_links": re.findall(r'href="(https?://[^"]+)"', description.get("html", "")),
+        }
     except Exception as e:
-        logger.warning(f"Could not get Instagram for artist {genius_artist_id}: {e}")
+        logger.warning(f"Could not get Genius profile for artist {genius_artist_id}: {e}")
     return None
 
 
@@ -153,6 +174,10 @@ def init_cache_db():
                 last_updated REAL
             )
         """)
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(artist_cache)")}
+        for column in ("contact_source", "contact_url"):
+            if column not in existing:
+                conn.execute(f"ALTER TABLE artist_cache ADD COLUMN {column} TEXT")
 
 
 init_cache_db()
@@ -167,13 +192,15 @@ def get_cached_ig(genius_id):
         return dict(row) if row else None
 
 
-def store_cached_ig(genius_id, name, handle, email=None, full_name=None, followers=None, error=None):
+def store_cached_ig(genius_id, name, handle, email=None, full_name=None, followers=None, error=None,
+                    source=None, source_url=None):
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
             INSERT INTO artist_cache
                 (genius_id, name, instagram_handle, instagram_email,
-                 instagram_full_name, instagram_followers, instagram_error, last_updated)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                 instagram_full_name, instagram_followers, instagram_error, last_updated,
+                 contact_source, contact_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(genius_id) DO UPDATE SET
                 name=excluded.name,
                 instagram_handle=excluded.instagram_handle,
@@ -181,8 +208,10 @@ def store_cached_ig(genius_id, name, handle, email=None, full_name=None, followe
                 instagram_full_name=excluded.instagram_full_name,
                 instagram_followers=excluded.instagram_followers,
                 instagram_error=excluded.instagram_error,
-                last_updated=excluded.last_updated
-        """, (genius_id, name, handle, email, full_name, followers, error, time.time()))
+                last_updated=excluded.last_updated,
+                contact_source=excluded.contact_source,
+                contact_url=excluded.contact_url
+        """, (genius_id, name, handle, email, full_name, followers, error, time.time(), source, source_url))
 
 
 def get_instaloader_context():
@@ -216,6 +245,11 @@ def fetch_instagram_business_email(ig_handle):
     """Holt AUSSCHLIESSLICH die public business email (Contact-Button-Feld) eines Profils.
     Kein Bio-Parsing, kein Download von Posts/Followern - ein einzelner, leichtgewichtiger
     Profil-Request pro Aufruf."""
+    with _ig_lock:
+        return _fetch_instagram_business_email(ig_handle)
+
+
+def _fetch_instagram_business_email(ig_handle):
     loader = get_instaloader_context()
     time.sleep(random.uniform(2.0, 5.0))  # kein Burst-Pattern, sieht "menschlicher" aus
     try:
@@ -238,36 +272,59 @@ def fetch_instagram_business_email(ig_handle):
         return {"email": None, "full_name": None, "followers": None, "error": f"instaloader_error: {e}"}
 
 
-def get_instagram_email(genius_id, name, ig_handle):
-    """Aggressiv gecacht: Instagram wird nur angefragt, wenn für diesen Artist noch
-    nichts Brauchbares im Cache liegt. Treffer (auch 'kein Business-Email hinterlegt')
-    bleiben dauerhaft gecacht; nur gescheiterte Versuche (rate limit etc.) werden nach
-    RETRY_FAILED_AFTER_HOURS erneut versucht."""
-    if not ig_handle:
+def get_contact_email(genius_id, name, profile):
+    """Sucht eine öffentlich hinterlegte E-Mail: erst die öffentlichen Quellen aus
+    contacts.py (Genius-Bio, Link-in-Bio, SoundCloud, YouTube, Website), dann - falls
+    aktiviert - Instaloader als letzte Quelle.
+
+    Gecacht: Treffer bleiben dauerhaft. 'Nichts gefunden' wird nach
+    RETRY_NOT_FOUND_AFTER_DAYS erneut gesucht, Fehler (rate limit etc.) nach
+    RETRY_FAILED_AFTER_HOURS."""
+    ig_handle, twitter = profile.get("instagram"), profile.get("twitter")
+    if not (ig_handle or twitter or profile.get("bio")):
         return None
 
     cached = get_cached_ig(genius_id)
     if cached:
-        error_is_stale = (
-            cached["instagram_error"]
-            and (time.time() - cached["last_updated"]) > RETRY_FAILED_AFTER_HOURS * 3600
-        )
-        if not error_is_stale:
-            logger.info(f"Cache-Hit für @{ig_handle} (genius_id={genius_id})")
+        age = time.time() - cached["last_updated"]
+        if cached["instagram_email"]:
+            fresh = True
+        elif cached["instagram_error"]:
+            fresh = age < RETRY_FAILED_AFTER_HOURS * 3600
+        else:
+            fresh = age < RETRY_NOT_FOUND_AFTER_DAYS * 86400
+        if fresh:
+            logger.info(f"Cache-Hit für {name} (genius_id={genius_id})")
             return {
                 "email": cached["instagram_email"],
                 "full_name": cached["instagram_full_name"],
                 "followers": cached["instagram_followers"],
+                "source": cached.get("contact_source"),
+                "source_url": cached.get("contact_url"),
+                "error": cached["instagram_error"],
             }
 
-    logger.info(f"Cache-Miss - hole Instagram-Profil @{ig_handle}")
-    result = fetch_instagram_business_email(ig_handle)
-    store_cached_ig(
-        genius_id, name, ig_handle,
-        email=result["email"], full_name=result["full_name"],
-        followers=result["followers"], error=result["error"],
-    )
-    return {"email": result["email"], "full_name": result["full_name"], "followers": result["followers"]}
+    logger.info(f"Cache-Miss - suche Kontakt für {name}")
+    found = contacts.find_contact(name, ig_handle, twitter, profile.get("bio", ""), profile.get("bio_links", []))
+    if found:
+        store_cached_ig(genius_id, name, ig_handle, email=found["email"],
+                        source=found["source"], source_url=found["source_url"])
+        return {"email": found["email"], "full_name": None, "followers": None,
+                "source": found["source"], "source_url": found["source_url"], "error": None}
+
+    if INSTAGRAM_FALLBACK and ig_handle:
+        result = fetch_instagram_business_email(ig_handle)
+        source = "Instagram" if result["email"] else None
+        store_cached_ig(
+            genius_id, name, ig_handle,
+            email=result["email"], full_name=result["full_name"],
+            followers=result["followers"], error=result["error"], source=source,
+        )
+        return {"email": result["email"], "full_name": result["full_name"], "followers": result["followers"],
+                "source": source, "source_url": None, "error": result["error"]}
+
+    store_cached_ig(genius_id, name, ig_handle)
+    return {"email": None, "full_name": None, "followers": None, "source": None, "source_url": None, "error": None}
 
 
 @app.route("/api/search", methods=["GET"])
@@ -306,13 +363,15 @@ def get_album_credits(album_id):
                         all_credits[name]["roles"].append(role)
             time.sleep(0.5)
 
-        for name, credit in all_credits.items():
+        def look_up(credit):
             genius_id = credit.get("genius_id")
-            if genius_id:
-                ig_handle = get_artist_instagram(genius_id)
-                credit["instagram_handle"] = ig_handle
-                if ig_handle:
-                    credit["instagram_data"] = get_instagram_email(genius_id, name, ig_handle)
+            profile = get_artist_profile(genius_id)
+            if profile:
+                credit["instagram_handle"] = profile["instagram"]
+                credit["instagram_data"] = get_contact_email(genius_id, credit["name"], profile)
+
+        with ThreadPoolExecutor(max_workers=LOOKUP_WORKERS) as pool:
+            list(pool.map(look_up, all_credits.values()))
 
         return jsonify({"credits": list(all_credits.values())})
 
