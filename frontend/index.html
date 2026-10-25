@@ -529,9 +529,8 @@
   }
   .demo-album.selected { border-color: var(--smoke); background: var(--obsidian); }
   .demo-cover {
-    width: 36px; height: 36px; border-radius: 4px; flex-shrink: 0;
-    background: var(--graphite); color: var(--fog);
-    display: flex; align-items: center; justify-content: center;
+    display: block; width: 36px; height: 36px; border-radius: 4px; flex-shrink: 0;
+    object-fit: cover; background: var(--graphite);
   }
   .demo-album-name { font-size: 14px; font-weight: 510; color: var(--paper); }
   .demo-album-artist { font-size: 12px; color: var(--fog); }
@@ -550,7 +549,12 @@
     min-width: 0;
   }
   .demo-row > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .demo-name { color: var(--paper); font-weight: 510; }
+  .demo-name { display: flex; align-items: center; gap: 8px; color: var(--paper); font-weight: 510; }
+  .demo-avatar {
+    display: block; width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+    object-fit: cover; background: var(--graphite);
+    box-shadow: rgba(255, 255, 255, 0.08) 0 0 0 1px;
+  }
   .demo-handle { font-family: var(--mono); font-size: 12px; color: var(--ash); transition: color .3s; }
   .demo-handle.found { color: var(--mist); }
   .demo-email { font-size: 12px; color: var(--ash); transition: color .3s; }
@@ -759,15 +763,16 @@ function CreditRow({ credit, delay }) {
 }
 
 // ── Landing explainer: a looping demo of the tool ───────────────────────────
-// Fictional album and people, so the demo never shows real contact details.
+// Real credits from Genius. The demo only says an email was found; it never shows one.
 
 const DEMO = {
-  album: "Midnight Static",
-  artist: "Ivy Lane",
+  album: "Whisper My Name",
+  artist: "Drake",
+  cover: "demo/whisper-my-name.webp",
   credits: [
-    { name: "Mara Quinn", role: "Producer", cls: "producer", handle: "maraquinn" },
-    { name: "Theo Vance", role: "Mixing engineer", cls: "mixer", handle: "theovance" },
-    { name: "Jun Park", role: "Recording engineer", cls: "engineer", handle: "junpark.audio" },
+    { name: "OZ", role: "Producer", cls: "producer", handle: "ozmusiqe", photo: "demo/oz.webp" },
+    { name: "London Cyr", role: "Producer", cls: "producer", handle: "londoncyr", photo: "demo/london-cyr.webp" },
+    { name: "Nik D", role: "Producer", cls: "producer", handle: "iamnikd", photo: "demo/nik-d.webp" },
   ],
 };
 const DEMO_TICK = 50;
@@ -842,7 +847,7 @@ function Explainer() {
           </div>
 
           <div className={`demo-album fade ${albumIn ? "in" : ""} ${albumSelected ? "selected" : ""}`}>
-            <div className="demo-cover">♪</div>
+            <img className="demo-cover" src={DEMO.cover} alt="" width="36" height="36" />
             <div>
               <div className="demo-album-name">{DEMO.album}</div>
               <div className="demo-album-artist">{DEMO.artist}</div>
@@ -855,7 +860,10 @@ function Explainer() {
               const found = t >= 4000 + i * 450;
               return (
                 <div key={c.name} className={`demo-row fade ${rowIn ? "in" : ""}`}>
-                  <span className="demo-name">{c.name}</span>
+                  <span className="demo-name">
+                    <img className="demo-avatar" src={c.photo} alt="" width="24" height="24" />
+                    {c.name}
+                  </span>
                   <span className="demo-role"><span className={`role-tag ${c.cls}`}>{c.role}</span></span>
                   <span className={`demo-handle ${found ? "found" : ""}`}>{found ? `@${c.handle}` : "looking…"}</span>
                   <span className={`demo-email ${found ? "found" : ""}`}>{found ? "✓ Email found" : "—"}</span>
