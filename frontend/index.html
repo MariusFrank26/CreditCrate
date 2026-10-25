@@ -91,6 +91,7 @@
     color: var(--paper);
   }
   .brand-mark { display: block; width: clamp(44px, 5vw, 56px); height: auto; }
+  .header-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
   .tagline {
     font-family: var(--mono);
     font-size: 12px;
@@ -145,7 +146,7 @@
     color: var(--fog);
     margin-bottom: 8px;
   }
-  input[type="text"] {
+  input[type="text"], input[type="email"], input[type="password"] {
     width: 100%;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -157,8 +158,8 @@
     padding: 12px 14px;
     transition: border-color .15s;
   }
-  input[type="text"]:focus { border-color: var(--mist); }
-  input[type="text"]::placeholder { color: var(--ash); }
+  input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus { border-color: var(--mist); }
+  input[type="text"]::placeholder, input[type="email"]::placeholder { color: var(--ash); }
 
   .search-btn {
     display: flex; align-items: center; gap: 10px;
@@ -452,6 +453,17 @@
   .explainer-step-title { display: block; font-size: 15px; font-weight: 510; }
   .explainer-step-title .num { font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--ash); margin-right: 10px; }
   .explainer-step-desc { display: block; font-size: 13px; color: var(--fog); margin-top: 2px; padding-left: 28px; }
+
+  /* ── NEWSLETTER + SIGN-IN PANELS ── */
+  .panel {
+    max-width: 560px;
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 1px solid var(--graphite);
+  }
+  .panel-title { font-size: 20px; font-weight: 510; letter-spacing: -0.016em; color: var(--paper); }
+  .panel-copy { margin-top: 8px; font-size: 14px; color: var(--fog); }
+  .panel-form { margin-top: 20px; }
   .step-progress {
     position: absolute; left: 12px; right: 12px; bottom: 4px;
     height: 1px; background: var(--graphite); overflow: hidden;
@@ -581,6 +593,7 @@
 
   @media (max-width: 900px) {
     header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .header-actions { align-items: flex-start; }
     .tagline { text-align: left; }
 
     .credits-table, .credits-table tbody { display: block; width: 100%; }
@@ -886,6 +899,147 @@ function Explainer() {
   );
 }
 
+// ── Accounts: the search tool is for signed-in users only ───────────────────
+
+const TOKEN_KEY = "creditcrate-token";
+const SESSION_EXPIRED = "Your session has expired. Sign in again.";
+
+// Kept per browser so a reload doesn't sign you out. Storage can be blocked, so every access is guarded.
+function readToken() {
+  try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
+}
+function storeToken(value) {
+  try {
+    if (value) localStorage.setItem(TOKEN_KEY, value);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch { /* blocked: the token lives in memory until the next reload */ }
+}
+function authHeaders(token) {
+  return { Authorization: `Bearer ${token}` };
+}
+
+function LoginForm({ onSignedIn }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+      onSignedIn(data.token);
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="panel" aria-labelledby="sign-in-heading">
+      <h2 id="sign-in-heading" className="panel-title">Sign in</h2>
+      <form className="search-row panel-form" onSubmit={handleSubmit}>
+        <div className="search-input-wrap">
+          <label className="search-label" htmlFor="login-email">Email</label>
+          <input
+            id="login-email"
+            type="email"
+            name="email"
+            autoComplete="username"
+            required
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="search-input-wrap">
+          <label className="search-label" htmlFor="login-password">Password</label>
+          <input
+            id="login-password"
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+          />
+        </div>
+        <button type="submit" className="search-btn" disabled={busy} aria-busy={busy}>
+          {busy && <span className="spinner" aria-hidden="true" />}
+          Sign in
+        </button>
+      </form>
+      {error && <div className="error-msg" role="alert">⚠ {error}</div>}
+    </section>
+  );
+}
+
+// ── Landing: newsletter sign-up until CreditCrate is released ───────────────
+
+function NewsletterForm() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | done | failed
+  const [error, setError] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setStatus("sending");
+    setError(null);
+    try {
+      const res = await fetch(`${API}/newsletter`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+      setStatus("done");
+    } catch (err) {
+      setError(err.message);
+      setStatus("failed");
+    }
+  }
+
+  return (
+    <section className="panel" aria-labelledby="newsletter-heading">
+      <h2 id="newsletter-heading" className="panel-title">Get notified at launch</h2>
+      <p className="panel-copy">CreditCrate isn't public yet. Leave your email and we'll let you know the day it's released.</p>
+      {status === "done" ? (
+        <p className="panel-copy panel-form" role="status">You're on the list.</p>
+      ) : (
+        <form className="search-row panel-form" onSubmit={handleSubmit}>
+          <div className="search-input-wrap">
+            <label className="search-label" htmlFor="newsletter-email">Email</label>
+            <input
+              id="newsletter-email"
+              type="email"
+              name="email"
+              placeholder="you@example.com"
+              autoComplete="email"
+              enterKeyHint="send"
+              required
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
+          </div>
+          <button type="submit" className="search-btn" disabled={status === "sending"} aria-busy={status === "sending"}>
+            {status === "sending" && <span className="spinner" aria-hidden="true" />}
+            Notify me
+          </button>
+        </form>
+      )}
+      {error && <div className="error-msg" role="alert">⚠ {error}</div>}
+    </section>
+  );
+}
+
 function App() {
   const initialParams = new URLSearchParams(window.location.search);
   const initialRole = initialParams.get("role");
@@ -899,6 +1053,8 @@ function App() {
   const [statusMsg, setStatusMsg] = useState("");
   const [error, setError] = useState(null);
   const [roleFilter, setRoleFilter] = useState(ROLE_FILTERS.includes(initialRole) ? initialRole : "ALL");
+  const [token, setToken] = useState(readToken);
+  const [showLogin, setShowLogin] = useState(false);
 
   // 1=search, 2=pick album, 3=credits
   const step = selectedAlbum ? 3 : (searchResults || loading) ? 2 : 1;
@@ -915,7 +1071,8 @@ function App() {
     setSelectedAlbum(null);
     setStatusMsg("Searching Genius…");
     try {
-      const res = await fetch(`${API}/search?album=${encodeURIComponent(q)}&artist=${encodeURIComponent(artist.trim())}`);
+      const res = await fetch(`${API}/search?album=${encodeURIComponent(q)}&artist=${encodeURIComponent(artist.trim())}`, { headers: authHeaders(token) });
+      if (res.status === 401) return signOut(SESSION_EXPIRED);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -931,7 +1088,7 @@ function App() {
 
   // Re-run the search when the page was opened with ?q= in the URL
   useEffect(() => {
-    if (albumQuery.trim()) runSearch(albumQuery, artistQuery);
+    if (token && albumQuery.trim()) runSearch(albumQuery, artistQuery);
   }, []);
 
   function handleSearch(e) {
@@ -946,7 +1103,8 @@ function App() {
     setCredits(null);
     setStatusMsg(`Fetching track credits for "${album.name}"… this may take a minute.`);
     try {
-      const res = await fetch(`${API}/album/${album.id}/credits`);
+      const res = await fetch(`${API}/album/${album.id}/credits`, { headers: authHeaders(token) });
+      if (res.status === 401) return signOut(SESSION_EXPIRED);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -966,6 +1124,24 @@ function App() {
     setStatusMsg(`Found ${searchResults.length} album${searchResults.length !== 1 ? "s" : ""}. Pick one.`);
   }
 
+  function handleSignedIn(newToken) {
+    storeToken(newToken);
+    setToken(newToken);
+    setShowLogin(false);
+    setError(null);
+  }
+
+  function signOut(message = null) {
+    storeToken("");
+    setToken("");
+    setShowLogin(false);
+    setSearchResults(null);
+    setSelectedAlbum(null);
+    setCredits(null);
+    setStatusMsg("");
+    setError(message);
+  }
+
   function changeRole(role) {
     setRoleFilter(role);
     setUrlParam("role", role === "ALL" ? "" : role);
@@ -983,13 +1159,27 @@ function App() {
           <img className="brand-mark" src="logo.svg" alt="" width="56" height="56" />
           CreditCrate
         </h1>
-        <p className="tagline">
-          Album production lookup<br/>
-          Genius · Instagram · Credits
-        </p>
+        <div className="header-actions">
+          <p className="tagline">
+            Album production lookup<br/>
+            Genius · Instagram · Credits
+          </p>
+          {token ? (
+            <button type="button" className="back-btn" onClick={() => signOut()}>Sign out</button>
+          ) : (
+            <button type="button" className="back-btn" aria-expanded={showLogin} onClick={() => setShowLogin(s => !s)}>
+              {showLogin ? "Close" : "Sign in"}
+            </button>
+          )}
+        </div>
       </header>
 
       <main id="main">
+        {error && <div className="error-msg" role="alert">⚠ {error}</div>}
+
+        {!token && showLogin && <LoginForm onSignedIn={handleSignedIn} />}
+
+        {token && <>
         <ol className="step-indicator" aria-label="Progress">
           {STEPS.map(([n, label]) => (
             <li
@@ -1045,8 +1235,6 @@ function App() {
             </button>
           </div>
         </form>
-
-        {error && <div className="error-msg" role="alert">⚠ {error}</div>}
 
         <div role="status" aria-live="polite">
           {(loading || statusMsg) && (
@@ -1142,7 +1330,12 @@ function App() {
           </div>
         )}
 
-        {step === 1 && !loading && !error && <Explainer />}
+        </>}
+
+        {!token && <>
+          <Explainer />
+          <NewsletterForm />
+        </>}
       </main>
     </div>
   );

@@ -30,6 +30,7 @@ from instaloader.exceptions import (
 )
 
 import contacts
+import accounts
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -181,6 +182,7 @@ def init_cache_db():
 
 
 init_cache_db()
+accounts.init_db()
 
 
 def get_cached_ig(genius_id):
@@ -327,7 +329,27 @@ def get_contact_email(genius_id, name, profile):
     return {"email": None, "full_name": None, "followers": None, "source": None, "source_url": None, "error": None}
 
 
+@app.route("/api/login", methods=["POST"])
+def login():
+    data = request.get_json(silent=True) or {}
+    email = accounts.normalize_email(data.get("email"))
+    if not accounts.verify_login(email, data.get("password") or ""):
+        return jsonify({"error": "Wrong email or password."}), 401
+    return jsonify({"token": accounts.issue_token(email)})
+
+
+@app.route("/api/newsletter", methods=["POST"])
+def newsletter():
+    data = request.get_json(silent=True) or {}
+    email = accounts.normalize_email(data.get("email"))
+    if not accounts.is_valid_email(email):
+        return jsonify({"error": "Enter a valid email address."}), 400
+    accounts.add_newsletter_signup(email)
+    return jsonify({"ok": True})
+
+
 @app.route("/api/search", methods=["GET"])
+@accounts.login_required
 def search_album():
     album = request.args.get("album", "").strip()
     artist = request.args.get("artist", "").strip()
@@ -342,6 +364,7 @@ def search_album():
 
 
 @app.route("/api/album/<int:album_id>/credits", methods=["GET"])
+@accounts.login_required
 def get_album_credits(album_id):
     try:
         tracks = get_album_tracks(album_id)

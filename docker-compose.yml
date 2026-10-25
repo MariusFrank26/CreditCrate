@@ -11,6 +11,7 @@ services:
     environment:
       - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN}
       - IG_SESSION_USERNAME=${IG_SESSION_USERNAME}
+      - AUTH_SECRET=${AUTH_SECRET}
     volumes:
       - ig_session:/root/.config/instaloader   # Instagram-Session überlebt Rebuilds/Redeploys
       - cache_data:/app/data                   # Verzeichnis statt Einzeldatei - vermeidet Mount-Fehler

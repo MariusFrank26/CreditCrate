@@ -18,6 +18,24 @@ IG_SESSION_USERNAME=your_scraper_ig_username
 
 `IG_SESSION_USERNAME` must match the account you log in with in step 3.
 
+Add a random secret for signing sign-in tokens (generate one with `python -c "import secrets; print(secrets.token_hex(32))"`):
+
+```env
+AUTH_SECRET=long_random_string
+```
+
+Without it the backend still starts, but everyone is signed out on every restart.
+
+### 2b. Create an account
+The search tool is only available to signed-in users. Sign-up is closed, so accounts are created on the server:
+
+```bash
+cd backend
+python create_user.py
+```
+
+Running it again for an existing email resets that password.
+
 ### 3. Instagram session (one time)
 Instagram needs a logged-in session for reliable profile lookups.
 
@@ -67,6 +85,8 @@ Results are cached by Genius ID in `creditcrate.db` (`artist_cache` table), so r
 CreditCrate/
 ├── backend/
 │   ├── app.py             # Flask API server, Genius + Instagram lookups, SQLite cache
+│   ├── accounts.py        # Sign-in tokens, login gate, newsletter sign-ups
+│   ├── create_user.py     # Creates or resets a CreditCrate account
 │   ├── login.py           # One-time Instagram session setup
 │   ├── requirements.txt
 │   └── Dockerfile
@@ -81,6 +101,8 @@ CreditCrate/
 
 | Endpoint | Description |
 |---|---|
-| `GET /api/search?album=…&artist=…` | Search albums on Genius |
-| `GET /api/album/{id}/credits` | All credits for an album |
+| `POST /api/login` | Sign in with email and password, returns a token |
+| `POST /api/newsletter` | Sign up for launch notifications (`{"email": …}`) |
+| `GET /api/search?album=…&artist=…` | Search albums on Genius (sign-in required) |
+| `GET /api/album/{id}/credits` | All credits for an album (sign-in required) |
 | `GET /api/health` | Server and Instaloader status |
