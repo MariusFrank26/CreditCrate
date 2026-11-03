@@ -327,10 +327,10 @@
     color: var(--fog);
     white-space: nowrap;
   }
-  .role-tag.producer { color: var(--pulse); background: rgba(39, 166, 68, 0.12); }
-  .role-tag.engineer { color: var(--lavender); background: rgba(139, 92, 246, 0.12); }
-  .role-tag.mixer    { color: var(--iris); background: rgba(99, 102, 241, 0.12); }
-  .role-tag.writer   { color: var(--teal); background: rgba(2, 184, 204, 0.12); }
+  .role-tag.producer { color: var(--mist); background: var(--graphite); }
+  .role-tag.engineer { color: var(--mist); background: var(--graphite); }
+  .role-tag.mixer    { color: var(--mist); background: var(--graphite); }
+  .role-tag.writer   { color: var(--mist); background: var(--graphite); }
 
   .ig-link {
     color: var(--mist);
@@ -610,7 +610,7 @@
     transition: border-color .2s, transform .2s;
   }
   .feature-card:hover { border-color: var(--smoke); transform: translateY(-3px); }
-  .feature-number { font-family: var(--mono); font-size: 12px; color: var(--acid); letter-spacing: .08em; }
+  .feature-number { font-family: var(--mono); font-size: 12px; color: var(--ash); letter-spacing: .08em; }
   .feature-title { font-size: 17px; font-weight: 510; letter-spacing: -0.016em; color: var(--paper); }
   .feature-copy { font-size: 14px; line-height: 1.55; color: var(--fog); }
 
@@ -625,7 +625,7 @@
   .fx-credits { align-items: flex-end; gap: 6px; padding: 18px 22px; }
   .fx-credits span {
     width: 8px; height: 100%; border-radius: 3px;
-    background: linear-gradient(180deg, var(--teal), var(--iris));
+    background: linear-gradient(180deg, var(--mist), var(--smoke));
     opacity: .9;
     transform-origin: bottom;
     animation: fx-eq 1.4s ease-in-out infinite;
@@ -643,10 +643,9 @@
     width: 26px; height: 26px; border-radius: 50%; flex: none;
     display: grid; place-items: center;
     font-family: var(--mono); font-size: 10px; color: var(--void);
-    background: var(--teal);
+    background: var(--graphite);
+    color: var(--paper);
   }
-  .fx-person:nth-child(2) .fx-avatar { background: var(--lavender); }
-  .fx-person:nth-child(3) .fx-avatar { background: var(--iris); }
   .fx-line { flex: 1; height: 1px; background: var(--graphite); }
   .fx-tag {
     font-family: var(--mono); font-size: 10px; color: var(--fog);
@@ -664,10 +663,10 @@
     display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 0 14px;
     transform: rotate(2deg);
     animation: fx-float 3.6s ease-in-out infinite;
-    border-color: var(--acid);
+    border-color: var(--fog);
   }
   .fx-pack-name { font-size: 13px; font-weight: 510; color: var(--paper); }
-  .fx-pack-link { font-family: var(--mono); font-size: 11px; color: var(--teal); }
+  .fx-pack-link { font-family: var(--mono); font-size: 11px; color: var(--ash); }
   @keyframes fx-float { 0%, 100% { transform: rotate(2deg) translateY(0); } 50% { transform: rotate(2deg) translateY(-6px); } }
   /* campaigns: filling bars */
   .fx-campaign { flex-direction: column; align-items: stretch; justify-content: center; gap: 6px; }
@@ -675,11 +674,11 @@
   .fx-bar { height: 8px; border-radius: 999px; background: var(--graphite); overflow: hidden; margin-bottom: 6px; }
   .fx-bar span {
     display: block; height: 100%; width: 62%; border-radius: 999px;
-    background: linear-gradient(90deg, var(--iris), var(--lavender));
+    background: linear-gradient(90deg, var(--mist), var(--fog));
     transform-origin: left;
     animation: fx-fill 2.8s cubic-bezier(.2, .7, .2, 1) infinite alternate;
   }
-  .fx-bar-click span { width: 18%; background: var(--teal); animation-delay: .4s; }
+  .fx-bar-click span { width: 18%; background: var(--smoke); animation-delay: .4s; }
   @keyframes fx-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
   /* deal desk: invoice lines */
   .fx-invoice { flex-direction: column; align-items: stretch; justify-content: center; gap: 8px; }
@@ -702,7 +701,7 @@
   }
   .pipeline-steps::before {
     content: ""; position: absolute; left: 18px; right: 18px; top: 17px; height: 2px;
-    background: linear-gradient(90deg, var(--acid), var(--teal), var(--iris), var(--lavender));
+    background: linear-gradient(90deg, var(--smoke), var(--fog), var(--smoke));
     background-size: 200% 100%;
     opacity: .5;
     animation: fx-flow 4s linear infinite;
@@ -1065,6 +1064,40 @@
   }
   .app-window.is-open { grid-column: 1 / -1; }
   .app-window-wide { grid-column: auto; }
+
+  /* ── PACK PICKER: searchable attach-a-pack field for campaigns ── */
+  .picker { display: flex; flex-direction: column; gap: 8px; }
+  .picker-field { position: relative; }
+  .picker-list {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 5;
+    list-style: none; max-height: 260px; overflow-y: auto;
+    background: var(--obsidian); border: 1px solid var(--smoke); border-radius: 10px;
+    padding: 4px;
+    box-shadow: 0 16px 40px -16px rgba(0, 0, 0, .7);
+  }
+  .picker-list button {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    width: 100%; padding: 10px 12px; border-radius: 8px;
+    background: none; border: 0; cursor: pointer;
+    font-family: var(--sans); font-size: 14px; color: var(--mist); text-align: left;
+  }
+  .picker-list button:hover, .picker-list button:focus-visible { background: rgba(255, 255, 255, .05); color: var(--paper); }
+  .picker-list small { font-family: var(--mono); font-size: 11px; color: var(--ash); white-space: nowrap; }
+  .picker-empty { padding: 10px 12px; font-size: 13px; color: var(--ash); }
+  .picker-current { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--fog); }
+
+  /* ── LANDING BACKDROP: Deal Desk's drifting grid ── */
+  .page:not(.signed-in)::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(208, 214, 224, .035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(208, 214, 224, .035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 80%);
+    animation: drift 12s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) { .page:not(.signed-in)::before { animation: none; } }
 
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
@@ -2303,6 +2336,69 @@ function PacksTool({ token, onAuthError }) {
   );
 }
 
+// A searchable pack picker. It replaces the plain dropdown, so long pack lists stay easy to use.
+function PackPicker({ packs, value, onChange }) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const selected = packs.find(p => String(p.id) === String(value));
+  const q = query.trim().toLowerCase();
+  const matches = packs.filter(p => !q || p.name.toLowerCase().includes(q) || packHost(p.url).includes(q));
+
+  function choose(id) {
+    onChange(id);
+    setQuery("");
+    setOpen(false);
+  }
+
+  return (
+    <div className="picker">
+      <label className="search-label" htmlFor="pack-picker">Attach pack link</label>
+      <div
+        className="picker-field"
+        onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}
+      >
+        <input
+          id="pack-picker"
+          type="text"
+          autoComplete="off"
+          spellCheck={false}
+          role="combobox"
+          aria-expanded={open}
+          aria-controls="pack-picker-list"
+          placeholder={selected ? selected.name : "Search packs…"}
+          value={query}
+          onFocus={() => setOpen(true)}
+          onChange={e => { setQuery(e.target.value); setOpen(true); }}
+        />
+        {open && (
+          <ul id="pack-picker-list" className="picker-list" role="listbox">
+            <li>
+              <button type="button" onClick={() => choose("")}>
+                <span>No pack</span>
+              </button>
+            </li>
+            {matches.map(p => (
+              <li key={p.id}>
+                <button type="button" onClick={() => choose(String(p.id))}>
+                  <span>{p.name}</span>
+                  <small>{packHost(p.url)}</small>
+                </button>
+              </li>
+            ))}
+            {matches.length === 0 && <li className="picker-empty">No packs match “{query}”.</li>}
+          </ul>
+        )}
+      </div>
+      {selected && (
+        <div className="picker-current">
+          <span>Attached: {selected.name}</span>
+          <button type="button" className="back-btn" onClick={() => choose("")}>Remove</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CampaignsTool({ token, onAuthError }) {
   const [campaigns, setCampaigns] = useState(null);
   const [packs, setPacks] = useState([]);
@@ -2384,10 +2480,7 @@ function CampaignsTool({ token, onAuthError }) {
           <Field label="Name (internal)" id="campaign-name" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} />
           <Field label="Subject" id="campaign-subject" value={form.subject} onChange={v => setForm(f => ({ ...f, subject: v }))} required />
           <Field label="Message" id="campaign-body" as="textarea" rows={8} value={form.body} onChange={v => setForm(f => ({ ...f, body: v }))} required />
-          <Field label="Attach pack link" id="campaign-pack" as="select" value={form.pack_id} onChange={v => setForm(f => ({ ...f, pack_id: v }))}>
-            <option value="">No pack</option>
-            {packs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </Field>
+          <PackPicker packs={packs} value={form.pack_id} onChange={v => setForm(f => ({ ...f, pack_id: v }))} />
           <label className="check-row">
             <input type="checkbox" checked={form.track} onChange={e => setForm(f => ({ ...f, track: e.target.checked }))} />
             <span>Track opens and clicks</span>
