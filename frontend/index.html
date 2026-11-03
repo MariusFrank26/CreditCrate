@@ -672,7 +672,8 @@
   .fx-credits { align-items: flex-end; gap: 6px; padding: 18px 22px; }
   .fx-credits span {
     width: 8px; height: 100%; border-radius: 3px;
-    background: linear-gradient(180deg, var(--acid), var(--pulse));
+    background: linear-gradient(180deg, var(--teal), var(--iris));
+    opacity: .9;
     transform-origin: bottom;
     animation: fx-eq 1.4s ease-in-out infinite;
     animation-delay: calc(var(--i) * -0.18s);
@@ -770,6 +771,48 @@
 
   @media (prefers-reduced-motion: reduce) {
     .feature-card, .fx-art *, .pipeline-step, .pipeline-steps::before { animation: none !important; transition: none !important; }
+  }
+
+  /* ── HUB: the landing page's energy, carried into the signed-in tools ── */
+  .signed-in::before {
+    content: ""; position: fixed; inset: -20% -10% auto -10%; height: 70vh; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(40% 50% at 20% 30%, rgba(99, 102, 241, .16), transparent 70%),
+      radial-gradient(35% 45% at 80% 20%, rgba(2, 184, 204, .12), transparent 70%);
+    animation: hub-drift 18s ease-in-out infinite alternate;
+  }
+  @keyframes hub-drift { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(3%, 4%, 0); } }
+  .tool-section > * { animation: hub-rise .6s cubic-bezier(.2, .7, .2, 1) both; }
+  .tool-section > *:nth-child(2) { animation-delay: .06s; }
+  .tool-section > *:nth-child(3) { animation-delay: .12s; }
+  .tool-section > *:nth-child(4) { animation-delay: .18s; }
+  @keyframes hub-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  .tool-title {
+    background: linear-gradient(90deg, var(--paper) 30%, var(--teal) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .tool-eyebrow { display: inline-flex; align-items: center; gap: 8px; }
+  .tool-eyebrow::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--teal); box-shadow: 0 0 0 0 rgba(2, 184, 204, .6);
+    animation: hub-pulse 2.2s ease-out infinite;
+  }
+  @keyframes hub-pulse { 0% { box-shadow: 0 0 0 0 rgba(2, 184, 204, .6); } 70%, 100% { box-shadow: 0 0 0 8px rgba(2, 184, 204, 0); } }
+  .tool-card, .search-block, .stat-tile, .quick-action, .tool-empty {
+    background: linear-gradient(180deg, var(--carbon), var(--obsidian));
+    transition: border-color .2s, transform .2s, box-shadow .2s;
+  }
+  .tool-card:hover, .stat-tile:hover {
+    border-color: var(--smoke);
+    box-shadow: 0 12px 32px -18px rgba(99, 102, 241, .45);
+  }
+  .stat-tile:hover { transform: translateY(-2px); }
+  .stat-value { font-variant-numeric: tabular-nums; }
+  .search-block { animation: hub-rise .6s cubic-bezier(.2, .7, .2, 1) both; }
+  .data-table tbody tr:hover td { background: rgba(99, 102, 241, .06); }
+  .tool-tab[aria-current="page"] { box-shadow: 0 6px 18px -8px rgba(228, 242, 34, .6); }
+  @media (prefers-reduced-motion: reduce) {
+    .signed-in::before, .tool-section > *, .search-block, .tool-eyebrow::before { animation: none !important; }
   }
 
   /* ── HERO + SIGN-UP ── */
