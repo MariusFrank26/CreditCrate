@@ -16,7 +16,7 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 
 GMAIL_HOST = "smtp.gmail.com"
 GMAIL_PORT = 465
@@ -28,10 +28,12 @@ class CredentialError(Exception):
 
 
 def _fernet():
-    key = os.getenv("CREDENTIAL_KEY")
-    if not key:
+    # CREDENTIAL_KEY can hold several keys, separated by commas. The first one encrypts new
+    # passwords; every key can decrypt, so the others can be removed after a rotation.
+    keys = [k.strip() for k in os.getenv("CREDENTIAL_KEY", "").split(",") if k.strip()]
+    if not keys:
         raise CredentialError("CREDENTIAL_KEY is not set on the server, so app passwords cannot be stored.")
-    return Fernet(key.encode())
+    return MultiFernet([Fernet(k.encode()) for k in keys])
 
 
 def encrypt_password(app_password):

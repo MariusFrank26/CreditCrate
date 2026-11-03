@@ -81,28 +81,52 @@ def _conn():
         conn.close()
 
 
+def _migrate_owner(conn, table, create_sql, columns):
+    existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+    if "owner" in existing:
+        return
+    first = conn.execute("SELECT email FROM users ORDER BY created_at LIMIT 1").fetchone()
+    owner = first[0] if first else None
+    conn.execute(f"ALTER TABLE {table} RENAME TO {table}_old")
+    conn.execute(create_sql)
+    conn.execute(f"INSERT INTO {table} (owner, {columns}) SELECT ?, {columns} FROM {table}_old", (owner,))
+    conn.execute(f"DROP TABLE {table}_old")
+
+
 def init_db():
     with _conn() as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS mail_contacts (
-                email TEXT PRIMARY KEY,
+                owner TEXT,
+                email TEXT,
                 name TEXT,
                 instagram TEXT,
                 roles TEXT,
                 tags TEXT,
                 source TEXT,
                 unsubscribed_at REAL,
-                created_at REAL
+                created_at REAL,
+                PRIMARY KEY (owner, email)
             )
         """)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS mail_packs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner TEXT,
                 name TEXT,
                 url TEXT,
                 created_at REAL
             )
         """)
+        _migrate_owner(conn, "mail_contacts", """
+            CREATE TABLE mail_contacts (
+                owner TEXT, email TEXT, name TEXT, instagram TEXT, roles TEXT, tags TEXT, source TEXT,
+                unsubscribed_at REAL, created_at REAL, PRIMARY KEY (owner, email)
+            )""", "email, name, instagram, roles, tags, source, unsubscribed_at, created_at")
+        _migrate_owner(conn, "mail_packs", """
+            CREATE TABLE mail_packs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, owner TEXT, name TEXT, url TEXT, created_at REAL
+            )""", "id, name, url, created_at")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS mail_campaigns (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -155,17 +179,17 @@ def init_db():
 
 # ── Contacts ────────────────────────────────────────────────────────────────
 
-def upsert_contact(conn, email, name="", instagram="", roles="", tags="", source="manual"):
+def upsert_contact(conn, owner, email, name="", instagram="", roles="", tags="", source="manual"):
     # Never touches unsubscribed_at, so re-importing a list can't re-subscribe anyone
     conn.execute("""
-        INSERT INTO mail_contacts (email, name, instagram, roles, tags, source, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(email) DO UPDATE SET
+        INSERT INTO mail_contacts (owner, email, name, instagram, roles, tags, source, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(owner, email) DO UPDATE SET
             name = COALESCE(NULLIF(excluded.name, ''), mail_contacts.name),
             instagram = COALESCE(NULLIF(excluded.instagram, ''), mail_contacts.instagram),
             roles = COALESCE(NULLIF(excluded.roles, ''), mail_contacts.roles),
             tags = COALESCE(NULLIF(excluded.tags, ''), mail_contacts.tags)
-    """, (email, name, instagram, roles, tags, source, time.time()))
+    """, (owner, email, name, instagram, roles, tags, source, time.time()))
 
 
 @bp.route("/api/contacts", methods=["POST"])
@@ -176,7 +200,7 @@ def save_contact():
     if not accounts.is_valid_email(email):
         return jsonify({"error": "Not a valid email address."}), 400
     with _conn() as conn:
-        upsert_contact(conn, email, data.get("name", ""), data.get("instagram", ""),
+        upsert_contact(conn, accounts.current_email(), email, data.get("name", ""), data.get("instagram", ""),
                        data.get("roles", ""), data.get("tags", ""), data.get("source", "manual"))
     return jsonify({"ok": True})
 
@@ -203,7 +227,7 @@ def import_contacts():
             if not accounts.is_valid_email(email):
                 skipped += 1
                 continue
-            upsert_contact(conn, email, row.get("name", ""), row.get("instagram", ""),
+            upsert_contact(conn, accounts.current_email(), email, row.get("name", ""), row.get("instagram", ""),
                            row.get("roles", ""), row.get("tags", ""), "csv")
             saved += 1
     return jsonify({"saved": saved, "skipped": skipped})
@@ -214,8 +238,8 @@ def import_contacts():
 def list_contacts():
     role = request.args.get("role", "").strip()
     tag = request.args.get("tag", "").strip()
-    query = "SELECT email, name, instagram, roles, tags, source, unsubscribed_at FROM mail_contacts WHERE unsubscribed_at IS NULL"
-    args = []
+    query = "SELECT email, name, instagram, roles, tags, source, unsubscribed_at FROM mail_contacts WHERE owner = ? AND unsubscribed_at IS NULL"
+    args = [accounts.current_email()]
     if role:
         query += " AND roles LIKE ?"
         args.append(f"%{role}%")
@@ -230,22 +254,23 @@ def list_contacts():
 
 # ── Unsubscribe ─────────────────────────────────────────────────────────────
 
-def unsubscribe_link(email):
-    token = _signer.dumps({"unsub": email}, salt="creditcrate-mail-unsub")
+def unsubscribe_link(email, owner):
+    token = _signer.dumps({"unsub": email, "o": owner}, salt="creditcrate-mail-unsub")
     return f"{PUBLIC_API_URL}/unsubscribe?token={token}"
 
 
 @bp.route("/api/unsubscribe", methods=["GET"])
 def unsubscribe():
     try:
-        email = _signer.loads(request.args.get("token", ""), salt="creditcrate-mail-unsub")["unsub"]
+        data = _signer.loads(request.args.get("token", ""), salt="creditcrate-mail-unsub")
+        email, owner = data["unsub"], data["o"]
     except (BadSignature, SignatureExpired, KeyError):
         return "This unsubscribe link is not valid.", 400
     with _conn() as conn:
         conn.execute(
-            "INSERT INTO mail_contacts (email, source, unsubscribed_at, created_at) VALUES (?, 'unsubscribed', ?, ?) "
-            "ON CONFLICT(email) DO UPDATE SET unsubscribed_at = COALESCE(mail_contacts.unsubscribed_at, excluded.unsubscribed_at)",
-            (email, time.time(), time.time()),
+            "INSERT INTO mail_contacts (owner, email, source, unsubscribed_at, created_at) VALUES (?, ?, 'unsubscribed', ?, ?) "
+            "ON CONFLICT(owner, email) DO UPDATE SET unsubscribed_at = COALESCE(mail_contacts.unsubscribed_at, excluded.unsubscribed_at)",
+            (owner, email, time.time(), time.time()),
         )
     return "You have been unsubscribed and will not receive more emails from CreditCrate."
 
@@ -282,8 +307,8 @@ def save_pack():
         return jsonify({"error": "Give the pack a name."}), 400
     with _conn() as conn:
         cur = conn.execute(
-            "INSERT INTO mail_packs (name, url, created_at) VALUES (?, ?, ?)",
-            (name, url, time.time()),
+            "INSERT INTO mail_packs (owner, name, url, created_at) VALUES (?, ?, ?, ?)",
+            (accounts.current_email(), name, url, time.time()),
         )
     return jsonify({"id": cur.lastrowid, "name": name, "url": url})
 
@@ -293,7 +318,8 @@ def save_pack():
 def list_packs():
     with _conn() as conn:
         rows = [dict(r) for r in conn.execute(
-            "SELECT id, name, url, created_at FROM mail_packs ORDER BY created_at DESC")]
+            "SELECT id, name, url, created_at FROM mail_packs WHERE owner = ? ORDER BY created_at DESC",
+            (accounts.current_email(),))]
     return jsonify({"packs": rows})
 
 
@@ -301,7 +327,7 @@ def list_packs():
 @accounts.login_required
 def delete_pack(pack_id):
     with _conn() as conn:
-        cur = conn.execute("DELETE FROM mail_packs WHERE id = ?", (pack_id,))
+        cur = conn.execute("DELETE FROM mail_packs WHERE id = ? AND owner = ?", (pack_id, accounts.current_email()))
     if cur.rowcount == 0:
         return jsonify({"error": "Pack not found."}), 404
     return jsonify({"ok": True})
@@ -318,7 +344,8 @@ def create_campaign():
     if not subject or not body:
         return jsonify({"error": "A campaign needs a subject and a body."}), 400
     with _conn() as conn:
-        if data.get("pack_id") and not conn.execute("SELECT 1 FROM mail_packs WHERE id = ?", (data["pack_id"],)).fetchone():
+        if data.get("pack_id") and not conn.execute(
+                "SELECT 1 FROM mail_packs WHERE id = ? AND owner = ?", (data["pack_id"], accounts.current_email())).fetchone():
             return jsonify({"error": "Pack not found."}), 404
         cur = conn.execute(
             "INSERT INTO mail_campaigns (name, subject, body, pack_id, track, created_at, owner) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -338,13 +365,13 @@ def list_campaigns():
     return jsonify({"campaigns": rows})
 
 
-def _recipients(conn, campaign_id, role, tag):
+def _recipients(conn, campaign_id, owner, role, tag):
     query = """
         SELECT email, name FROM mail_contacts
-        WHERE unsubscribed_at IS NULL
+        WHERE owner = ? AND unsubscribed_at IS NULL
           AND email NOT IN (SELECT email FROM mail_sends WHERE campaign_id = ? AND status = 'sent')
     """
-    args = [campaign_id]
+    args = [owner, campaign_id]
     if role:
         query += " AND roles LIKE ?"
         args.append(f"%{role}%")
@@ -383,7 +410,7 @@ def _html_body(text, pixel_url):
 def _render(campaign, contact, pack_url):
     """Returns (text, html) for one recipient."""
     campaign_id, email = campaign["id"], contact["email"]
-    unsubscribe = unsubscribe_link(email)
+    unsubscribe = unsubscribe_link(email, campaign["owner"])
     text = campaign["body"].replace("{{name}}", contact["name"] or "there")
     if pack_url:
         text += f"\n\nDownload the pack: {pack_url}"
@@ -564,13 +591,13 @@ def activity():
         recent = [dict(r) for r in conn.execute(
             "SELECT e.kind, e.email, e.created_at, c.subject, COALESCE(NULLIF(m.name, ''), e.email) AS name "
             "FROM mail_events e JOIN mail_campaigns c ON c.id = e.campaign_id AND c.owner = ? "
-            "LEFT JOIN mail_contacts m ON m.email = e.email ORDER BY e.created_at DESC LIMIT 8",
+            "LEFT JOIN mail_contacts m ON m.email = e.email AND m.owner = c.owner ORDER BY e.created_at DESC LIMIT 8",
             (owner,),
         )]
         top = [dict(r) for r in conn.execute(
             "SELECT e.email, COUNT(*) AS opens, COALESCE(NULLIF(m.name, ''), e.email) AS name "
             "FROM mail_events e JOIN mail_campaigns c ON c.id = e.campaign_id AND c.owner = ? "
-            "LEFT JOIN mail_contacts m ON m.email = e.email WHERE e.kind = 'open' "
+            "LEFT JOIN mail_contacts m ON m.email = e.email AND m.owner = c.owner WHERE e.kind = 'open' "
             "GROUP BY e.email ORDER BY opens DESC LIMIT 3",
             (owner,),
         )]
@@ -586,7 +613,7 @@ def _run_campaign(campaign, batch, pack_url, role, tag, address, app_password):
                 text, html_body = _render(campaign, contact, pack_url)
                 try:
                     sender.send(contact["email"], campaign["subject"], text, html_body,
-                                unsubscribe_link(contact["email"]))
+                                unsubscribe_link(contact["email"], campaign["owner"]))
                     _log_send(campaign["id"], contact["email"], address, "sent", None)
                 except (smtplib.SMTPRecipientsRefused, smtplib.SMTPSenderRefused, smtplib.SMTPDataError) as e:
                     logger.warning(f"Send to {contact['email']} refused: {e}")
@@ -599,7 +626,7 @@ def _run_campaign(campaign, batch, pack_url, role, tag, address, app_password):
     except gmail.CredentialError as e:
         status = f"stopped: {str(e)[:120]}"
     with _conn() as conn:
-        remaining = len(_recipients(conn, campaign["id"], role, tag))
+        remaining = len(_recipients(conn, campaign["id"], campaign["owner"], role, tag))
     if status == "sent" and remaining > 0:
         status = "partial"  # the daily limit or a stop left people waiting
     with _conn() as conn:
@@ -625,8 +652,8 @@ def send_campaign(campaign_id):
         ).fetchone()
         if not campaign:
             return jsonify({"error": "Campaign not found."}), 404
-        recipients = _recipients(conn, campaign_id, role, tag)
-        pack = conn.execute("SELECT url FROM mail_packs WHERE id = ?", (campaign["pack_id"],)).fetchone() \
+        recipients = _recipients(conn, campaign_id, owner, role, tag)
+        pack = conn.execute("SELECT url FROM mail_packs WHERE id = ? AND owner = ?", (campaign["pack_id"], owner)).fetchone() \
             if campaign["pack_id"] else None
     pack_url = pack["url"] if pack else None
     account = _load_account(owner)
@@ -689,7 +716,7 @@ def send_test():
                            (data.get("campaign_id"), owner)).fetchone()
         if row:
             campaign = dict(row)
-            pack = conn.execute("SELECT url FROM mail_packs WHERE id = ?", (row["pack_id"],)).fetchone() \
+            pack = conn.execute("SELECT url FROM mail_packs WHERE id = ? AND owner = ?", (row["pack_id"], owner)).fetchone() \
                 if row["pack_id"] else None
     if not campaign:
         return jsonify({"error": "Campaign not found."}), 404
@@ -705,7 +732,7 @@ def send_test():
         me = {"email": address, "name": "Test"}
         text, html_body = _render(campaign, me, pack["url"] if pack else None)
         with gmail.Sender(address, app_password) as sender:
-            sender.send(address, "[Test] " + campaign["subject"], text, html_body, unsubscribe_link(address))
+            sender.send(address, "[Test] " + campaign["subject"], text, html_body, unsubscribe_link(address, owner))
     except gmail.CredentialError as e:
         return jsonify({"error": str(e)}), 409
     except (smtplib.SMTPException, OSError) as e:
