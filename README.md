@@ -80,6 +80,11 @@ Results are cached by Genius ID in `creditcrate.db` (`artist_cache` table), so r
 - A 2–5 s random delay applies only on cache misses.
 - Private profiles, non-business accounts and profiles without a contact email show as "not available".
 
+## Deal Desk (local tool)
+Deal Desk builds split sheets, producer agreements and invoices. It lives at `/tools/dealdesk/` and is deliberately kept apart from the library:
+- All data stays in the browser's localStorage. Nothing is sent to the backend, and it never reads or writes contacts, packs or campaigns.
+- It makes no API calls. The only external request is the Google Fonts stylesheet.
+
 ## Project structure
 ```
 CreditCrate/
@@ -91,8 +96,11 @@ CreditCrate/
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/
-│   ├── index.html         # Single-file React app (no build step)
-│   └── Dockerfile         # nginx static server
+│   ├── index.html         # CreditCrate search app (single-file React, no build step)
+│   ├── tools/
+│   │   └── dealdesk/
+│   │       └── index.html # Deal Desk: split sheets, agreements, invoices. Local-only, no server calls
+│   └── Dockerfile         # nginx static server, serves the whole frontend folder
 ├── docker-compose.yml
 └── requirements.txt
 ```

@@ -1,0 +1,1757 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deal Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    color-scheme: dark;
+    /* Surfaces */
+    --void: #08090a;
+    --carbon: #0f1011;
+    --obsidian: #161718;
+    --graphite: #23252a;
+    --smoke: #383b3f;
+    /* Text */
+    --ash: #62666d;
+    --fog: #8a8f98;
+    --mist: #d0d6e0;
+    --paper: #ffffff;
+    /* Accents: acid lime is reserved for the single primary action */
+    --acid: #e4f222;
+    --pulse: #27a644;
+    --coral: #eb5757;
+
+    --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  html, body {
+    min-height: 100%;
+    background: var(--void);
+    color: var(--mist);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+    letter-spacing: -0.011em;
+    font-feature-settings: "cv01", "ss03", "zero";
+  }
+  :focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+
+  .page, main, header, nav { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  main { padding-bottom: 96px; }
+
+  /* ── HEADER ── */
+  header {
+    padding-top: 56px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--graphite);
+    margin-bottom: 32px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  h1 {
+    font-size: clamp(32px, 4.5vw, 44px);
+    font-weight: 510;
+    letter-spacing: -0.022em;
+    line-height: 1;
+    color: var(--paper);
+  }
+  h2 { font-size: 24px; font-weight: 510; letter-spacing: -0.016em; line-height: 1.2; color: var(--paper); }
+  h3 { font-size: 13px; font-weight: 510; color: var(--paper); margin-top: 8px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ash);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 16px;
+  }
+  .tagline { font-family: var(--mono); font-size: 12px; color: var(--ash); text-align: right; line-height: 1.6; }
+
+  .muted { color: var(--fog); }
+  .small { font-size: 13px; }
+  .fine { font-size: 11px; color: var(--ash); margin-top: 24px; }
+
+  /* ── TABS (segmented, like the step indicator) ── */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    border: 1px solid var(--graphite);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .tabs button {
+    flex: 1 1 140px;
+    background: none;
+    border: 0;
+    border-right: 1px solid var(--graphite);
+    color: var(--ash);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 510;
+    letter-spacing: -0.011em;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: color .15s, background-color .15s;
+  }
+  .tabs button:last-child { border-right: 0; }
+  .tabs button:hover { color: var(--mist); }
+  .tabs button[aria-selected="true"] { color: var(--paper); background: var(--obsidian); }
+
+  /* ── PANELS ── */
+  .panel:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 900px) { .panel:not([hidden]) { grid-template-columns: 1fr; } }
+
+  .form {
+    background: var(--carbon);
+    border: 1px solid var(--graphite);
+    border-radius: 12px;
+    padding: 24px;
+    display: grid;
+    gap: 14px;
+  }
+  label { display: grid; gap: 6px; font-size: 13px; color: var(--fog); }
+  input, select, textarea {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    color: var(--mist);
+    font-family: var(--sans);
+    font-size: 15px;
+    letter-spacing: -0.011em;
+    padding: 10px 12px;
+    transition: border-color .15s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--mist); }
+  input::placeholder, textarea::placeholder { color: var(--ash); }
+  select option { background: var(--obsidian); color: var(--mist); }
+  textarea { resize: vertical; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .rows { display: grid; gap: 8px; }
+  .row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 8px;
+    align-items: end;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.01);
+    box-shadow: var(--graphite) 0 0 0 1px inset;
+    border-radius: 12px;
+  }
+  .row .remove { justify-self: start; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  /* Primary action: acid, as in CreditCrate */
+  .btn {
+    height: 40px;
+    padding: 0 16px;
+    background: var(--acid);
+    color: var(--void);
+    border: 0;
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 510;
+    letter-spacing: -0.011em;
+    cursor: pointer;
+    transition: filter .15s;
+  }
+  .btn:hover { filter: brightness(1.06); }
+
+  /* Secondary actions: outlined, as in the filter buttons */
+  .ghost {
+    display: inline-flex;
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--graphite);
+    border-radius: 6px;
+    color: var(--mist);
+    font-family: var(--sans);
+    font-size: 13px;
+    letter-spacing: -0.011em;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .ghost:hover { border-color: var(--smoke); color: var(--paper); }
+
+  .check { font-size: 13px; }
+  .check.ok { color: var(--pulse); }
+  .check.warn { color: var(--coral); }
+
+  /* ── DOCUMENT PREVIEW ── */
+  .doc {
+    background: var(--carbon);
+    border: 1px solid var(--graphite);
+    border-radius: 12px;
+    padding: 32px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--mist);
+    min-height: 300px;
+    overflow-wrap: anywhere;
+  }
+  .doc h2 { margin-bottom: 8px; }
+  .doc h3 { margin: 18px 0 4px; font-size: 14px; }
+  .doc p { color: var(--fog); }
+  .doc strong { color: var(--paper); font-weight: 510; }
+  .doc table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  .doc th, .doc td { padding: 10px 8px; border-bottom: 1px solid var(--graphite); text-align: left; vertical-align: top; }
+  .doc thead th { font-size: 12px; font-weight: 400; color: var(--ash); }
+  .doc tfoot th, .doc tfoot td { border-bottom: 0; color: var(--fog); }
+  .doc tfoot tr:last-child th, .doc tfoot tr:last-child td { color: var(--paper); }
+  .num { text-align: right; white-space: nowrap; }
+  .doc .label {
+    display: block;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-size: 11px;
+    color: var(--ash);
+    margin-bottom: 4px;
+  }
+  .doc .party { margin: 16px 0; }
+  .inv-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+  .inv-top .num { text-align: right; }
+  .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+  .sig { margin-top: 26px; }
+  .sig .line, .sig-grid .line { border-bottom: 1px solid var(--fog); height: 28px; margin-bottom: 4px; }
+
+  /* ── SAVED LIST ── */
+  .lib-list { list-style: none; display: grid; gap: 8px; }
+  .lib-item {
+    background: var(--carbon);
+    border: 1px solid var(--graphite);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .lib-item .actions { gap: 6px; }
+  #library .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+  #library .toolbar label { display: inline-flex; align-items: center; color: var(--mist); }
+  #library .toolbar input[type="file"] { width: auto; border: 0; padding: 0; }
+  #library .toolbar input[type="file"]::file-selector-button { display: none; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--obsidian);
+    border: 1px solid var(--graphite);
+    color: var(--paper);
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    z-index: 10;
+  }
+
+  @media (max-width: 600px) {
+    .page, main, header, nav { padding: 0 16px; }
+    header { padding-top: 32px; }
+    .tagline { text-align: left; }
+    .form, .doc { padding: 18px; }
+  }
+
+  /* ── WELCOME ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: rgba(8, 9, 10, .72);
+    backdrop-filter: blur(4px);
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    animation: fade-in .2s ease both;
+  }
+  .welcome-card {
+    width: min(680px, 100%);
+    background: var(--carbon);
+    border: 1px solid var(--graphite);
+    border-radius: 12px;
+    padding: 32px;
+    display: grid;
+    gap: 16px;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, .6);
+    animation: pop .3s cubic-bezier(.2, .7, .2, 1) both;
+  }
+  .welcome-card h2 { font-size: 28px; letter-spacing: -0.022em; }
+  .welcome-card .actions { margin-top: 8px; }
+  .choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .choice {
+    display: grid;
+    gap: 6px;
+    text-align: left;
+    background: var(--obsidian);
+    border: 1px solid var(--graphite);
+    border-radius: 12px;
+    padding: 16px;
+    color: var(--fog);
+    font-family: var(--sans);
+    font-size: 13px;
+    letter-spacing: -0.011em;
+    cursor: pointer;
+    transition: border-color .15s, transform .15s;
+  }
+  .choice:hover { border-color: var(--smoke); transform: translateY(-2px); }
+  .choice strong { color: var(--paper); font-size: 15px; font-weight: 510; }
+  .choice-num { font-family: var(--mono); font-size: 12px; color: var(--ash); }
+  @media (max-width: 700px) { .choices { grid-template-columns: 1fr; } }
+
+  /* ── GUIDED TOUR ── */
+  .spot {
+    position: fixed;
+    z-index: 30;
+    pointer-events: none;
+    border-radius: 12px;
+    border: 1px solid rgba(208, 214, 224, .5);
+    box-shadow: 0 0 0 9999px rgba(8, 9, 10, .72);
+    transition: all .35s cubic-bezier(.2, .7, .2, 1);
+  }
+  .bubble {
+    position: fixed;
+    z-index: 31;
+    width: min(360px, calc(100vw - 32px));
+    background: var(--carbon);
+    border: 1px solid var(--smoke);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
+    transition: left .35s cubic-bezier(.2, .7, .2, 1), top .35s cubic-bezier(.2, .7, .2, 1);
+    animation: pop .25s ease both;
+  }
+  .bubble::before {
+    content: "";
+    position: absolute;
+    left: var(--ax, 50%);
+    width: 12px;
+    height: 12px;
+    margin-left: -6px;
+    background: var(--carbon);
+    border: 1px solid var(--smoke);
+    transform: rotate(45deg);
+  }
+  .bubble.below::before { top: -7px; border-right: 0; border-bottom: 0; }
+  .bubble.above::before { bottom: -7px; border-left: 0; border-top: 0; }
+  .bubble.center::before { display: none; }
+  .bubble-step {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--ash);
+  }
+  .bubble h3 { font-size: 17px; letter-spacing: -0.016em; color: var(--paper); margin: 8px 0 6px; }
+  .bubble p { font-size: 14px; color: var(--fog); }
+  .dots { display: flex; gap: 6px; margin: 16px 0 14px; }
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--graphite);
+    transition: width .25s, background-color .25s;
+  }
+  .dot.on { width: 18px; background: var(--acid); }
+  .bubble .actions { justify-content: flex-end; }
+  #tourClose { margin-right: auto; }
+
+  @keyframes pop {
+    from { opacity: 0; transform: translateY(8px) scale(.98); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .overlay, .welcome-card, .bubble, .spot { animation: none; transition: none; }
+  }
+
+  /* ── MOTION ── */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes caret { 50% { opacity: 0; } }
+  @keyframes drift { to { background-position: 48px 48px; } }
+  @keyframes sheen { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
+  @keyframes ping {
+    0% { box-shadow: 0 0 0 0 rgba(39, 166, 68, .55); }
+    100% { box-shadow: 0 0 0 8px rgba(39, 166, 68, 0); }
+  }
+  @keyframes scan { from { transform: translateY(0); } to { transform: translateY(520px); } }
+  @keyframes docflash {
+    0% { box-shadow: 0 0 0 3px rgba(208, 214, 224, .10); border-color: rgba(208, 214, 224, .35); }
+    100% { box-shadow: 0 0 0 0 rgba(208, 214, 224, 0); border-color: var(--graphite); }
+  }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translate(-50%, 12px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  @keyframes line-sweep { to { background-position: 200% 0; } }
+
+  /* Grid backdrop that slowly drifts */
+  body { position: relative; }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(208, 214, 224, .035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(208, 214, 224, .035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 80%);
+    animation: drift 12s linear infinite;
+  }
+
+  /* Header: entrance, animated hairline, blinking caret */
+  header { position: relative; animation: rise .7s cubic-bezier(.2, .7, .2, 1) both; }
+  header::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--paper), transparent) 0 0 / 200% 100%;
+    opacity: .35;
+    animation: line-sweep 5s linear infinite;
+  }
+  .eyebrow::after { content: "_"; margin-left: 2px; color: var(--mist); animation: caret 1s steps(1) infinite; }
+  h1 { animation: rise .8s .1s cubic-bezier(.2, .7, .2, 1) both; }
+  .tagline { animation: rise .8s .2s cubic-bezier(.2, .7, .2, 1) both; }
+
+  /* Tabs and panels: staggered reveal, active tab underline */
+  .tabs { animation: rise .6s .15s cubic-bezier(.2, .7, .2, 1) both; }
+  .tabs button { position: relative; transition: color .2s, background-color .2s; }
+  .tabs button[aria-selected="true"]::after {
+    content: "";
+    position: absolute;
+    left: 20%;
+    right: 20%;
+    bottom: 0;
+    height: 2px;
+    background: var(--paper);
+    border-radius: 2px;
+  }
+  .panel:not([hidden]) .form { animation: rise .6s .2s cubic-bezier(.2, .7, .2, 1) both; }
+  .panel:not([hidden]) .doc { animation: rise .6s .3s cubic-bezier(.2, .7, .2, 1) both; transition: box-shadow .4s, border-color .4s; }
+  .doc.flash { animation: docflash .6s ease-out; }
+  .row { animation: rise .35s cubic-bezier(.2, .7, .2, 1) both; }
+  .lib-item { animation: rise .4s cubic-bezier(.2, .7, .2, 1) both; transition: border-color .2s, transform .2s; }
+  .lib-item:hover { border-color: var(--smoke); transform: translateY(-1px); }
+
+  /* Fields: soft glow on focus */
+  input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(208, 214, 224, .08); }
+
+  /* Buttons: sheen on the primary action, lift on secondary */
+  .btn { position: relative; overflow: hidden; transition: filter .15s, transform .15s; }
+  .btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .5) 50%, transparent 70%);
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+  .btn:hover::after { animation: sheen .7s ease; }
+  .btn:active, .ghost:active { transform: scale(.97); }
+  .ghost { transition: color .15s, border-color .15s, transform .15s; }
+  .ghost:hover { transform: translateY(-1px); }
+
+  /* Checks: pulsing status dot when complete */
+  .check.ok::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 8px;
+    vertical-align: middle;
+    border-radius: 50%;
+    background: var(--pulse);
+    animation: ping 2s ease-out infinite;
+  }
+
+  /* Welcome: scanning line and hover depth on choices */
+  .welcome-card { position: relative; overflow: hidden; }
+  .welcome-card::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(208, 214, 224, .7), transparent);
+    animation: scan 4s linear infinite;
+    pointer-events: none;
+  }
+  .choice { transition: border-color .15s, transform .2s, box-shadow .2s; }
+  .choice:hover { box-shadow: 0 12px 30px rgba(0, 0, 0, .35); }
+
+  /* Tour: pulsing highlight and softer bubble glow */
+  .spot { animation: spot-pulse 2.4s ease-in-out infinite; }
+  @keyframes spot-pulse {
+    0%, 100% { border-color: rgba(208, 214, 224, .35); }
+    50% { border-color: rgba(208, 214, 224, .8); }
+  }
+  .bubble { box-shadow: 0 24px 60px rgba(0, 0, 0, .55), 0 0 0 1px rgba(208, 214, 224, .04); }
+
+  .toast { animation: toast-in .3s cubic-bezier(.2, .7, .2, 1) both; }
+
+  /* Respect users who ask for less motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+
+  /* ── HEADER PANEL ── */
+  .brand-block { position: relative; }
+  .brand-block::before {
+    content: "";
+    position: absolute;
+    left: -48px;
+    top: -48px;
+    width: 300px;
+    height: 180px;
+    background: radial-gradient(closest-side, rgba(208, 214, 224, .07), transparent);
+    pointer-events: none;
+  }
+  .brand { position: relative; display: flex; align-items: center; gap: 14px; }
+  .brand-mark { width: 46px; height: 46px; flex-shrink: 0; color: var(--mist); }
+  .brand-mark .trace {
+    stroke: var(--paper);
+    stroke-dasharray: 8 96;
+    animation: trace 3.2s linear infinite;
+  }
+  @keyframes trace { to { stroke-dashoffset: -104; } }
+
+  .eq { display: flex; align-items: flex-end; gap: 3px; height: 22px; margin-left: 6px; }
+  .eq span {
+    width: 3px;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--fog);
+    transform-origin: bottom;
+    animation: eq 1.1s ease-in-out infinite;
+  }
+  .eq span:nth-child(2) { animation-delay: -.3s; }
+  .eq span:nth-child(3) { animation-delay: -.6s; }
+  .eq span:nth-child(4) { animation-delay: -.2s; }
+  .eq span:nth-child(5) { animation-delay: -.8s; }
+  @keyframes eq {
+    0%, 100% { transform: scaleY(.25); }
+    50% { transform: scaleY(1); }
+  }
+
+  .header-side { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
+  .header-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+  .stats {
+    display: flex;
+    gap: 1px;
+    background: var(--graphite);
+    border: 1px solid var(--graphite);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .stat {
+    background: var(--carbon);
+    padding: 10px 16px;
+    min-width: 92px;
+    display: grid;
+    gap: 2px;
+  }
+  .stat-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--paper);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--ash);
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ash);
+  }
+  .status i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pulse);
+    animation: ping 2s ease-out infinite;
+  }
+  @media (max-width: 700px) {
+    .header-side { align-items: flex-start; }
+    .header-row { justify-content: flex-start; }
+  }
+
+  /* ── LANGUAGE TOGGLE ── */
+  .lang-toggle {
+    display: inline-flex;
+    border: 1px solid var(--graphite);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .lang-toggle button {
+    background: none;
+    border: 0;
+    color: var(--ash);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 7px 10px;
+    cursor: pointer;
+    transition: color .15s, background-color .15s;
+  }
+  .lang-toggle button + button { border-left: 1px solid var(--graphite); }
+  .lang-toggle button:hover { color: var(--mist); }
+  .lang-toggle button[aria-pressed="true"] { background: var(--obsidian); color: var(--paper); }
+
+  @media print {
+    body { background: #fff; color: #000; }
+    body::before, header::after, .eyebrow::after { display: none; }
+    header, nav, .no-print, .toast, #library { display: none !important; }
+    .panel:not([hidden]) { display: block; }
+    .doc { border: 0; padding: 0; background: #fff; color: #000; min-height: 0; }
+    .doc p, .doc th, .doc td, .doc .label, .fine { color: #444; }
+    .doc strong, .doc h2, .doc h3, .doc tfoot tr:last-child th, .doc tfoot tr:last-child td { color: #000; }
+    .doc th, .doc td { border-bottom-color: #ccc; }
+    .doc .line, .sig-grid .line, .sig .line { border-bottom-color: #000; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand-block">
+    <div class="eyebrow">Splits · Agreements · Invoices</div>
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">
+        <path d="M24 5 41 14v20L24 43 7 34V14z"/>
+        <path d="M7 14l17 9 17-9M24 23v20"/>
+        <path class="trace" d="M24 5 41 14v20L24 43 7 34V14z"/>
+      </svg>
+      <h1>Deal Desk</h1>
+      <div class="eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+  </div>
+  <div class="header-side">
+    <div class="stats" aria-label="Your saved documents">
+      <div class="stat"><span class="stat-val" id="statSaved">0</span><span class="stat-label">Saved</span></div>
+      <div class="stat"><span class="stat-val" id="statSplit">0</span><span class="stat-label">Splits</span></div>
+      <div class="stat"><span class="stat-val" id="statInv">0</span><span class="stat-label">Invoices</span></div>
+    </div>
+    <div class="header-row">
+      <span class="status"><i></i>Local only · nothing uploaded</span>
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="de" aria-pressed="false">DE</button>
+      </div>
+      <button type="button" class="ghost" id="guideBtn">Guide</button>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs no-print" aria-label="Documents">
+  <button type="button" role="tab" data-tab="split" aria-selected="true">Split sheet</button>
+  <button type="button" role="tab" data-tab="agreement" aria-selected="false">Producer agreement</button>
+  <button type="button" role="tab" data-tab="invoice" aria-selected="false">Invoice</button>
+  <button type="button" role="tab" data-tab="library" aria-selected="false">Saved</button>
+</nav>
+
+<main>
+  <section id="split" class="panel" role="tabpanel">
+    <form id="splitForm" class="form no-print">
+      <h2>Split sheet</h2>
+      <div class="grid2">
+        <label>Song title <input name="title" required></label>
+        <label>Artist <input name="artist"></label>
+      </div>
+      <label>Date <input type="date" name="date"></label>
+      <h3>Contributors</h3>
+      <p class="muted small" style="margin:0">Publishing is the songwriting share. Master is the recording share. Each column should total 100%.</p>
+      <div class="rows" data-rows="contributors"></div>
+      <div><button type="button" class="ghost" data-add="contributors">+ Add contributor</button></div>
+      <p id="splitCheck" class="check"></p>
+      <label>Notes <textarea name="notes" rows="2"></textarea></label>
+      <div class="actions">
+        <button class="btn" type="submit">Save</button>
+        <button type="button" class="ghost" data-clear>New</button>
+        <button type="button" class="ghost" data-print>Print / save as PDF</button>
+      </div>
+    </form>
+    <article id="splitDoc" class="doc" aria-live="polite"></article>
+  </section>
+
+  <section id="agreement" class="panel" role="tabpanel" hidden>
+    <form id="agreementForm" class="form no-print">
+      <h2>Producer agreement</h2>
+      <div class="grid2">
+        <label>Producer <input name="producer" required></label>
+        <label>Artist <input name="artist" required></label>
+      </div>
+      <div class="grid2">
+        <label>Track title <input name="project" required></label>
+        <label>Date <input type="date" name="date"></label>
+      </div>
+      <div class="grid2">
+        <label>Deal type
+          <select name="deal">
+            <option value="fee">Flat fee</option>
+            <option value="points">Points (royalty on master)</option>
+            <option value="both">Flat fee + points</option>
+          </select>
+        </label>
+        <label>Currency
+          <select name="currency">
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid2">
+        <label>Fee amount <input type="number" name="fee" min="0" step="0.01" value="0"></label>
+        <label>Points (% of net receipts) <input type="number" name="points" min="0" max="100" step="0.5" value="0"></label>
+      </div>
+      <div class="grid2">
+        <label>Rights
+          <select name="rights">
+            <option value="assign">Artist owns the master once paid in full</option>
+            <option value="license">Producer keeps ownership, Artist gets a license</option>
+          </select>
+        </label>
+        <label>Exclusivity
+          <select name="usage">
+            <option value="nonexclusive">Non-exclusive</option>
+            <option value="exclusive">Exclusive to this Track</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid2">
+        <label>License term (if licensed) <input name="term" placeholder="perpetuity, or e.g. 10 years"></label>
+        <label>Pay fee within (days) <input type="number" name="net" min="0" value="14"></label>
+      </div>
+      <label>Credit line <input name="credit" placeholder="Produced by ..."></label>
+      <label>Deliverables <textarea name="deliverables" rows="2" placeholder="e.g. final stems and session files"></textarea></label>
+      <label>Governing law (state or country) <input name="governing"></label>
+      <div class="actions">
+        <button class="btn" type="submit">Save</button>
+        <button type="button" class="ghost" data-clear>New</button>
+        <button type="button" class="ghost" data-print>Print / save as PDF</button>
+      </div>
+    </form>
+    <article id="agreementDoc" class="doc" aria-live="polite"></article>
+  </section>
+
+  <section id="invoice" class="panel" role="tabpanel" hidden>
+    <form id="invoiceForm" class="form no-print">
+      <h2>Invoice</h2>
+      <div class="grid2">
+        <label>Language / Sprache
+          <select name="lang">
+            <option value="en">English</option>
+            <option value="de">Deutsch (German)</option>
+          </select>
+        </label>
+        <label>Tax treatment
+          <select name="tax_mode">
+            <option value="vat">VAT / Umsatzsteuer</option>
+            <option value="kleinunternehmer">Small business, no VAT / Kleinunternehmer (§ 19 UStG)</option>
+            <option value="reverse">Reverse charge / Steuerschuldnerschaft</option>
+            <option value="exempt">Tax-free / steuerfrei</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid2">
+        <label>Invoice number <input name="invoice_no" required></label>
+        <label>Currency
+          <select name="currency">
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid2">
+        <label>Issue date <input type="date" name="date"></label>
+        <label>Due date <input type="date" name="due"></label>
+      </div>
+      <div class="grid2">
+        <label>Reference (track or agreement) <input name="reference"></label>
+        <label>Service date / Leistungsdatum <input type="date" name="service_date"></label>
+      </div>
+      <h3>From (you)</h3>
+      <div class="grid2">
+        <label>Name <input name="from_name"></label>
+        <label>Email <input type="email" name="from_email"></label>
+      </div>
+      <label>Address <textarea name="from_address" rows="2"></textarea></label>
+      <div class="grid2">
+        <label>Steuernummer / Tax number <input name="from_tax" placeholder="e.g. 12/345/67890"></label>
+        <label>USt-IdNr. / VAT ID <input name="from_vat" placeholder="DE123456789"></label>
+      </div>
+      <h3>Bill to</h3>
+      <div class="grid2">
+        <label>Name <input name="to_name"></label>
+        <label>Email <input type="email" name="to_email"></label>
+      </div>
+      <label>Address <textarea name="to_address" rows="2"></textarea></label>
+      <label>VAT ID of recipient (USt-IdNr. des Empfängers, needed for reverse charge) <input name="to_vat"></label>
+      <h3>Line items</h3>
+      <p class="muted small" style="margin:-4px 0 0">Example: Description "Beat Sundance", Qty 1, Rate 250. The line total is Qty × Rate.</p>
+      <div class="rows" data-rows="lines"></div>
+      <div><button type="button" class="ghost" data-add="lines">+ Add line</button></div>
+      <label>VAT rate % (Umsatzsteuersatz, e.g. 19 or 7) <input type="number" name="tax" min="0" step="0.01" value="0"></label>
+      <div class="grid2">
+        <label>IBAN <input name="iban" placeholder="DE00 0000 0000 0000 0000 00"></label>
+        <label>BIC <input name="bic"></label>
+      </div>
+      <label>Payment instructions / Zahlungshinweise <textarea name="payment" rows="2" placeholder="Bank transfer, PayPal, Venmo, etc."></textarea></label>
+      <label>Notes <textarea name="notes" rows="2" placeholder="e.g. Rights transfer on full payment, per our agreement"></textarea></label>
+      <p id="invoiceCheck" class="check"></p>
+      <div class="actions">
+        <button class="btn" type="submit">Save</button>
+        <button type="button" class="ghost" data-clear>New</button>
+        <button type="button" class="ghost" data-print>Print / save as PDF</button>
+      </div>
+    </form>
+    <article id="invoiceDoc" class="doc" aria-live="polite"></article>
+  </section>
+
+  <section id="library" class="panel" role="tabpanel" hidden>
+    <div style="grid-column: 1 / -1;">
+      <h2>Saved</h2>
+      <div class="toolbar">
+        <button type="button" class="ghost" id="exportBtn">Export backup (.json)</button>
+        <label class="ghost" style="cursor:pointer;">Import backup <input type="file" id="importFile" accept="application/json"></label>
+      </div>
+      <p id="libEmpty" class="muted">Nothing saved yet. Use Save on any document to keep it here.</p>
+      <ul id="libList" class="lib-list"></ul>
+    </div>
+  </section>
+</main>
+
+<div id="welcome" class="overlay" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" hidden>
+  <div class="welcome-card">
+    <div class="eyebrow">Welcome to Deal Desk</div>
+    <h2 id="welcomeTitle">What do you want to make first?</h2>
+    <p class="muted">Deal Desk creates three documents. Pick one to start, or take a short guided tour.</p>
+    <div class="choices">
+      <button type="button" class="choice" data-start="split">
+        <span class="choice-num">01</span>
+        <strong>Split sheet</strong>
+        <span>Who wrote and produced the song, and how it's divided</span>
+      </button>
+      <button type="button" class="choice" data-start="agreement">
+        <span class="choice-num">02</span>
+        <strong>Producer agreement</strong>
+        <span>Fee, points and rights between producer and artist</span>
+      </button>
+      <button type="button" class="choice" data-start="invoice">
+        <span class="choice-num">03</span>
+        <strong>Invoice</strong>
+        <span>Bill for your work, in English or German</span>
+      </button>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn" data-tour>Take the guided tour</button>
+      <button type="button" class="ghost" data-skip>Skip for now</button>
+    </div>
+  </div>
+</div>
+
+<div id="tour" hidden>
+  <div id="spot" class="spot"></div>
+  <div id="bubble" class="bubble" role="dialog" aria-live="polite">
+    <div id="bubbleStep" class="bubble-step"></div>
+    <h3 id="bubbleTitle"></h3>
+    <p id="bubbleText"></p>
+    <div id="dots" class="dots"></div>
+    <div class="actions">
+      <button type="button" class="ghost" id="tourClose">Close tour</button>
+      <button type="button" class="ghost" id="tourBack">Back</button>
+      <button type="button" class="btn" id="tourNext">Next</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+const KEY = 'deal-desk.v1';
+const KIND_NAMES = { split: 'Split sheet', agreement: 'Producer agreement', invoice: 'Invoice' };
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nl = s => esc(s).replace(/\n/g, '<br>');
+const pct = v => `${+(+v || 0).toFixed(2)}%`;
+const localISO = (d = new Date()) => d.toLocaleDateString('en-CA');
+const plusDays = n => { const d = new Date(); d.setDate(d.getDate() + n); return localISO(d); };
+const currencyCode = c => (/^[A-Za-z]{3}$/.test(c || '') ? c.toUpperCase() : 'USD');
+const money = (n, cur, locale) => {
+  try { return new Intl.NumberFormat(locale, { style: 'currency', currency: cur }).format(+n || 0); }
+  catch { return `${cur} ${(+n || 0).toFixed(2)}`; }
+};
+const sumOf = (list, key) => (list || []).reduce((s, c) => s + (+c[key] || 0), 0);
+
+const TEMPLATES = {
+  contributors: `
+    <label>Name <input name="name" placeholder="Legal name" aria-label="Name"></label>
+    <label>Role
+      <select name="role" aria-label="Role">
+        <option>Writer</option><option>Composer</option><option>Lyricist</option>
+        <option>Producer</option><option>Artist</option><option>Other</option>
+      </select>
+    </label>
+    <label>PRO
+      <select name="pro" aria-label="PRO">
+        <option>None</option><option>ASCAP</option><option>BMI</option>
+        <option>SESAC</option><option>GMR</option><option>Other</option>
+      </select>
+    </label>
+    <label>IPI / CAE # <input name="ipi" aria-label="IPI or CAE number"></label>
+    <label>Publishing % <input type="number" name="pub" min="0" max="100" step="0.01" aria-label="Publishing percent"></label>
+    <label>Master % <input type="number" name="master" min="0" max="100" step="0.01" aria-label="Master percent"></label>
+    <label>Email <input type="email" name="email" aria-label="Email"></label>
+    <button type="button" class="ghost remove">Remove</button>`,
+  lines: `
+    <label>Description <input name="desc" placeholder="e.g. Beat Sundance" aria-label="Description"></label>
+    <label>Qty <input type="number" name="qty" min="0" step="any" value="1" placeholder="1" aria-label="Quantity"></label>
+    <label>Rate <input type="number" name="rate" min="0" step="0.01" placeholder="e.g. 250" aria-label="Rate"></label>
+    <button type="button" class="ghost remove">Remove</button>`
+};
+
+const forms = { split: $('#splitForm'), agreement: $('#agreementForm'), invoice: $('#invoiceForm') };
+
+let lib = loadLib();
+
+function loadLib() {
+  try {
+    const x = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (x && Array.isArray(x.items)) return { items: x.items, counter: +x.counter || 1 };
+  } catch {}
+  return { items: [], counter: 1 };
+}
+
+function persist() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(lib));
+    renderStats();
+    return true;
+  }
+  catch { toast(tr('Could not save in this browser. Export a backup from the Saved tab.')); return false; }
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+}
+
+function showTab(name) {
+  $$('[role="tab"]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+  $$('.panel').forEach(p => { p.hidden = p.id !== name; });
+  if (name === 'library') renderLibrary();
+}
+
+function readForm(form) {
+  const d = {};
+  $$('[name]', form).filter(el => !el.closest('[data-rows]')).forEach(el => { d[el.name] = el.value; });
+  $$('[data-rows]', form).forEach(box => {
+    d[box.dataset.rows] = $$('.row', box).map(row => Object.fromEntries(
+      $$('[name]', row).map(el => [el.name, el.value])
+    ));
+  });
+  return d;
+}
+
+function setVal(form, name, value) {
+  const el = form.querySelector(`[name="${name}"]`);
+  if (el) el.value = value;
+}
+
+function addRow(box, values = {}) {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = TEMPLATES[box.dataset.rows];
+  for (const [k, v] of Object.entries(values)) {
+    const el = row.querySelector(`[name="${k}"]`);
+    if (el) el.value = v;
+  }
+  box.appendChild(row);
+  applyLang(row);
+}
+
+function resetForm(kind) {
+  const f = forms[kind];
+  f.reset();
+  delete f.dataset.id;
+  $$('[data-rows]', f).forEach(box => { box.innerHTML = ''; addRow(box); });
+  setVal(f, 'date', localISO());
+  if (kind === 'invoice') {
+    setVal(f, 'due', plusDays(14));
+    setVal(f, 'lang', uiLang);
+    setVal(f, 'invoice_no', `INV-${String(lib.counter).padStart(4, '0')}`);
+  }
+  refresh(kind);
+}
+
+function fillForm(kind, data) {
+  const f = forms[kind];
+  f.reset();
+  $$('[name]', f).filter(el => !el.closest('[data-rows]')).forEach(el => {
+    if (data[el.name] !== undefined) el.value = data[el.name];
+  });
+  $$('[data-rows]', f).forEach(box => {
+    box.innerHTML = '';
+    (data[box.dataset.rows] || []).forEach(values => addRow(box, values));
+  });
+  refresh(kind);
+}
+
+function refresh(kind) {
+  const d = readForm(forms[kind]);
+  const doc = $(`#${kind}Doc`);
+  doc.innerHTML = renderers[kind](d);
+  doc.classList.remove('flash');
+  void doc.offsetWidth; // restart the flash animation
+  doc.classList.add('flash');
+  if (kind === 'split') updateSplitCheck(d);
+  if (kind === 'invoice') updateInvoiceCheck(d);
+}
+
+function updateSplitCheck(d) {
+  const el = $('#splitCheck');
+  if (!(d.contributors || []).length) { el.textContent = ''; return; }
+  const pub = sumOf(d.contributors, 'pub');
+  const mst = sumOf(d.contributors, 'master');
+  const good = Math.abs(pub - 100) < 0.01 && Math.abs(mst - 100) < 0.01;
+  el.className = `check ${good ? 'ok' : 'warn'}`;
+  el.textContent = uiLang === 'de'
+    ? `Publishing ${pct(pub)} · Master ${pct(mst)} ${good ? '✓ beide ergeben 100 %' : '— jede Spalte sollte 100 % ergeben'}`
+    : `Publishing ${pct(pub)} · Master ${pct(mst)} ${good ? '✓ both total 100%' : '— each column should total 100%'}`;
+}
+
+function renderSplit(d) {
+  const list = (d.contributors || []).filter(c => c.name);
+  const pub = sumOf(d.contributors, 'pub');
+  const mst = sumOf(d.contributors, 'master');
+  const table = list.length ? `
+    <table>
+      <thead><tr><th>Contributor</th><th>PRO / IPI</th><th class="num">Publishing</th><th class="num">Master</th></tr></thead>
+      <tbody>${list.map(c => `
+        <tr>
+          <td><strong>${esc(c.name)}</strong><br><small>${esc(c.role)}${c.email ? ' · ' + esc(c.email) : ''}</small></td>
+          <td>${esc(c.pro)}${c.ipi ? `<br><small>IPI ${esc(c.ipi)}</small>` : ''}</td>
+          <td class="num">${pct(c.pub)}</td>
+          <td class="num">${pct(c.master)}</td>
+        </tr>`).join('')}</tbody>
+      <tfoot><tr><th colspan="2">Total</th><th class="num">${pct(pub)}</th><th class="num">${pct(mst)}</th></tr></tfoot>
+    </table>` : '<p class="muted">Add contributors to see the split.</p>';
+  const sigs = list.map(c => `
+    <div class="sig"><div class="line"></div><small>${esc(c.name)} (${esc(c.role)}) · Signature and date</small></div>`).join('');
+  return `
+    <h2>Split sheet</h2>
+    <p><strong>${esc(d.title || 'Untitled')}</strong>${d.artist ? ` · ${esc(d.artist)}` : ''}<br><small>Dated ${esc(d.date)}</small></p>
+    ${table}
+    <p>The undersigned agree to the ownership splits above for the musical composition (publishing) and the sound recording (master). Each contributor confirms that their name, role and PRO or IPI details are correct. Any change to these splits needs written consent from all contributors.</p>
+    ${sigs}
+    ${d.notes ? `<p><strong>Notes:</strong> ${nl(d.notes)}</p>` : ''}
+    <p class="fine">Generated with Deal Desk. This is not legal advice.</p>`;
+}
+
+function renderAgreement(d) {
+  const cur = currencyCode(d.currency);
+  const producer = esc(d.producer || '[Producer]');
+  const artist = esc(d.artist || '[Artist]');
+  const project = esc(d.project || '[Track title]');
+  const deal = d.deal || 'fee';
+  const points = +d.points || 0;
+  const net = +d.net || 14;
+  const credit = esc(d.credit || `Produced by ${d.producer || '[Producer]'}`);
+
+  const comp = [];
+  if (deal !== 'points') comp.push(`a one-time fee of ${money(d.fee, cur)}, payable within ${net} days after signing`);
+  if (deal !== 'fee') comp.push(`a royalty of ${points}% of Net Receipts from the master recording`);
+
+  const clauses = [
+    ['1. Parties and project', `This Producer Agreement is made on ${esc(d.date)} between ${producer} ("Producer") and ${artist} ("Artist") for the track "${project}" (the "Track").`],
+    ['2. Services and delivery', `Producer will create the production for the Track (the "Production") and deliver: ${esc(d.deliverables || 'final stems and session files, as agreed')}.`],
+    ['3. Compensation', `Artist will pay Producer ${comp.join(' and ')}.` + (deal !== 'fee'
+      ? ' "Net Receipts" means the amounts Artist actually receives from exploiting the master recording, after distributor and platform fees and approved third-party costs. Royalties are payable quarterly within 30 days after Artist receives the related income, with a statement on request.'
+      : '')],
+    ['4. Ownership', d.rights === 'license'
+      ? `Producer keeps ownership of the Production. Producer grants Artist a license to use the Production in the Track and its commercial release for ${esc(d.term || 'perpetuity')}.`
+      : 'When Producer has received the fee in full, Producer assigns to Artist all rights in the Production as it appears in the Track and its master recording. Producer may keep using the Production in portfolio and promotional material.'],
+    ['5. Exclusivity', d.usage === 'exclusive'
+      ? 'Producer will not license the Production to any other artist for the same or a substantially similar recording.'
+      : 'Producer may license the Production to others, unless clause 4 says otherwise.'],
+    ['6. Credits', `Artist will credit Producer as "${credit}" on streaming platforms, release metadata and liner notes where credits are customarily given. A missed credit is not a breach unless Producer notifies Artist in writing and Artist does not fix it within 30 days.`],
+    ['7. Warranties', 'Producer warrants that the Production is original, does not infringe third-party rights, and that any samples or interpolations are cleared or disclosed to Artist before delivery. Artist warrants that the lyrics, vocals and other material Artist supplies do not infringe third-party rights.'],
+    ['8. Indemnity', `Each party will defend and indemnify the other against third-party claims arising from that party's breach of clause 7.`],
+    ['9. Term and termination', 'This Agreement starts on signing and lasts until both parties have performed their obligations. Either party may end it for a material breach that is not fixed within 30 days of written notice. Rights already transferred and royalties already earned are not affected.'],
+    ['10. Governing law and general', `This Agreement is governed by the laws of ${esc(d.governing || '[state or country]')}. It is the entire agreement on this subject and may only be changed in writing signed by both parties.`]
+  ];
+
+  return `
+    <p class="fine">Template generated by Deal Desk. This is not legal advice. Have a lawyer review it before anyone signs, especially for large fees, long terms or rights you are giving up.</p>
+    <h2>Producer agreement</h2>
+    ${clauses.map(([h, t]) => `<h3>${h}</h3><p>${t}</p>`).join('')}
+    <div class="sig-grid">
+      <div><div class="line"></div><strong>${producer}</strong><br>Producer<br><small>Signature and date</small></div>
+      <div><div class="line"></div><strong>${artist}</strong><br>Artist<br><small>Signature and date</small></div>
+    </div>`;
+}
+
+const I18N = {
+  en: {
+    title: 'Invoice', no: 'Invoice no.', date: 'Invoice date', due: 'Due date', service: 'Service date',
+    from: 'From', to: 'Bill to', ref: 'Reference', desc: 'Description', qty: 'Qty', rate: 'Rate', amount: 'Amount',
+    net: 'Subtotal', vat: 'VAT', total: 'Total due', taxNo: 'Tax number', vatId: 'VAT ID',
+    bank: 'Bank details', iban: 'IBAN', bic: 'BIC', pay: 'Payment instructions', notes: 'Notes',
+    empty: 'Add line items', footer: 'Generated with Deal Desk. This is not legal advice.'
+  },
+  de: {
+    title: 'Rechnung', no: 'Rechnungsnummer', date: 'Rechnungsdatum', due: 'Zahlbar bis', service: 'Leistungsdatum',
+    from: 'Rechnungssteller', to: 'Rechnungsempfänger', ref: 'Referenz', desc: 'Bezeichnung', qty: 'Menge', rate: 'Einzelpreis', amount: 'Gesamt',
+    net: 'Nettobetrag', vat: 'USt', total: 'Bruttobetrag', taxNo: 'Steuernummer', vatId: 'USt-IdNr.',
+    bank: 'Bankverbindung', iban: 'IBAN', bic: 'BIC', pay: 'Zahlungshinweise', notes: 'Hinweise',
+    empty: 'Positionen hinzufügen', footer: 'Erstellt mit Deal Desk. Keine Rechtsberatung.'
+  }
+};
+
+const TAX_NOTES = {
+  en: {
+    kleinunternehmer: 'VAT exempt under German small business rules (§ 19 UStG). No VAT is charged.',
+    reverse: 'Reverse charge: the recipient owes the VAT.',
+    exempt: 'Tax-free. No VAT is charged.'
+  },
+  de: {
+    kleinunternehmer: 'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.',
+    reverse: 'Steuerschuldnerschaft des Leistungsempfängers (Reverse Charge).',
+    exempt: 'Steuerfrei. Es wird keine Umsatzsteuer ausgewiesen.'
+  }
+};
+
+const fmtDate = (iso, lang) => (!iso ? '' : lang === 'de' ? iso.split('-').reverse().join('.') : iso);
+
+function invoiceIssues(d) {
+  const issues = [];
+  const hasLines = (d.lines || []).some(l => l.desc || +l.rate);
+  if (!d.invoice_no) issues.push('Add an invoice number.');
+  if (!hasLines) issues.push('Add at least one line item.');
+  if (!d.from_name) issues.push('Add your name or company.');
+  if (d.tax_mode === 'reverse' && !d.to_vat) issues.push('Reverse charge needs the recipient\'s VAT ID.');
+  if (d.lang === 'de') {
+    if (!d.from_tax && !d.from_vat) issues.push('German invoices need a Steuernummer or USt-IdNr.');
+    if (!d.to_name || !d.to_address) issues.push('Add the recipient\'s name and address.');
+    if (!d.service_date) issues.push('Add the Leistungsdatum (service date).');
+  }
+  return issues;
+}
+
+function updateInvoiceCheck(d) {
+  const el = $('#invoiceCheck');
+  const issues = invoiceIssues(d);
+  el.className = `check ${issues.length ? 'warn' : 'ok'}`;
+  el.textContent = issues.length ? issues.map(tr).join(' ') : tr('✓ Looks complete.');
+}
+
+function renderInvoice(d) {
+  const lang = d.lang === 'de' ? 'de' : 'en';
+  const t = I18N[lang];
+  const locale = lang === 'de' ? 'de-DE' : undefined;
+  const cur = currencyCode(d.currency);
+  const fmt = n => money(n, cur, locale);
+  const mode = d.tax_mode || 'vat';
+  const rate = mode === 'vat' ? (+d.tax || 0) : 0;
+  const lines = (d.lines || []).filter(l => l.desc || +l.rate);
+  const lineAmount = l => (+l.qty || 0) * (+l.rate || 0);
+  const subtotal = lines.reduce((s, l) => s + lineAmount(l), 0);
+  const vatAmt = subtotal * rate / 100;
+  const total = subtotal + vatAmt;
+  const note = mode === 'vat' ? '' : TAX_NOTES[lang][mode];
+  const rows = lines.map(l => `
+    <tr>
+      <td>${esc(l.desc)}</td>
+      <td class="num">${+l.qty || 0}</td>
+      <td class="num">${fmt(l.rate)}</td>
+      <td class="num">${fmt(lineAmount(l))}</td>
+    </tr>`).join('');
+  const bank = d.iban || d.bic ? `
+      <div>
+        <span class="label">${t.bank}</span>
+        ${d.iban ? `${t.iban}: ${esc(d.iban)}<br>` : ''}${d.bic ? `${t.bic}: ${esc(d.bic)}` : ''}
+      </div>` : '';
+  return `
+    <div class="inv-top">
+      <h2>${t.title}</h2>
+      <div class="num">
+        <strong>${esc(d.invoice_no)}</strong><br>
+        <small>${t.date}: ${fmtDate(d.date, lang)}<br>${t.due}: ${fmtDate(d.due, lang)}
+        ${d.service_date ? `<br>${t.service}: ${fmtDate(d.service_date, lang)}` : ''}</small>
+      </div>
+    </div>
+    <div class="grid2 party">
+      <div>
+        <span class="label">${t.from}</span>
+        <strong>${esc(d.from_name)}</strong><br>${nl(d.from_address)}<br>${esc(d.from_email)}
+        ${d.from_tax ? `<br><small>${t.taxNo}: ${esc(d.from_tax)}</small>` : ''}
+        ${d.from_vat ? `<br><small>${t.vatId}: ${esc(d.from_vat)}</small>` : ''}
+      </div>
+      <div>
+        <span class="label">${t.to}</span>
+        <strong>${esc(d.to_name)}</strong><br>${nl(d.to_address)}<br>${esc(d.to_email)}
+        ${d.to_vat ? `<br><small>${t.vatId}: ${esc(d.to_vat)}</small>` : ''}
+      </div>
+    </div>
+    ${d.reference ? `<p><small>${t.ref}: ${esc(d.reference)}</small></p>` : ''}
+    <table>
+      <thead><tr><th>${t.desc}</th><th class="num">${t.qty}</th><th class="num">${t.rate}</th><th class="num">${t.amount}</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="4" class="muted">${t.empty}</td></tr>`}</tbody>
+      <tfoot>
+        <tr><th colspan="3">${t.net}</th><td class="num">${fmt(subtotal)}</td></tr>
+        ${mode === 'vat' ? `<tr><th colspan="3">${t.vat} ${rate}%</th><td class="num">${fmt(vatAmt)}</td></tr>` : ''}
+        <tr><th colspan="3">${t.total}</th><td class="num"><strong>${fmt(total)}</strong></td></tr>
+      </tfoot>
+    </table>
+    ${note ? `<p>${esc(note)}</p>` : ''}
+    <div class="grid2">
+      ${bank}
+      <div><span class="label">${t.pay}</span>${nl(d.payment) || '—'}</div>
+      <div><span class="label">${t.notes}</span>${nl(d.notes) || '—'}</div>
+    </div>
+    <p class="fine">${t.footer}</p>`;
+}
+
+const renderers = { split: renderSplit, agreement: renderAgreement, invoice: renderInvoice };
+
+function labelFor(item) {
+  const d = item.data;
+  if (item.kind === 'split') return d.title || tr('Untitled split');
+  if (item.kind === 'agreement') return d.project || tr('Untitled agreement');
+  return `${tr('Invoice')} ${d.invoice_no || ''} ${uiLang === 'de' ? 'an' : 'to'} ${d.to_name || '—'}`;
+}
+
+function saveCurrent(kind) {
+  const f = forms[kind];
+  const data = readForm(f);
+  let item = f.dataset.id ? lib.items.find(i => i.id === f.dataset.id) : null;
+  if (item) {
+    item.data = data;
+    item.savedAt = Date.now();
+  } else {
+    item = { id: Math.random().toString(36).slice(2, 10), kind, savedAt: Date.now(), data };
+    lib.items.push(item);
+    f.dataset.id = item.id;
+    if (kind === 'invoice') lib.counter++;
+  }
+  if (persist()) toast(`${tr('Saved')} "${labelFor(item)}"`);
+}
+
+function openItem(id) {
+  const item = lib.items.find(i => i.id === id);
+  if (!item) return;
+  fillForm(item.kind, item.data);
+  forms[item.kind].dataset.id = id;
+  showTab(item.kind);
+}
+
+function renderLibrary() {
+  const sorted = [...lib.items].sort((a, b) => b.savedAt - a.savedAt);
+  $('#libEmpty').hidden = sorted.length > 0;
+  $('#libList').innerHTML = sorted.map(i => `
+    <li class="lib-item">
+      <div>
+        <strong>${esc(labelFor(i))}</strong><br>
+        <small class="muted">${tr(KIND_NAMES[i.kind])} · ${uiLang === 'de' ? 'gespeichert' : 'saved'} ${new Date(i.savedAt).toLocaleDateString(uiLang === 'de' ? 'de-DE' : undefined)}</small>
+      </div>
+      <div class="actions">
+        <button type="button" class="ghost" data-open="${i.id}">${tr('Open')}</button>
+        <button type="button" class="ghost" data-del="${i.id}">${tr('Delete')}</button>
+      </div>
+    </li>`).join('');
+}
+
+function onFormClick(e, kind) {
+  const add = e.target.closest('[data-add]');
+  if (add) {
+    addRow(forms[kind].querySelector(`[data-rows="${add.dataset.add}"]`));
+    refresh(kind);
+    return;
+  }
+  if (e.target.closest('.remove')) {
+    e.target.closest('.row').remove();
+    refresh(kind);
+    return;
+  }
+  if (e.target.closest('[data-clear]')) {
+    resetForm(kind);
+    toast(tr('Started a new one'));
+    return;
+  }
+  if (e.target.closest('[data-print]')) window.print();
+}
+
+// Wiring
+$$('[role="tab"]').forEach(b => b.addEventListener('click', () => {
+  if (tourOn) endTour();
+  showTab(b.dataset.tab);
+}));
+
+for (const [kind, f] of Object.entries(forms)) {
+  f.addEventListener('input', () => refresh(kind));
+  f.addEventListener('click', e => onFormClick(e, kind));
+  f.addEventListener('submit', e => { e.preventDefault(); saveCurrent(kind); });
+}
+
+$('#libList').addEventListener('click', e => {
+  const open = e.target.closest('[data-open]');
+  const del = e.target.closest('[data-del]');
+  if (open) openItem(open.dataset.open);
+  if (del) {
+    const item = lib.items.find(i => i.id === del.dataset.del);
+    if (item && confirm(uiLang === 'de'
+      ? `„${labelFor(item)}“ löschen? Das kann nicht rückgängig gemacht werden.`
+      : `Delete "${labelFor(item)}"? This cannot be undone.`)) {
+      lib.items = lib.items.filter(i => i.id !== item.id);
+      persist();
+      renderLibrary();
+    }
+  }
+});
+
+$('#exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(lib, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `deal-desk-backup-${localISO()}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+$('#importFile').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const incoming = JSON.parse(await file.text());
+    const known = new Set(lib.items.map(i => i.id));
+    let added = 0;
+    for (const it of Array.isArray(incoming.items) ? incoming.items : []) {
+      if (it && it.id && !known.has(it.id) && KIND_NAMES[it.kind] && it.data && typeof it.data === 'object') {
+        lib.items.push(it);
+        known.add(it.id);
+        added++;
+      }
+    }
+    lib.counter = Math.max(lib.counter, +incoming.counter || 0);
+    persist();
+    renderLibrary();
+    toast(uiLang === 'de'
+      ? `${added} ${added === 1 ? 'Eintrag' : 'Einträge'} importiert`
+      : `Imported ${added} item${added === 1 ? '' : 's'}`);
+  } catch {
+    toast(tr('That file could not be read as a Deal Desk backup.'));
+  }
+  e.target.value = '';
+});
+
+// ── Interface language (EN / DE) ──
+// Static text is translated in place by applyLang(), keyed by its English source.
+// Documents keep their own language: agreements and split sheets stay English,
+// invoices use the Language field in their form.
+const LANG_KEY = 'deal-desk.ui-lang';
+let uiLang = 'en';
+try { uiLang = localStorage.getItem(LANG_KEY) === 'de' ? 'de' : 'en'; } catch {}
+
+const DE = {
+  'Splits · Agreements · Invoices': 'Splits · Verträge · Rechnungen',
+  'Local only · nothing uploaded': 'Nur lokal · nichts wird hochgeladen',
+  'Guide': 'Anleitung',
+  'Saved': 'Gespeichert',
+  'Splits': 'Splits',
+  'Invoices': 'Rechnungen',
+  'Split sheet': 'Split-Blatt',
+  'Producer agreement': 'Produzentenvertrag',
+  'Invoice': 'Rechnung',
+  'Song title': 'Songtitel',
+  'Artist': 'Künstler',
+  'Date': 'Datum',
+  'Contributors': 'Mitwirkende',
+  'Publishing is the songwriting share. Master is the recording share. Each column should total 100%.': 'Publishing ist der Songwriting-Anteil, Master der Aufnahme-Anteil. Jede Spalte sollte 100 % ergeben.',
+  '+ Add contributor': '+ Mitwirkende hinzufügen',
+  'Notes': 'Notizen',
+  'Save': 'Speichern',
+  'New': 'Neu',
+  'Print / save as PDF': 'Drucken / als PDF speichern',
+  'Name': 'Name',
+  'Role': 'Rolle',
+  'PRO': 'PRO',
+  'Publishing %': 'Publishing %',
+  'Master %': 'Master %',
+  'Email': 'E-Mail',
+  'Remove': 'Entfernen',
+  'Writer': 'Songwriter',
+  'Composer': 'Komponist',
+  'Lyricist': 'Texter',
+  'Producer': 'Produzent',
+  'Other': 'Andere',
+  'None': 'Keine',
+  'Description': 'Beschreibung',
+  'Qty': 'Menge',
+  'Rate': 'Einzelpreis',
+  'Legal name': 'Vollständiger Name',
+  'Quantity': 'Menge',
+  'Track title': 'Titel des Tracks',
+  'Deal type': 'Vertragsart',
+  'Flat fee': 'Pauschale',
+  'Points (royalty on master)': 'Points (Lizenzanteil am Master)',
+  'Flat fee + points': 'Pauschale + Points',
+  'Currency': 'Währung',
+  'Fee amount': 'Honorarbetrag',
+  'Points (% of net receipts)': 'Points (% der Nettoeinnahmen)',
+  'Rights': 'Rechte',
+  'Artist owns the master once paid in full': 'Künstler besitzt den Master nach vollständiger Zahlung',
+  'Producer keeps ownership, Artist gets a license': 'Produzent behält das Eigentum, Künstler erhält eine Lizenz',
+  'Exclusivity': 'Exklusivität',
+  'Non-exclusive': 'Nicht exklusiv',
+  'Exclusive to this Track': 'Exklusiv für diesen Track',
+  'License term (if licensed)': 'Lizenzlaufzeit (falls lizenziert)',
+  'perpetuity, or e.g. 10 years': 'unbefristet oder z. B. 10 Jahre',
+  'Pay fee within (days)': 'Zahlung fällig nach (Tagen)',
+  'Credit line': 'Credit-Zeile',
+  'Produced by ...': 'Produziert von ...',
+  'Deliverables': 'Lieferumfang',
+  'e.g. final stems and session files': 'z. B. finale Stems und Session-Dateien',
+  'Governing law (state or country)': 'Anwendbares Recht (Staat oder Land)',
+  'Language / Sprache': 'Sprache / Language',
+  'English': 'Englisch',
+  'Deutsch (German)': 'Deutsch',
+  'Tax treatment': 'Steuerliche Behandlung',
+  'VAT / Umsatzsteuer': 'Umsatzsteuer (USt)',
+  'Small business, no VAT / Kleinunternehmer (§ 19 UStG)': 'Kleinunternehmer, ohne USt (§ 19 UStG)',
+  'Reverse charge / Steuerschuldnerschaft': 'Reverse Charge / Steuerschuldnerschaft',
+  'Tax-free / steuerfrei': 'Steuerfrei',
+  'Invoice number': 'Rechnungsnummer',
+  'Issue date': 'Rechnungsdatum',
+  'Due date': 'Fällig am',
+  'Reference (track or agreement)': 'Referenz (Track oder Vertrag)',
+  'Service date / Leistungsdatum': 'Leistungsdatum',
+  'From (you)': 'Von (Sie)',
+  'Address': 'Adresse',
+  'Steuernummer / Tax number': 'Steuernummer',
+  'USt-IdNr. / VAT ID': 'USt-IdNr.',
+  'Bill to': 'Rechnungsempfänger',
+  'VAT ID of recipient (USt-IdNr. des Empfängers, needed for reverse charge)': 'USt-IdNr. des Empfängers (für Reverse Charge nötig)',
+  'Line items': 'Positionen',
+  '+ Add line': '+ Position hinzufügen',
+  'VAT rate % (Umsatzsteuersatz, e.g. 19 or 7)': 'USt-Satz in % (z. B. 19 oder 7)',
+  'Payment instructions / Zahlungshinweise': 'Zahlungshinweise',
+  'Bank transfer, PayPal, Venmo, etc.': 'Überweisung, PayPal, Venmo usw.',
+  'e.g. Rights transfer on full payment, per our agreement': 'z. B. Rechteübergang nach vollständiger Zahlung, laut Vertrag',
+  'Welcome to Deal Desk': 'Willkommen bei Deal Desk',
+  'What do you want to make first?': 'Was möchtest du zuerst erstellen?',
+  'Deal Desk creates three documents. Pick one to start, or take a short guided tour.': 'Deal Desk erstellt drei Dokumente. Wähle eines aus oder mach die kurze Tour.',
+  "Who wrote and produced the song, and how it's divided": 'Wer den Song geschrieben und produziert hat und wie er aufgeteilt ist',
+  'Fee, points and rights between producer and artist': 'Honorar, Points und Rechte zwischen Produzent und Künstler',
+  'Bill for your work, in English or German': 'Rechnung für deine Arbeit, auf Englisch oder Deutsch',
+  'Take the guided tour': 'Geführte Tour starten',
+  'Skip for now': 'Vorerst überspringen',
+  'Close tour': 'Tour schließen',
+  'Back': 'Zurück',
+  'Next': 'Weiter',
+  'Finish': 'Fertig',
+  'Export backup (.json)': 'Backup exportieren (.json)',
+  'Import backup': 'Backup importieren',
+  'Nothing saved yet. Use Save on any document to keep it here.': 'Noch nichts gespeichert. Mit „Speichern“ wird ein Dokument hier abgelegt.',
+  'Open': 'Öffnen',
+  'Delete': 'Löschen',
+  'Untitled split': 'Split-Blatt ohne Titel',
+  'Untitled agreement': 'Vertrag ohne Titel',
+  'Started a new one': 'Neues Dokument begonnen',
+  'Could not save in this browser. Export a backup from the Saved tab.': 'In diesem Browser konnte nicht gespeichert werden. Exportiere ein Backup im Tab „Gespeichert“.',
+  'That file could not be read as a Deal Desk backup.': 'Diese Datei ist kein lesbares Deal-Desk-Backup.',
+  'Add an invoice number.': 'Rechnungsnummer eintragen.',
+  'Add at least one line item.': 'Mindestens eine Position hinzufügen.',
+  'Add your name or company.': 'Name oder Firma eintragen.',
+  "Reverse charge needs the recipient's VAT ID.": 'Reverse Charge braucht die USt-IdNr. des Empfängers.',
+  'German invoices need a Steuernummer or USt-IdNr.': 'Deutsche Rechnungen brauchen eine Steuernummer oder USt-IdNr.',
+  "Add the recipient's name and address.": 'Name und Adresse des Empfängers eintragen.',
+  'Add the Leistungsdatum (service date).': 'Leistungsdatum eintragen.',
+  '✓ Looks complete.': '✓ Alles vollständig.',
+  'Step': 'Schritt',
+  'of': 'von',
+  'Local only': 'Nur lokal',
+  'Your saved documents': 'Deine gespeicherten Dokumente',
+  'Documents': 'Dokumente',
+  'Language': 'Sprache',
+  'Print': 'Drucken',
+  'Open tour': 'Tour öffnen',
+  'e.g. Beat Sundance': 'z. B. Beat Sundance',
+  'Example: Description "Beat Sundance", Qty 1, Rate 250. The line total is Qty × Rate.': 'Beispiel: Bezeichnung „Beat Sundance“, Menge 1, Einzelpreis 250. Die Zeilensumme ist Menge × Einzelpreis.'
+};
+
+// German tour copy, one entry per TOUR step (same order).
+const TOUR_DE = [
+  { title: 'Los geht’s', text: 'Drei Dokumente an einem Ort. Das dauert etwa eine Minute. Mit „Weiter“ geht es weiter, Esc beendet die Tour jederzeit.' },
+  { title: 'Mit dem Songtitel anfangen', text: 'Alle Dokumente hängen an einem Projektnamen. Die Vorschau rechts aktualisiert sich beim Tippen.' },
+  { title: 'Alle Beteiligten hinzufügen', text: 'Füge jede:n Songwriter:in und Produzent:in hinzu. Publishing (Songwriting-Anteil) und Master (Aufnahme-Anteil) werden getrennt eingetragen.' },
+  { title: 'Die Summen im Blick behalten', text: 'Die Anzeige wird grün, wenn Publishing und Master jeweils 100 % ergeben.' },
+  { title: 'Drucken oder als PDF speichern', text: 'Diese Vorschau wird genau so gedruckt. Exportieren und dann von allen unterschreiben lassen.' },
+  { title: 'Festlegen, wie der Produzent bezahlt wird', text: 'Pauschale, Points am Master oder beides. Points sind ein Anteil am Ertrag des Tracks.' },
+  { title: 'Entscheiden, wem der Master gehört', text: 'Der Künstler kann ihn nach vollständiger Zahlung besitzen, oder der Produzent behält ihn und vergibt eine Lizenz. Das ist die wichtigste Entscheidung.' },
+  { title: 'Zehn Standardklauseln', text: 'Namen eintragen, die Klauseln aktualisieren sich automatisch. Vor der Unterschrift sollte eine Anwältin oder ein Anwalt prüfen.' },
+  { title: 'Sprache wählen', text: 'Wähle Deutsch für deutsche Rechnungen. Beschriftungen, Zahlenformate und Datumsangaben wechseln auf Deutsch.' },
+  { title: 'Steuerliche Behandlung festlegen', text: 'Standard-USt verwendet den eingetragenen Satz. Kleinunternehmer und Reverse Charge drucken den nötigen Hinweis automatisch.' },
+  { title: 'Vor dem Versand prüfen', text: 'Diese Liste zeigt, was noch fehlt, z. B. Steuernummer oder Leistungsdatum bei deutschen Rechnungen.' },
+  { title: 'Alles wird in deinem Browser gespeichert', text: 'Mit „Speichern“ bleibt ein Dokument hier erhalten. Erstelle ab und zu ein Backup, denn das Löschen der Browserdaten entfernt alles.' },
+  { title: 'Alles erledigt', text: 'Diese Anleitung kannst du jederzeit über „Anleitung“ oben rechts wieder öffnen.' }
+];
+
+const tr = s => (uiLang === 'de' && DE[s]) || s;
+
+// Elements managed by JavaScript are skipped here and translated with tr() where they are written.
+const SKIP_I18N = '.doc, #libList, #tour, #toast, #splitCheck, #invoiceCheck, script, style';
+
+function applyLang(root = document.body) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const node of nodes) {
+    if (node.parentElement.closest(SKIP_I18N)) continue;
+    if (node.__src === undefined) node.__src = node.nodeValue;
+    const src = node.__src.trim();
+    if (src) node.nodeValue = node.__src.replace(src, tr(src));
+  }
+  root.querySelectorAll('[placeholder], [aria-label]').forEach(el => {
+    if (el.closest(SKIP_I18N)) return;
+    el.__src ??= {};
+    for (const attr of ['placeholder', 'aria-label']) {
+      if (!el.hasAttribute(attr)) continue;
+      el.__src[attr] ??= el.getAttribute(attr);
+      el.setAttribute(attr, tr(el.__src[attr]));
+    }
+  });
+  document.documentElement.lang = uiLang;
+  $$('[data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === uiLang)));
+}
+
+function setLang(lang) {
+  uiLang = lang === 'de' ? 'de' : 'en';
+  try { localStorage.setItem(LANG_KEY, uiLang); } catch {}
+  applyLang();
+  for (const kind of Object.keys(forms)) refresh(kind);
+  if (!$('#library').hidden) renderLibrary();
+  if (tourOn) goStep(tourIndex);
+}
+
+$$('[data-lang]').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+
+// ── Header stats ──
+function countUp(el, to) {
+  const from = +el.textContent || 0;
+  if (from === to) return;
+  const start = performance.now();
+  const step = now => {
+    const t = Math.min(1, (now - start) / 500);
+    el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - t, 3)));
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function renderStats() {
+  const count = kind => lib.items.filter(i => i.kind === kind).length;
+  countUp($('#statSaved'), lib.items.length);
+  countUp($('#statSplit'), count('split'));
+  countUp($('#statInv'), count('invoice'));
+}
+
+// ── Welcome and guided tour ──
+const GUIDE_KEY = 'deal-desk.guide-seen';
+const TOUR = [
+  { tab: 'split', title: 'Let’s walk through it', text: 'Three documents, one place. This takes about a minute. Use Next, or press Esc to leave at any time.' },
+  { tab: 'split', target: '#splitForm input[name="title"]', title: 'Start with the song title', text: 'Every document is tied to a project name. The preview on the right updates as you type.' },
+  { tab: 'split', target: '#splitForm [data-rows="contributors"]', title: 'Add everyone involved', text: 'Add each writer and producer. Enter publishing (songwriting) and master (recording) shares separately.' },
+  { tab: 'split', target: '#splitCheck', title: 'Watch the totals', text: 'The check turns green when publishing and master each total 100%.' },
+  { tab: 'split', target: '#splitDoc', title: 'Print or save as PDF', text: 'This preview is exactly what gets printed. Export it, then have everyone sign.' },
+  { tab: 'agreement', target: '#agreementForm select[name="deal"]', title: 'Choose how the producer is paid', text: 'Flat fee, points on the master, or both. Points are a share of what the track earns.' },
+  { tab: 'agreement', target: '#agreementForm select[name="rights"]', title: 'Decide who owns the master', text: 'The artist can own it once paid in full, or the producer can keep it and license it. This is the most important choice.' },
+  { tab: 'agreement', target: '#agreementDoc', title: 'Ten standard clauses', text: 'Fill in the names and the clauses update automatically. Have a lawyer review it before anyone signs.' },
+  { tab: 'invoice', target: '#invoiceForm select[name="lang"]', title: 'Pick your language', text: 'Choose Deutsch for German invoices. Labels, number formats and dates switch to German.' },
+  { tab: 'invoice', target: '#invoiceForm select[name="tax_mode"]', title: 'Set the tax treatment', text: 'Standard VAT uses the rate you enter. Kleinunternehmer and reverse charge print the required note for you.' },
+  { tab: 'invoice', target: '#invoiceCheck', title: 'Check before you send', text: 'This list shows what is still missing, such as the tax number or service date for German invoices.' },
+  { tab: 'library', target: '#exportBtn', title: 'Everything is saved in your browser', text: 'Use Save on any document to keep it here. Export a backup now and then, because clearing browser data deletes it.' },
+  { title: 'You’re all set', text: 'Reopen this guide anytime with the Guide button at the top right.' }
+];
+let tourIndex = 0;
+let tourOn = false;
+
+function guideSeen() {
+  try { return localStorage.getItem(GUIDE_KEY) === '1'; }
+  catch { return false; }
+}
+
+function markGuideSeen() {
+  try { localStorage.setItem(GUIDE_KEY, '1'); }
+  catch {}
+}
+
+function openWelcome() {
+  $('#welcome').hidden = false;
+  $('#welcome [data-tour]').focus();
+}
+
+function closeWelcome() {
+  $('#welcome').hidden = true;
+  markGuideSeen();
+}
+
+function startTour(i = 0) {
+  $('#welcome').hidden = true;
+  markGuideSeen();
+  tourOn = true;
+  $('#tour').hidden = false;
+  goStep(i);
+}
+
+function endTour() {
+  tourOn = false;
+  $('#tour').hidden = true;
+  markGuideSeen();
+}
+
+function goStep(i) {
+  tourIndex = Math.max(0, Math.min(TOUR.length - 1, i));
+  const step = TOUR[tourIndex];
+  if (step.tab) showTab(step.tab);
+  const target = step.target && $(step.target);
+  if (target) target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const copy = uiLang === 'de' ? { ...step, ...TOUR_DE[tourIndex] } : step;
+  $('#bubbleStep').textContent = `${tr('Step')} ${tourIndex + 1} ${tr('of')} ${TOUR.length}`;
+  $('#bubbleTitle').textContent = copy.title;
+  $('#bubbleText').textContent = copy.text;
+  $('#tourBack').textContent = tr('Back');
+  $('#tourClose').textContent = tr('Close tour');
+  $('#dots').innerHTML = TOUR.map((_, n) => `<span class="dot${n === tourIndex ? ' on' : ''}"></span>`).join('');
+  $('#tourBack').hidden = tourIndex === 0;
+  $('#tourNext').textContent = tourIndex === TOUR.length - 1 ? tr('Finish') : tr('Next');
+  placeTour();
+  setTimeout(placeTour, 400);
+}
+
+function placeTour() {
+  if (!tourOn) return;
+  const step = TOUR[tourIndex];
+  const target = step.target && $(step.target);
+  const spot = $('#spot');
+  const bubble = $('#bubble');
+  const vw = innerWidth;
+  const vh = innerHeight;
+  const gap = 16;
+  const edge = 16;
+  const bw = bubble.offsetWidth;
+  const bh = bubble.offsetHeight;
+
+  if (!target) {
+    spot.style.cssText = `left:${vw / 2}px;top:${vh / 2}px;width:0;height:0`;
+    bubble.className = 'bubble center';
+    bubble.style.left = `${(vw - bw) / 2}px`;
+    bubble.style.top = `${(vh - bh) / 2}px`;
+    return;
+  }
+
+  const r = target.getBoundingClientRect();
+  const pad = 8;
+  spot.style.cssText = `left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px`;
+
+  const below = r.bottom + gap + bh <= vh || r.top - gap - bh < 0;
+  const top = below ? r.bottom + gap : r.top - gap - bh;
+  const cx = r.left + r.width / 2;
+  const left = Math.max(edge, Math.min(vw - bw - edge, cx - bw / 2));
+  const arrow = Math.max(20, Math.min(bw - 20, cx - left));
+  bubble.className = `bubble ${below ? 'below' : 'above'}`;
+  bubble.style.left = `${left}px`;
+  bubble.style.top = `${Math.max(edge, top)}px`;
+  bubble.style.setProperty('--ax', `${arrow}px`);
+}
+
+$('#tourNext').addEventListener('click', () => {
+  if (tourIndex === TOUR.length - 1) endTour();
+  else goStep(tourIndex + 1);
+});
+$('#tourBack').addEventListener('click', () => goStep(tourIndex - 1));
+$('#tourClose').addEventListener('click', endTour);
+$('#guideBtn').addEventListener('click', openWelcome);
+
+$('#welcome').addEventListener('click', e => {
+  const start = e.target.closest('[data-start]');
+  if (start) {
+    closeWelcome();
+    showTab(start.dataset.start);
+    forms[start.dataset.start].querySelector('input, select, textarea')?.focus();
+  } else if (e.target.closest('[data-tour]')) {
+    startTour(0);
+  } else if (e.target.closest('[data-skip]')) {
+    closeWelcome();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (tourOn) endTour();
+    else if (!$('#welcome').hidden) closeWelcome();
+    return;
+  }
+  if (!tourOn || e.target.matches('input, textarea, select')) return;
+  if (e.key === 'ArrowRight') goStep(tourIndex + 1);
+  if (e.key === 'ArrowLeft') goStep(tourIndex - 1);
+});
+
+addEventListener('resize', placeTour);
+addEventListener('scroll', placeTour, true);
+
+// Start
+for (const kind of Object.keys(forms)) resetForm(kind);
+showTab('split');
+applyLang();
+renderStats();
+if (!guideSeen()) openWelcome();
+</script>
+</body>
+</html>
