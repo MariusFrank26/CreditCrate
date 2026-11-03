@@ -82,13 +82,20 @@ def issue_token(email):
     return _tokens.dumps(normalize_email(email))
 
 
-def _signed_in():
+def current_email():
+    """The signed-in account's email, or None."""
     header = request.headers.get("Authorization", "")
     if not header.startswith("Bearer "):
-        return False
+        return None
     try:
-        email = _tokens.loads(header[len("Bearer "):])
+        return _tokens.loads(header[len("Bearer "):])
     except BadSignature:
+        return None
+
+
+def _signed_in():
+    email = current_email()
+    if not email:
         return False
     with sqlite3.connect(DB_PATH) as conn:
         return conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone() is not None

@@ -14,6 +14,7 @@ import re
 import time
 import random
 import sqlite3
+import json
 import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -184,6 +185,25 @@ def init_cache_db():
 
 init_cache_db()
 accounts.init_db()
+
+
+def init_history_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS search_history (
+                user_email TEXT,
+                album_id INTEGER,
+                name TEXT,
+                artist TEXT,
+                cover_art TEXT,
+                credits TEXT,
+                searched_at REAL,
+                PRIMARY KEY (user_email, album_id)
+            )
+        """)
+
+
+init_history_db()
 mailing.register(app, DB_PATH)
 
 
@@ -403,6 +423,62 @@ def get_album_credits(album_id):
     except Exception as e:
         logger.error(f"Credits error: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/history", methods=["GET"])
+@accounts.login_required
+def list_history():
+    with sqlite3.connect(DB_PATH) as conn:
+        rows = conn.execute(
+            "SELECT album_id, name, artist, cover_art, credits, searched_at FROM search_history "
+            "WHERE user_email = ? ORDER BY searched_at DESC LIMIT 100",
+            (accounts.current_email(),),
+        ).fetchall()
+    searches = []
+    for album_id, name, artist, cover_art, credits, searched_at in rows:
+        people = json.loads(credits)
+        searches.append({
+            "id": album_id,
+            "name": name,
+            "artist": artist,
+            "cover_art": cover_art,
+            "searched_at": searched_at,
+            "people": len(people),
+            "emails": sum(1 for c in people if (c.get("instagram_data") or {}).get("email")),
+        })
+    return jsonify({"searches": searches})
+
+
+@app.route("/api/history", methods=["POST"])
+@accounts.login_required
+def save_history():
+    data = request.get_json(silent=True) or {}
+    album_id = data.get("id")
+    credits = data.get("credits")
+    if not isinstance(album_id, int) or not isinstance(credits, list):
+        return jsonify({"error": "Send the album id and its credits."}), 400
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO search_history "
+            "(user_email, album_id, name, artist, cover_art, credits, searched_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (accounts.current_email(), album_id, str(data.get("name", ""))[:200],
+             str(data.get("artist", ""))[:200], data.get("cover_art"), json.dumps(credits), time.time()),
+        )
+    return jsonify({"ok": True})
+
+
+@app.route("/api/history/<int:album_id>", methods=["GET"])
+@accounts.login_required
+def get_history(album_id):
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute(
+            "SELECT name, artist, cover_art, credits FROM search_history WHERE user_email = ? AND album_id = ?",
+            (accounts.current_email(), album_id),
+        ).fetchone()
+    if not row:
+        return jsonify({"error": "Search not found."}), 404
+    name, artist, cover_art, credits = row
+    return jsonify({"id": album_id, "name": name, "artist": artist, "cover_art": cover_art, "credits": json.loads(credits)})
 
 
 @app.route("/api/health", methods=["GET"])
