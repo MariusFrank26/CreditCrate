@@ -89,10 +89,11 @@ Safety rules, all enforced on the server:
 - **Dry run by default.** `MAIL_MODE` defaults to `dry_run`. A send request without `"confirm": true` only reports how many people it would reach.
 - **Live sends need all of:** `MAIL_MODE=resend`, `RESEND_API_KEY`, `MAIL_FROM` and `MAIL_SENDER_ADDRESS` (your postal address, required by anti-spam law). Missing settings block the send.
 - **Every email** includes an unsubscribe link and a `List-Unsubscribe` header. Unsubscribed addresses are never mailed again, and re-importing a CSV does not clear that.
+- **Open and click tracking is ours, not Mailtrack's.** Each email carries a 1×1 image and rewritten links. Both use signed tokens, so the click redirect only goes to links we wrote into an email. Set `track: false` on a campaign to turn it off. Opens are estimates, because some mail apps load images automatically.
 - **Each person gets a campaign once.** Re-sending skips anyone already sent to.
 - **Packs are links only.** Files stay in Dropbox or Google Drive. Only `dropbox.com` and `drive.google.com`/`docs.google.com` https links are accepted. Nothing is uploaded to the server.
 
-Endpoints (sign-in required unless noted): `POST /api/contacts`, `POST /api/contacts/import` (CSV with an `email` column; optional `name, instagram, roles, tags`), `GET /api/contacts?role=&tag=`, `POST /api/packs` (`name`, `url`), `GET /api/packs`, `DELETE /api/packs/{id}`, `POST /api/campaigns`, `GET /api/campaigns`, `POST /api/campaigns/{id}/send` (`role`, `tag`, `confirm`), and public `GET /api/unsubscribe`.
+Endpoints (sign-in required unless noted): `POST /api/contacts`, `POST /api/contacts/import` (CSV with an `email` column; optional `name, instagram, roles, tags`), `GET /api/contacts?role=&tag=`, `POST /api/packs` (`name`, `url`), `GET /api/packs`, `DELETE /api/packs/{id}`, `POST /api/campaigns`, `GET /api/campaigns`, `POST /api/campaigns/{id}/send` (`role`, `tag`, `confirm`), and public `GET /api/unsubscribe`, `GET /api/t/o/{token}/px.gif` (open pixel) and `GET /api/t/c/{token}` (click redirect). `GET /api/campaigns/{id}/stats` returns sent, opened and clicked counts plus clicks per link.
 
 Sends run inside the request, about 0.6 s per email. Lists are capped at 500 per request, so large lists need a background worker later.
 

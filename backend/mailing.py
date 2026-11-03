@@ -16,6 +16,8 @@ import os
 import csv
 import io
 import re
+import base64
+import html
 import time
 import sqlite3
 import logging
@@ -23,7 +25,7 @@ from contextlib import contextmanager
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 import requests
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, redirect, Response
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 import accounts
@@ -43,6 +45,13 @@ MAX_RECIPIENTS_PER_SEND = 500
 SEND_INTERVAL_SECONDS = 0.6  # Resend allows about two requests per second
 
 # Pack links must point at Dropbox or Google Drive
+
+# Open and click tracking. Tokens are signed, so the click redirect can only go to
+# links we wrote into an email, never to an arbitrary address.
+OPEN_SALT = "creditcrate-track-open"
+CLICK_SALT = "creditcrate-track-click"
+TRACK_URL_RE = re.compile(r"https?://[^\s<>\"']+")
+PIXEL_GIF = base64.b64decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
 PACK_HOSTS = {"dropbox.com", "drive.google.com", "docs.google.com"}
 
 _db_path = None
@@ -114,6 +123,19 @@ def init_db():
                 PRIMARY KEY (campaign_id, email)
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS mail_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                campaign_id INTEGER,
+                email TEXT,
+                kind TEXT,
+                url TEXT,
+                created_at REAL
+            )
+        """)
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(mail_campaigns)")}
+        if "track" not in columns:
+            conn.execute("ALTER TABLE mail_campaigns ADD COLUMN track INTEGER DEFAULT 1")
 
 
 # ── Contacts ────────────────────────────────────────────────────────────────
@@ -284,8 +306,9 @@ def create_campaign():
         if data.get("pack_id") and not conn.execute("SELECT 1 FROM mail_packs WHERE id = ?", (data["pack_id"],)).fetchone():
             return jsonify({"error": "Pack not found."}), 404
         cur = conn.execute(
-            "INSERT INTO mail_campaigns (name, subject, body, pack_id, created_at) VALUES (?, ?, ?, ?, ?)",
-            ((data.get("name") or subject)[:120], subject, body, data.get("pack_id"), time.time()),
+            "INSERT INTO mail_campaigns (name, subject, body, pack_id, track, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            ((data.get("name") or subject)[:120], subject, body, data.get("pack_id"),
+             1 if data.get("track", True) else 0, time.time()),
         )
     return jsonify({"id": cur.lastrowid})
 
@@ -317,14 +340,53 @@ def _recipients(conn, campaign_id, role, tag):
     return [dict(r) for r in conn.execute(query, args)]
 
 
+def _track_link(campaign_id, email, url):
+    token = _signer.dumps({"c": campaign_id, "e": email, "u": url}, salt=CLICK_SALT)
+    return f"{PUBLIC_API_URL}/t/c/{token}"
+
+
+def _pixel_url(campaign_id, email):
+    token = _signer.dumps({"c": campaign_id, "e": email}, salt=OPEN_SALT)
+    return f"{PUBLIC_API_URL}/t/o/{token}/px.gif"
+
+
+def _html_body(text, pixel_url):
+    """HTML version of the text: URLs become links, and the open pixel goes at the end."""
+    parts, last = [], 0
+    for match in TRACK_URL_RE.finditer(text):
+        parts.append(html.escape(text[last:match.start()]))
+        url = html.escape(match.group(0))
+        parts.append(f'<a href="{url}">{url}</a>')
+        last = match.end()
+    parts.append(html.escape(text[last:]))
+    body = "".join(parts).replace("\n", "<br>\n")
+    pixel = f'<img src="{pixel_url}" width="1" height="1" alt="" style="display:none">' if pixel_url else ""
+    return f"<!doctype html><html><body>{body}{pixel}</body></html>"
+
+
 def _render(campaign, contact, pack_url):
+    """Returns (text, html) for one recipient."""
+    campaign_id, email = campaign["id"], contact["email"]
+    unsubscribe = unsubscribe_link(email)
     text = campaign["body"].replace("{{name}}", contact["name"] or "there")
     if pack_url:
         text += f"\n\nDownload the pack: {pack_url}"
-    text += f"\n\n---\nNot interested? Unsubscribe: {unsubscribe_link(contact['email'])}"
+    text += f"\n\n---\nNot interested? Unsubscribe: {unsubscribe}"
     if MAIL_SENDER_ADDRESS:
         text += f"\n{MAIL_SENDER_ADDRESS}"
-    return text
+
+    if not campaign["track"]:
+        return text, _html_body(text, None)
+
+    def rewrite(match):
+        url = match.group(0).rstrip(".,;:!?)")
+        trailing = match.group(0)[len(url):]
+        if url.startswith(f"{PUBLIC_API_URL}/unsubscribe"):
+            return match.group(0)  # the unsubscribe link itself is never rewritten
+        return _track_link(campaign_id, email, url) + trailing
+
+    tracked = TRACK_URL_RE.sub(rewrite, text)
+    return tracked, _html_body(tracked, _pixel_url(campaign_id, email))
 
 
 def _live_config_error():
@@ -335,16 +397,83 @@ def _live_config_error():
     return f"Set {', '.join(missing)} before sending." if missing else None
 
 
-def _send_resend(to, subject, text, unsub_url):
+def _send_resend(to, subject, text, html_body, unsub_url):
     resp = requests.post(
         "https://api.resend.com/emails",
         headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
-        json={"from": MAIL_FROM, "to": [to], "subject": subject, "text": text,
+        json={"from": MAIL_FROM, "to": [to], "subject": subject, "text": text, "html": html_body,
               "headers": {"List-Unsubscribe": f"<{unsub_url}>"}},
         timeout=15,
     )
     if resp.status_code >= 300:
         raise RuntimeError(f"Resend {resp.status_code}: {resp.text[:200]}")
+
+
+def _record_event(campaign_id, email, kind, url=None):
+    with _conn() as conn:
+        conn.execute(
+            "INSERT INTO mail_events (campaign_id, email, kind, url, created_at) VALUES (?, ?, ?, ?, ?)",
+            (campaign_id, email, kind, url, time.time()),
+        )
+
+
+@bp.route("/api/t/o/<token>/px.gif", methods=["GET"])
+def track_open(token):
+    try:
+        data = _signer.loads(token, salt=OPEN_SALT)
+        _record_event(data["c"], data["e"], "open")
+    except (BadSignature, SignatureExpired, KeyError):
+        pass  # a broken or old pixel still gets the image, nothing is recorded
+    response = Response(PIXEL_GIF, mimetype="image/gif")
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.route("/api/t/c/<token>", methods=["GET"])
+def track_click(token):
+    try:
+        data = _signer.loads(token, salt=CLICK_SALT)
+    except (BadSignature, SignatureExpired):
+        return "This link is not valid.", 404
+    url = data["u"]
+    if urlparse(url).scheme not in ("http", "https"):
+        return "This link is not valid.", 404
+    _record_event(data["c"], data["e"], "click", url)
+    return redirect(url, code=302)
+
+
+@bp.route("/api/campaigns/<int:campaign_id>/stats", methods=["GET"])
+@accounts.login_required
+def campaign_stats(campaign_id):
+    with _conn() as conn:
+        campaign = conn.execute("SELECT track FROM mail_campaigns WHERE id = ?", (campaign_id,)).fetchone()
+        if not campaign:
+            return jsonify({"error": "Campaign not found."}), 404
+        sent = conn.execute(
+            "SELECT COUNT(*) FROM mail_sends WHERE campaign_id = ? AND status = 'sent'", (campaign_id,)
+        ).fetchone()[0]
+        opens = conn.execute(
+            "SELECT COUNT(*) AS events, COUNT(DISTINCT email) AS people FROM mail_events WHERE campaign_id = ? AND kind = 'open'",
+            (campaign_id,),
+        ).fetchone()
+        clicks = conn.execute(
+            "SELECT COUNT(*) AS events, COUNT(DISTINCT email) AS people FROM mail_events WHERE campaign_id = ? AND kind = 'click'",
+            (campaign_id,),
+        ).fetchone()
+        links = [dict(r) for r in conn.execute(
+            "SELECT url, COUNT(*) AS clicks, COUNT(DISTINCT email) AS people FROM mail_events "
+            "WHERE campaign_id = ? AND kind = 'click' GROUP BY url ORDER BY clicks DESC LIMIT 20",
+            (campaign_id,),
+        )]
+    return jsonify({
+        "tracking": bool(campaign["track"]),
+        "sent": sent,
+        "opened": opens["people"],
+        "open_events": opens["events"],
+        "clicked": clicks["people"],
+        "click_events": clicks["events"],
+        "links": links,
+    })
 
 
 @bp.route("/api/campaigns/<int:campaign_id>/send", methods=["POST"])
@@ -378,9 +507,9 @@ def send_campaign(campaign_id):
     pack_url = pack["url"] if pack else None
     sent = failed = 0
     for contact in recipients:
-        text = _render(campaign, contact, pack_url)
+        text, html_body = _render(campaign, contact, pack_url)
         try:
-            _send_resend(contact["email"], campaign["subject"], text, unsubscribe_link(contact["email"]))
+            _send_resend(contact["email"], campaign["subject"], text, html_body, unsubscribe_link(contact["email"]))
             status, error = "sent", None
             sent += 1
         except (requests.RequestException, RuntimeError) as e:

@@ -588,6 +588,11 @@
   }
   .quick-action:hover { border-color: var(--smoke); background: var(--obsidian); }
   .quick-title { font-size: 15px; font-weight: 510; color: var(--paper); }
+  .check-row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--fog); cursor: pointer; }
+  .check-row input { width: 16px; height: 16px; accent-color: var(--acid); }
+  .campaign-stats { display: flex; flex-direction: column; gap: 16px; border-top: 1px solid var(--graphite); padding-top: 16px; }
+  .stat-grid-compact { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .stat-grid-compact .stat-value { font-size: 28px; }
   .quick-copy { font-size: 13px; color: var(--fog); }
 
   /* ── HERO + SIGN-UP ── */
@@ -1500,10 +1505,11 @@ function PacksTool({ token, onAuthError }) {
 function CampaignsTool({ token, onAuthError }) {
   const [campaigns, setCampaigns] = useState(null);
   const [packs, setPacks] = useState([]);
-  const [form, setForm] = useState({ name: "", subject: "", body: "Hi {{name}},\n\n", pack_id: "" });
+  const [form, setForm] = useState({ name: "", subject: "", body: "Hi {{name}},\n\n", pack_id: "", track: true });
   const [selectedId, setSelectedId] = useState("");
   const [audience, setAudience] = useState({ role: "", tag: "" });
   const [preview, setPreview] = useState(null);
+  const [stats, setStats] = useState(null);
   const [message, setMessage] = useState(null);
   const { busy, error, run } = useToolRunner(onAuthError);
 
@@ -1515,6 +1521,15 @@ function CampaignsTool({ token, onAuthError }) {
 
   useEffect(() => { run(load); }, []);
 
+  async function loadStats(id) {
+    setStats(await callApi(`/campaigns/${id}/stats`, token));
+  }
+
+  useEffect(() => {
+    if (selectedId) run(() => loadStats(selectedId));
+    else setStats(null);
+  }, [selectedId]);
+
   function createCampaign(e) {
     e.preventDefault();
     run(async () => {
@@ -1523,7 +1538,7 @@ function CampaignsTool({ token, onAuthError }) {
         body: { ...form, pack_id: form.pack_id ? Number(form.pack_id) : null },
       });
       setSelectedId(String(data.id));
-      setForm({ name: "", subject: "", body: "Hi {{name}},\n\n", pack_id: "" });
+      setForm({ name: "", subject: "", body: "Hi {{name}},\n\n", pack_id: "", track: true });
       setPreview(null);
       setMessage("Draft saved. Preview who it reaches before you send.");
       await load();
@@ -1551,6 +1566,7 @@ function CampaignsTool({ token, onAuthError }) {
       setPreview(null);
       setMessage(`Sent ${result.sent}. Failed ${result.failed}. Still waiting: ${result.remaining}.`);
       await load();
+      await loadStats(selectedId);
     });
   }
 
@@ -1575,6 +1591,10 @@ function CampaignsTool({ token, onAuthError }) {
             <option value="">No pack</option>
             {packs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </Field>
+          <label className="check-row">
+            <input type="checkbox" checked={form.track} onChange={e => setForm(f => ({ ...f, track: e.target.checked }))} />
+            <span>Track opens and clicks</span>
+          </label>
           <button type="submit" className="search-btn" disabled={busy || !form.subject.trim() || !form.body.trim()}>Save draft</button>
         </form>
 
@@ -1607,6 +1627,55 @@ function CampaignsTool({ token, onAuthError }) {
               >
                 Send to {preview.would_send} people
               </button>
+            </div>
+          )}
+          {stats && (
+            <div className="campaign-stats">
+              {stats.tracking ? (
+                <>
+                  <div className="stat-grid stat-grid-compact">
+                    <StatTile label="Sent" value={stats.sent} hint="Accepted by the mail provider" />
+                    <StatTile
+                      label="Opened"
+                      value={stats.opened}
+                      hint={stats.sent ? `${Math.round(100 * stats.opened / stats.sent)}% of recipients (estimate)` : "No sends yet"}
+                    />
+                    <StatTile
+                      label="Clicked"
+                      value={stats.clicked}
+                      hint={stats.sent ? `${Math.round(100 * stats.clicked / stats.sent)}% of recipients` : "No sends yet"}
+                    />
+                  </div>
+                  {stats.links.length > 0 && (
+                    <div className="table-wrap">
+                      <table className="data-table">
+                        <caption className="sr-only">Clicks per link</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">Link</th>
+                            <th scope="col">Clicks</th>
+                            <th scope="col">People</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stats.links.map(l => (
+                            <tr key={l.url}>
+                              <td className="cell-link">{l.url}</td>
+                              <td>{l.clicks}</td>
+                              <td>{l.people}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  <p className="panel-copy">
+                    Opens are estimates. Some mail apps load images automatically, so they can count opens nobody read.
+                  </p>
+                </>
+              ) : (
+                <p className="panel-copy">Tracking was off for this campaign.</p>
+              )}
             </div>
           )}
           {selected && (
