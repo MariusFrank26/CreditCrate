@@ -1023,6 +1023,31 @@
     .dash-meter-track span { animation: none !important; }
   }
 
+  /* ── HOMOGENEOUS: one neutral system, matching Deal Desk. Lime is for primary actions only ── */
+  .signed-in::before { display: none; }
+  .app-window, .dash-card, .tool-card, .stat-tile, .search-block, .tool-empty {
+    background: var(--carbon);
+    box-shadow: none;
+  }
+  .app-window { box-shadow: none; }
+  .app-window-bar { background: var(--obsidian); }
+  .app-window-dots i, .app-window-dots i:nth-child(1), .app-window-dots i:nth-child(2), .app-window-dots i:nth-child(3) { background: var(--smoke); }
+  .stat-tile::before { display: none; }
+  .stat-tile:hover, .tool-card:hover, .dash-card:hover, .dash-item:hover { transform: none; box-shadow: none; border-color: var(--smoke); }
+  .tool-title, .dash-title {
+    background: none; color: var(--paper);
+    -webkit-text-fill-color: var(--paper);
+    font-size: 24px; letter-spacing: -0.016em;
+  }
+  .tool-eyebrow, .eyebrow { color: var(--ash); }
+  .tool-eyebrow::before { display: none; }
+  .data-table tbody tr:hover td { background: rgba(255, 255, 255, .02); }
+  .ios-group { background: var(--obsidian); }
+  .dash-pack-icon { background: var(--graphite); color: var(--fog); }
+  .dash-meter-track { background: var(--graphite); }
+  .dash-meter-label { color: var(--fog); }
+  .tool-tab, .app-bar { box-shadow: none; }
+
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
@@ -1881,12 +1906,8 @@ function useToolRunner(onAuthError) {
   return { busy, error, run };
 }
 
-const AVATAR_COLORS = ["#02b8cc", "#8b5cf6", "#6366f1", "#27a644", "#eb5757"];
-
-function avatarColor(seed) {
-  let hash = 0;
-  for (const ch of seed) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+function avatarColor() {
+  return "var(--graphite)";
 }
 
 function displayName(c) {
@@ -2476,8 +2497,8 @@ function OverviewTool({ token, onAuthError }) {
               <p className="dash-campaign-name">{latest.campaign.name || "Untitled"}</p>
               {latest.stats?.tracking ? (
                 <>
-                  <Meter label="Opened" value={rate(latest.stats.opened, latest.stats.sent)} count={latest.stats.opened} color="var(--lavender)" />
-                  <Meter label="Clicked" value={rate(latest.stats.clicked, latest.stats.sent)} count={latest.stats.clicked} color="var(--teal)" />
+                  <Meter label="Opened" value={rate(latest.stats.opened, latest.stats.sent)} count={latest.stats.opened} color="var(--mist)" />
+                  <Meter label="Clicked" value={rate(latest.stats.clicked, latest.stats.sent)} count={latest.stats.clicked} color="var(--fog)" />
                   <p className="dash-copy">Opens are estimates. Some mail apps load images automatically.</p>
                 </>
               ) : (
