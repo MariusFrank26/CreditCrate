@@ -629,6 +629,149 @@
   .stat-grid-compact .stat-value { font-size: 28px; }
   .quick-copy { font-size: 13px; color: var(--fog); }
 
+  /* ── LANDING: features and pipeline (visitors before sign-in) ── */
+  .features { margin-top: 96px; }
+  .features-title {
+    margin-top: 12px;
+    font-size: clamp(30px, 4vw, 44px); font-weight: 510; line-height: 1.1;
+    letter-spacing: -0.03em; color: var(--paper);
+  }
+  .feature-grid {
+    margin-top: 40px;
+    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px;
+  }
+  .feature-card { grid-column: span 2; }
+  .feature-card:nth-child(n + 4) { grid-column: span 3; }
+  @media (max-width: 760px) {
+    .feature-grid { grid-template-columns: minmax(0, 1fr); }
+    .feature-card { grid-column: auto; }
+  }
+  .feature-card {
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column; gap: 12px;
+    background: linear-gradient(180deg, var(--carbon), var(--obsidian));
+    border: 1px solid var(--graphite); border-radius: 12px;
+    padding: 22px;
+    animation: rise .7s cubic-bezier(.2, .7, .2, 1) both;
+    animation-delay: var(--d, 0ms);
+    transition: border-color .2s, transform .2s;
+  }
+  .feature-card:hover { border-color: var(--smoke); transform: translateY(-3px); }
+  .feature-number { font-family: var(--mono); font-size: 12px; color: var(--acid); letter-spacing: .08em; }
+  .feature-title { font-size: 17px; font-weight: 510; letter-spacing: -0.016em; color: var(--paper); }
+  .feature-copy { font-size: 14px; line-height: 1.55; color: var(--fog); }
+
+  .fx-art {
+    height: 112px; margin: 4px 0 6px;
+    border-radius: 8px; background: var(--void);
+    border: 1px solid var(--graphite);
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    padding: 14px; overflow: hidden; position: relative;
+  }
+  /* credits: equalizer */
+  .fx-credits { align-items: flex-end; gap: 6px; padding: 18px 22px; }
+  .fx-credits span {
+    width: 8px; height: 100%; border-radius: 3px;
+    background: linear-gradient(180deg, var(--acid), var(--pulse));
+    transform-origin: bottom;
+    animation: fx-eq 1.4s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.18s);
+  }
+  @keyframes fx-eq { 0%, 100% { transform: scaleY(.25); } 50% { transform: scaleY(1); } }
+  /* contacts: rows of people */
+  .fx-contacts { flex-direction: column; align-items: stretch; justify-content: center; gap: 8px; }
+  .fx-person {
+    display: flex; align-items: center; gap: 10px;
+    animation: fx-slide-in .6s cubic-bezier(.2, .7, .2, 1) both;
+    animation-delay: calc(var(--i) * .18s + .2s);
+  }
+  .fx-avatar {
+    width: 26px; height: 26px; border-radius: 50%; flex: none;
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 10px; color: var(--void);
+    background: var(--teal);
+  }
+  .fx-person:nth-child(2) .fx-avatar { background: var(--lavender); }
+  .fx-person:nth-child(3) .fx-avatar { background: var(--iris); }
+  .fx-line { flex: 1; height: 1px; background: var(--graphite); }
+  .fx-tag {
+    font-family: var(--mono); font-size: 10px; color: var(--fog);
+    border: 1px solid var(--smoke); border-radius: 999px; padding: 2px 8px;
+  }
+  @keyframes fx-slide-in { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+  /* packs: stacked cards */
+  .fx-packs { justify-content: center; }
+  .fx-pack {
+    position: absolute; width: 60%; height: 64px; border-radius: 8px;
+    border: 1px solid var(--smoke); background: var(--obsidian);
+  }
+  .fx-pack-back { transform: translate(-10px, 8px) rotate(-4deg); opacity: .6; }
+  .fx-pack-front {
+    display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 0 14px;
+    transform: rotate(2deg);
+    animation: fx-float 3.6s ease-in-out infinite;
+    border-color: var(--acid);
+  }
+  .fx-pack-name { font-size: 13px; font-weight: 510; color: var(--paper); }
+  .fx-pack-link { font-family: var(--mono); font-size: 11px; color: var(--teal); }
+  @keyframes fx-float { 0%, 100% { transform: rotate(2deg) translateY(0); } 50% { transform: rotate(2deg) translateY(-6px); } }
+  /* campaigns: filling bars */
+  .fx-campaign { flex-direction: column; align-items: stretch; justify-content: center; gap: 6px; }
+  .fx-bar-label { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--fog); }
+  .fx-bar { height: 8px; border-radius: 999px; background: var(--graphite); overflow: hidden; margin-bottom: 6px; }
+  .fx-bar span {
+    display: block; height: 100%; width: 62%; border-radius: 999px;
+    background: linear-gradient(90deg, var(--iris), var(--lavender));
+    transform-origin: left;
+    animation: fx-fill 2.8s cubic-bezier(.2, .7, .2, 1) infinite alternate;
+  }
+  .fx-bar-click span { width: 18%; background: var(--teal); animation-delay: .4s; }
+  @keyframes fx-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  /* deal desk: invoice lines */
+  .fx-invoice { flex-direction: column; align-items: stretch; justify-content: center; gap: 8px; }
+  .fx-invoice-row {
+    display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--mist);
+    animation: rise .5s both; animation-delay: calc(var(--i) * .2s + .15s);
+  }
+  .fx-invoice-total {
+    display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px;
+    color: var(--paper); border-top: 1px solid var(--smoke); padding-top: 8px; margin-top: 2px;
+  }
+
+  /* pipeline */
+  .pipeline { margin-top: 96px; }
+  .pipeline-title { font-size: 22px; font-weight: 510; letter-spacing: -0.02em; color: var(--paper); }
+  .pipeline-steps {
+    list-style: none; margin-top: 32px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 24px;
+    position: relative;
+  }
+  .pipeline-steps::before {
+    content: ""; position: absolute; left: 18px; right: 18px; top: 17px; height: 2px;
+    background: linear-gradient(90deg, var(--acid), var(--teal), var(--iris), var(--lavender));
+    background-size: 200% 100%;
+    opacity: .5;
+    animation: fx-flow 4s linear infinite;
+  }
+  @keyframes fx-flow { to { background-position: -200% 0; } }
+  .pipeline-step {
+    position: relative; display: flex; flex-direction: column; gap: 6px;
+    animation: rise .6s both; animation-delay: var(--d, 0ms);
+  }
+  .pipeline-dot {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--void); border: 1px solid var(--smoke);
+    font-family: var(--mono); font-size: 13px; color: var(--paper);
+    margin-bottom: 8px;
+  }
+  .pipeline-name { font-size: 15px; font-weight: 510; color: var(--paper); }
+  .pipeline-copy { font-size: 13px; color: var(--fog); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .feature-card, .fx-art *, .pipeline-step, .pipeline-steps::before { animation: none !important; transition: none !important; }
+  }
+
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
@@ -1202,6 +1345,134 @@ function LoginForm({ onSignedIn }) {
         </button>
       </form>
       {error && <div className="error-msg" role="alert">⚠ {error}</div>}
+    </section>
+  );
+}
+
+// ── Landing: what CreditCrate does, shown to visitors before sign-in ───────
+
+const FEATURES = [
+  {
+    id: "credits",
+    number: "01",
+    title: "Find who made the record",
+    copy: "Search any album and see every producer, engineer and mixer, with their Instagram and public contact.",
+  },
+  {
+    id: "contacts",
+    number: "02",
+    title: "Keep your list in one place",
+    copy: "Import a CSV or save people from your searches. Filter by role and tag before you reach out.",
+  },
+  {
+    id: "packs",
+    number: "03",
+    title: "Link your packs",
+    copy: "Keep sample and beat packs in Dropbox or Google Drive, and attach the link to any email.",
+  },
+  {
+    id: "campaigns",
+    number: "04",
+    title: "Send with a preview",
+    copy: "See exactly who receives an email before it goes out. Every email has an unsubscribe link, and you see who opened and clicked.",
+  },
+  {
+    id: "dealdesk",
+    number: "05",
+    title: "Paperwork that stays yours",
+    copy: "Split sheets, producer agreements and invoices, saved in your browser. Nothing is uploaded.",
+  },
+];
+
+// Small CSS-only illustrations. They loop on their own and stop with reduced motion.
+function FeatureArt({ id }) {
+  if (id === "credits") {
+    return (
+      <div className="fx-art fx-credits" aria-hidden="true">
+        {[0, 1, 2, 3, 4, 5, 6].map(i => <span key={i} style={{ "--i": i }} />)}
+      </div>
+    );
+  }
+  if (id === "contacts") {
+    return (
+      <div className="fx-art fx-contacts" aria-hidden="true">
+        {["AL", "BK", "CR"].map((initials, i) => (
+          <div key={initials} className="fx-person" style={{ "--i": i }}>
+            <span className="fx-avatar">{initials}</span>
+            <span className="fx-line" />
+            <span className="fx-tag">{["producer", "mixer", "engineer"][i]}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (id === "packs") {
+    return (
+      <div className="fx-art fx-packs" aria-hidden="true">
+        <div className="fx-pack fx-pack-back" />
+        <div className="fx-pack fx-pack-front">
+          <span className="fx-pack-name">Drum Kit Vol. 1</span>
+          <span className="fx-pack-link">dropbox.com</span>
+        </div>
+      </div>
+    );
+  }
+  if (id === "campaigns") {
+    return (
+      <div className="fx-art fx-campaign" aria-hidden="true">
+        <div className="fx-bar-label"><span>Opened</span><span>62%</span></div>
+        <div className="fx-bar"><span /></div>
+        <div className="fx-bar-label"><span>Clicked</span><span>18%</span></div>
+        <div className="fx-bar fx-bar-click"><span /></div>
+      </div>
+    );
+  }
+  return (
+    <div className="fx-art fx-invoice" aria-hidden="true">
+      {["Beat lease", "Mix session", "Mastering"].map((item, i) => (
+        <div key={item} className="fx-invoice-row" style={{ "--i": i }}>
+          <span>{item}</span>
+          <span className="fx-line" />
+        </div>
+      ))}
+      <div className="fx-invoice-total"><span>Total</span><span>€ 1,240</span></div>
+    </div>
+  );
+}
+
+function Features() {
+  return (
+    <section className="features" aria-labelledby="features-heading">
+      <p className="eyebrow">What’s inside</p>
+      <h2 id="features-heading" className="features-title">Five tools, one hub.</h2>
+      <div className="feature-grid">
+        {FEATURES.map((f, i) => (
+          <article key={f.id} className="feature-card" style={{ "--d": `${i * 90}ms` }}>
+            <span className="feature-number">{f.number}</span>
+            <FeatureArt id={f.id} />
+            <h3 className="feature-title">{f.title}</h3>
+            <p className="feature-copy">{f.copy}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Pipeline() {
+  const steps = [["Find", "Search an album"], ["Organise", "Save people and packs"], ["Send", "Preview and send"], ["Track", "See opens and clicks"]];
+  return (
+    <section className="pipeline" aria-labelledby="pipeline-heading">
+      <h2 id="pipeline-heading" className="pipeline-title">From record to inbox</h2>
+      <ol className="pipeline-steps">
+        {steps.map(([name, copy], i) => (
+          <li key={name} className="pipeline-step" style={{ "--d": `${i * 220}ms` }}>
+            <span className="pipeline-dot" aria-hidden="true">{i + 1}</span>
+            <span className="pipeline-name">{name}</span>
+            <span className="pipeline-copy">{copy}</span>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
@@ -2142,13 +2413,15 @@ function App() {
         {!token && <>
           <section className="hero" aria-labelledby="hero-heading">
             <p className="eyebrow">Launching soon</p>
-            <h2 id="hero-heading" className="hero-title">Know who to send your beat to.</h2>
+            <h2 id="hero-heading" className="hero-title">Get your beats to the people who made the records.</h2>
             <p className="hero-copy">
-              CreditCrate lists every producer, engineer and mixer on an album, with their Instagram
-              and public contact email. Send your samples and beats to the people who made the records you love.
+              CreditCrate finds the producers, engineers and mixers behind any album, keeps your contacts and packs
+              in one place, and sends campaigns you can track.
             </p>
             <NewsletterForm />
           </section>
+          <Features />
+          <Pipeline />
           <Explainer />
         </>}
       </main>
