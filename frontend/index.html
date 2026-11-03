@@ -981,6 +981,11 @@
   .cc-eq span:nth-child(4) { animation-delay: -.2s; }
   .cc-eq span:nth-child(5) { animation-delay: -.8s; }
 
+  /* ── EXAMPLES: faded placeholders that fill empty space. Not interactive ── */
+  .is-example { opacity: .3; pointer-events: none; user-select: none; }
+  .pk-examples { display: flex; flex-direction: column; gap: 12px; }
+  .pk-examples .pk-kicker { margin: 0 2px; }
+
   /* ── PACKS: a shelf of records. Discs spin on hover, cards rise in ── */
   .pk-featured {
     display: flex; align-items: center; gap: 20px;
@@ -2109,6 +2114,10 @@ function sectionLetter(c) {
   return /[A-Z]/.test(first) ? first : "#";
 }
 
+// Faded examples that fill the empty space, so each app looks lived in. They are never real data.
+const CONTACT_EXAMPLES = ["Quincy Jones", "Dr. Dre", "Timbaland", "J Dilla", "Metro Boomin", "Pharrell Williams"];
+const PACK_EXAMPLES = ["September 2026 Samples", "August 2026 Beat Pack", "Lo-fi Keys Vol. 2", "Drum Kits Vol. 3"];
+
 function ContactSheet({ contact, onClose }) {
   const rows = [
     ["Email", contact.email],
@@ -2246,6 +2255,26 @@ function ContactsTool({ token, onAuthError }) {
             </ul>
           </div>
         ))
+      )}
+
+      {!q && contacts && contacts.length < 5 && (
+        <div className="ios-section is-example" aria-hidden="true">
+          <h3 className="ios-letter">Examples</h3>
+          <ul className="ios-group">
+            {CONTACT_EXAMPLES.slice(0, 5 - contacts.length).map(name => (
+              <li key={name}>
+                <div className="ios-row">
+                  <span className="ios-avatar" style={{ background: avatarColor() }}>{initialsOf({ name })}</span>
+                  <span className="ios-row-text">
+                    <span className="ios-name">{name}</span>
+                    <span className="ios-sub">producer</span>
+                  </span>
+                  <span className="ios-chevron">›</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {selected && <ContactSheet contact={selected} onClose={() => setSelected(null)} />}
@@ -2447,6 +2476,23 @@ function PacksTool({ token, onAuthError }) {
             </ul>
           )}
         </>
+      )}
+
+      {!q && packs && packs.length < 4 && (
+        <div className="pk-examples is-example" aria-hidden="true">
+          <p className="pk-kicker">Examples</p>
+          <ul className="pk-grid">
+            {PACK_EXAMPLES.slice(0, 4 - packs.length).map(name => (
+              <li key={name}>
+                <div className="pk-card">
+                  <PackDisc name={name} />
+                  <span className="pk-name">{name}</span>
+                  <span className="pk-host">dropbox.com</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {selected && <PackSheet pack={selected} busy={busy} onClose={() => setSelected(null)} onRemove={removePack} />}
