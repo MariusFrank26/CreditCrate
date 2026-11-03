@@ -844,6 +844,18 @@
     .app-window-body { padding: 20px 16px 28px; }
   }
 
+  /* ── APP GRID: two apps side by side on wide screens ── */
+  .app-main {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px; align-items: start;
+  }
+  .app-main > .error-msg { grid-column: 1 / -1; }
+  .app-main > .app-window { margin-top: 0; }
+  .app-window-wide { grid-column: 1 / -1; }
+  @media (max-width: 900px) {
+    .app-main { grid-template-columns: minmax(0, 1fr); }
+  }
+
   /* ── CONTACTS: an iPhone-style list ── */
   .ios { display: flex; flex-direction: column; gap: 14px; }
   .ios-large-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
@@ -2331,9 +2343,9 @@ function DealDeskTool() {
 }
 
 // Each signed-in tool opens as its own app window inside the site
-function AppWindow({ name, children }) {
+function AppWindow({ name, wide = false, children }) {
   return (
-    <div className="app-window">
+    <div className={`app-window${wide ? " app-window-wide" : ""}`}>
       <div className="app-window-bar">
         <span className="app-window-dots" aria-hidden="true"><i /><i /><i /></span>
         <img src="logo.svg" alt="" width="18" height="18" />
@@ -2645,11 +2657,11 @@ function App() {
         </div>
       </header>
 
-      <main id="main">
+      <main id="main" className={token ? "app-main" : undefined}>
         {error && <div className="error-msg" role="alert">⚠ {error}</div>}
 
-        {token && <AppWindow name="Dashboard"><OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
-        {token && <AppWindow name="Credits"><>
+        {token && <AppWindow name="Dashboard" wide><OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
+        {token && <AppWindow name="Credits" wide><>
         <ol className="step-indicator" aria-label="Progress">
           {STEPS.map(([n, label]) => (
             <li
