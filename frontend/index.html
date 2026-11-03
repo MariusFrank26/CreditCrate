@@ -542,53 +542,6 @@
   }
   .tool-tab:focus-visible { outline-offset: 0; }
 
-  /* ── DASHBOARD: cards, stat tiles and quick actions for signed-in users ── */
-  .tool-section { margin-top: 40px; display: flex; flex-direction: column; gap: 20px; }
-  .tool-section .table-wrap {
-    background: var(--carbon);
-    border: 1px solid var(--graphite);
-    border-radius: 10px;
-    padding: 4px 16px;
-  }
-  .search-block {
-    background: var(--carbon);
-    border: 1px solid var(--graphite);
-    border-radius: 10px;
-    padding: 20px;
-    margin-top: 24px;
-  }
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
-  .stat-tile {
-    background: var(--carbon);
-    border: 1px solid var(--graphite);
-    border-radius: 10px;
-    padding: 20px;
-    display: flex; flex-direction: column; gap: 6px;
-  }
-  .stat-label { font-size: 12px; color: var(--fog); text-transform: uppercase; letter-spacing: .06em; }
-  .stat-value {
-    font-size: 36px; font-weight: 510; line-height: 1.1;
-    letter-spacing: -0.03em; color: var(--paper);
-    font-variant-numeric: tabular-nums;
-  }
-  .stat-hint { font-size: 13px; color: var(--ash); }
-  .dash-section-title { font-size: 13px; font-weight: 510; color: var(--fog); text-transform: uppercase; letter-spacing: .06em; margin-top: 8px; }
-  .quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
-  .quick-action {
-    display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
-    text-align: left;
-    background: var(--carbon);
-    border: 1px solid var(--graphite);
-    border-radius: 10px;
-    padding: 18px;
-    font-family: var(--sans);
-    color: var(--mist);
-    cursor: pointer;
-    transition: border-color .15s, background-color .15s;
-  }
-  .quick-action:hover { border-color: var(--smoke); background: var(--obsidian); }
-  .quick-title { font-size: 15px; font-weight: 510; color: var(--paper); }
-
   /* ── POLISH: signed-in screens ── */
   .signed-in header { display: flex; justify-content: flex-end; align-items: center; padding-top: 20px; padding-bottom: 20px; }
   .signed-in header .brand, .signed-in .tagline { display: none; }
@@ -851,7 +804,6 @@
   }
   .app-main > .error-msg { grid-column: 1 / -1; }
   .app-main > .app-window { margin-top: 0; }
-  .app-window-wide { grid-column: 1 / -1; }
   @media (max-width: 900px) {
     .app-main { grid-template-columns: minmax(0, 1fr); }
   }
@@ -960,72 +912,9 @@
     .app-window, .ios-backdrop, .ios-sheet { animation: none !important; }
   }
 
-  /* ── DASHBOARD: every tool summarised on one screen ── */
-  .dash { display: flex; flex-direction: column; gap: 22px; }
-  .dash-greeting { display: flex; flex-direction: column; gap: 6px; }
-  .dash-title { font-size: 30px; font-weight: 600; letter-spacing: -0.03em; color: var(--paper); line-height: 1.15; }
-  .dash-grid {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;
-  }
-  .dash-span-2 { grid-column: span 2; }
-  .dash-card {
-    display: flex; flex-direction: column; gap: 14px;
-    min-width: 0;
-    background: linear-gradient(180deg, var(--obsidian), var(--carbon));
-    border: 1px solid var(--graphite); border-radius: 14px;
-    padding: 18px;
-    transition: border-color .2s, box-shadow .2s;
-  }
-  .dash-card:hover { border-color: var(--smoke); box-shadow: 0 14px 36px -22px rgba(99, 102, 241, .5); }
-  .dash-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .dash-card-title { font-size: 14px; font-weight: 600; color: var(--paper); letter-spacing: -0.01em; }
-  .dash-card-link {
-    background: none; border: none; cursor: pointer;
-    font-family: var(--sans); font-size: 13px; color: var(--teal);
-    padding: 4px 0;
-  }
-  .dash-card-link:hover { color: var(--paper); }
-  .dash-copy { font-size: 14px; line-height: 1.55; color: var(--fog); }
-  .dash-empty { font-size: 14px; color: var(--ash); padding: 12px 0; }
-  .dash-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-  .dash-item {
-    display: flex; align-items: center; gap: 12px;
-    padding: 8px; border-radius: 10px;
-    transition: background-color .15s;
-  }
-  .dash-item:hover { background: rgba(255, 255, 255, .03); }
-  .dash-item-text { display: flex; flex-direction: column; min-width: 0; }
-  .dash-pack-icon {
-    width: 36px; height: 36px; border-radius: 10px; flex: none;
-    display: grid; place-items: center;
-    background: rgba(139, 92, 246, .18); color: var(--lavender); font-size: 16px;
-  }
-  .dash-campaign { display: flex; flex-direction: column; gap: 14px; }
-  .dash-campaign-name { font-size: 16px; font-weight: 510; color: var(--paper); }
-  .dash-meter { display: flex; flex-direction: column; gap: 6px; }
-  .dash-meter-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--fog); font-variant-numeric: tabular-nums; }
-  .dash-meter-track { height: 8px; border-radius: 999px; background: var(--graphite); overflow: hidden; }
-  .dash-meter-track span {
-    display: block; height: 100%; border-radius: 999px;
-    transform-origin: left;
-    animation: dash-grow .9s cubic-bezier(.2, .7, .2, 1) both;
-  }
-  @keyframes dash-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-  @media (max-width: 900px) {
-    .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .dash-span-2 { grid-column: span 2; }
-  }
-  @media (max-width: 600px) {
-    .dash-grid { grid-template-columns: minmax(0, 1fr); }
-    .dash-span-2 { grid-column: auto; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .dash-meter-track span { animation: none !important; }
-  }
-
   /* ── HOMOGENEOUS: one neutral system, matching Deal Desk. Lime is for primary actions only ── */
   .signed-in::before { display: none; }
-  .app-window, .dash-card, .tool-card, .stat-tile, .search-block, .tool-empty {
+  .app-window, .tool-card, .stat-tile, .search-block, .tool-empty {
     background: var(--carbon);
     box-shadow: none;
   }
@@ -1033,7 +922,7 @@
   .app-window-bar { background: var(--obsidian); }
   .app-window-dots i, .app-window-dots i:nth-child(1), .app-window-dots i:nth-child(2), .app-window-dots i:nth-child(3) { background: var(--smoke); }
   .stat-tile::before { display: none; }
-  .stat-tile:hover, .tool-card:hover, .dash-card:hover, .dash-item:hover { transform: none; box-shadow: none; border-color: var(--smoke); }
+  .stat-tile:hover, .tool-card:hover { transform: none; box-shadow: none; border-color: var(--smoke); }
   .tool-title, .dash-title {
     background: none; color: var(--paper);
     -webkit-text-fill-color: var(--paper);
@@ -1144,6 +1033,38 @@
   @media (prefers-reduced-motion: reduce) {
     .pk-disc, .cc-trace, .cc-eq span, .cc-head::before, .cc-head::after, .cc-eyebrow::after, .pk-grid li, .pk-featured, .cc-brand-row { animation: none !important; }
   }
+
+  /* ── HOME: the apps are the dashboard. Previews expand in place ── */
+  .dash-strip {
+    grid-column: 1 / -1;
+    display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap;
+    gap: 20px; padding: 4px 4px 8px;
+    animation: rise .6s cubic-bezier(.2, .7, .2, 1) both;
+  }
+  .dash-date { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
+  .dash-greeting { margin-top: 6px; font-size: 28px; font-weight: 510; letter-spacing: -0.02em; color: var(--paper); }
+  .dash-figures { display: flex; gap: 32px; flex-wrap: wrap; }
+  .dash-figure { display: flex; flex-direction: column; align-items: flex-end; }
+  .dash-figure dt { font-size: 12px; color: var(--fog); }
+  .dash-figure dd { font-size: 28px; font-weight: 510; color: var(--paper); font-variant-numeric: tabular-nums; }
+  .app-window-toggle {
+    margin-left: auto;
+    font-family: var(--sans); font-size: 12px; color: var(--fog);
+    background: none; border: 1px solid var(--graphite); border-radius: 999px;
+    padding: 4px 12px; cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .app-window-toggle:hover { color: var(--paper); border-color: var(--smoke); }
+  .app-window:not(.is-open) .app-window-body {
+    position: relative; max-height: 520px; overflow: hidden;
+  }
+  .app-window:not(.is-open) .app-window-body::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 120px;
+    background: linear-gradient(180deg, transparent, var(--carbon));
+    pointer-events: none;
+  }
+  .app-window.is-open { grid-column: 1 / -1; }
+  .app-window-wide { grid-column: auto; }
 
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
@@ -2574,14 +2495,18 @@ function DealDeskTool() {
   );
 }
 
-// Each signed-in tool opens as its own app window inside the site
-function AppWindow({ name, wide = false, children }) {
+// Each signed-in tool is an app window. Its body is a preview until expanded.
+function AppWindow({ name, children }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className={`app-window${wide ? " app-window-wide" : ""}`}>
+    <div className={`app-window${open ? " is-open" : ""}`}>
       <div className="app-window-bar">
         <span className="app-window-dots" aria-hidden="true"><i /><i /><i /></span>
         <img src="logo.svg" alt="" width="18" height="18" />
         <span className="app-window-name">{name}</span>
+        <button type="button" className="app-window-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+          {open ? "Collapse" : "Expand"}
+        </button>
       </div>
       <div className="app-window-body">{children}</div>
     </div>
@@ -2598,20 +2523,9 @@ function StatTile({ label, value, hint, accent }) {
   );
 }
 
-// One card in the dashboard: a title, a link to the full tool, and content
-function DashCard({ title, id, span = 1, children }) {
-  return (
-    <section className={`dash-card${span === 2 ? " dash-span-2" : ""}`} aria-labelledby={id}>
-      <div className="dash-card-head">
-        <h3 id={id} className="dash-card-title">{title}</h3>
-      </div>
-      {children}
-    </section>
-  );
-}
-
+// The home strip: a greeting and three figures. The apps themselves are the dashboard.
 function OverviewTool({ token, onAuthError }) {
-  const [data, setData] = useState(null);
+  const [counts, setCounts] = useState(null);
   const { error, run } = useToolRunner(onAuthError);
 
   useEffect(() => {
@@ -2621,117 +2535,33 @@ function OverviewTool({ token, onAuthError }) {
         callApi("/packs", token),
         callApi("/campaigns", token),
       ]);
-      const sent = campaigns.campaigns.filter(c => c.status === "sent").sort((a, b) => b.sent_at - a.sent_at);
-      const latest = sent[0] ? await callApi(`/campaigns/${sent[0].id}/stats`, token) : null;
-      setData({
-        contacts: contacts.contacts,
-        packs: packs.packs,
-        sentCount: sent.length,
-        latest: sent[0] ? { campaign: sent[0], stats: latest } : null,
+      setCounts({
+        contacts: contacts.contacts.length,
+        packs: packs.packs.length,
+        sent: campaigns.campaigns.filter(c => c.status === "sent").length,
       });
     });
   }, []);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const recent = data ? data.contacts.slice(0, 5) : [];
-  const latest = data?.latest;
-  const rate = (people, sent) => (sent ? Math.round((100 * people) / sent) : 0);
+  const figures = [["Contacts", counts?.contacts], ["Packs", counts?.packs], ["Campaigns sent", counts?.sent]];
 
   return (
-    <div className="dash">
-      <div className="dash-greeting">
-        <p className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</p>
-        <h2 className="dash-title">{greeting}.</h2>
+    <div className="dash-strip">
+      <div className="dash-hello">
+        <p className="dash-date">{new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</p>
+        <h2 className="dash-greeting">{greeting}.</h2>
       </div>
-
       <ToolMessages error={error} />
-
-      <div className="stat-grid">
-        <StatTile accent="teal" label="Contacts" value={data?.contacts.length} hint="Subscribed and ready to email" />
-        <StatTile accent="lavender" label="Packs" value={data?.packs.length} hint="Dropbox and Drive links" />
-        <StatTile accent="iris" label="Campaigns sent" value={data?.sentCount} hint={latest ? `Last sent ${new Date(latest.campaign.sent_at * 1000).toLocaleDateString()}` : "None sent yet"} />
-      </div>
-
-      <div className="dash-grid">
-        <DashCard id="dash-contacts" title="Recent contacts" span={2}>
-          {!data ? (
-            <ToolLoading label="Loading…" />
-          ) : recent.length === 0 ? (
-            <p className="dash-empty">No contacts yet. Add your first one.</p>
-          ) : (
-            <ul className="dash-list">
-              {recent.map(c => (
-                <li key={c.email} className="dash-item">
-                  <span className="ios-avatar" style={{ background: avatarColor(c.email) }} aria-hidden="true">{initialsOf(c)}</span>
-                  <span className="dash-item-text">
-                    <span className="ios-name">{displayName(c)}</span>
-                    <span className="ios-sub">{c.roles || c.email}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </DashCard>
-
-        <DashCard id="dash-credits" title="Credits">
-          <p className="dash-copy">Search any album and see every producer, engineer and mixer behind it.</p>
-        </DashCard>
-
-        <DashCard id="dash-packs" title="Packs">
-          {!data ? (
-            <ToolLoading label="Loading…" />
-          ) : data.packs.length === 0 ? (
-            <p className="dash-empty">No packs yet.</p>
-          ) : (
-            <ul className="dash-list">
-              {data.packs.slice(0, 4).map(p => (
-                <li key={p.id} className="dash-item">
-                  <span className="dash-pack-icon" aria-hidden="true">♫</span>
-                  <span className="dash-item-text">
-                    <span className="ios-name">{p.name}</span>
-                    <span className="ios-sub">{new URL(p.url).hostname}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </DashCard>
-
-        <DashCard id="dash-campaign" title="Latest campaign" span={2}>
-          {!data ? (
-            <ToolLoading label="Loading…" />
-          ) : !latest ? (
-            <p className="dash-empty">Nothing sent yet. Save a draft and preview it first.</p>
-          ) : (
-            <div className="dash-campaign">
-              <p className="dash-campaign-name">{latest.campaign.name || "Untitled"}</p>
-              {latest.stats?.tracking ? (
-                <>
-                  <Meter label="Opened" value={rate(latest.stats.opened, latest.stats.sent)} count={latest.stats.opened} color="var(--mist)" />
-                  <Meter label="Clicked" value={rate(latest.stats.clicked, latest.stats.sent)} count={latest.stats.clicked} color="var(--fog)" />
-                  <p className="dash-copy">Opens are estimates. Some mail apps load images automatically.</p>
-                </>
-              ) : (
-                <p className="dash-copy">Tracking was off for this campaign.</p>
-              )}
-            </div>
-          )}
-        </DashCard>
-
-        <DashCard id="dash-dealdesk" title="Deal Desk">
-          <p className="dash-copy">Split sheets, agreements and invoices. Saved in this browser.</p>
-        </DashCard>
-      </div>
-    </div>
-  );
-}
-
-function Meter({ label, value, count, color }) {
-  return (
-    <div className="dash-meter">
-      <div className="dash-meter-label"><span>{label}</span><span>{count} · {value}%</span></div>
-      <div className="dash-meter-track"><span style={{ width: `${value}%`, background: color }} /></div>
+      <dl className="dash-figures">
+        {figures.map(([label, value]) => (
+          <div key={label} className="dash-figure">
+            <dt>{label}</dt>
+            <dd>{value ?? "—"}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
@@ -2892,8 +2722,8 @@ function App() {
       <main id="main" className={token ? "app-main" : undefined}>
         {error && <div className="error-msg" role="alert">⚠ {error}</div>}
 
-        {token && <AppWindow name="Dashboard" wide><OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
-        {token && <AppWindow name="Credits" wide><>
+        {token && <OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} />}
+        {token && <AppWindow name="Credits"><>
         <CreditsHeader />
         <ol className="step-indicator" aria-label="Progress">
           {STEPS.map(([n, label]) => (
