@@ -1798,14 +1798,6 @@ function ToolLoading({ label }) {
 
 // ── Tools: the title bar switches between these once you are signed in ─────
 
-const TOOLS = [
-  ["overview", "Dashboard"],
-  ["credits", "Credits"],
-  ["contacts", "Contacts"],
-  ["packs", "Packs"],
-  ["campaigns", "Campaigns"],
-  ["dealdesk", "Deal Desk"],
-];
 
 // Calls the hub API. A 401 is flagged so the page can sign the user out.
 async function callApi(path, token, { method = "GET", body, form } = {}) {
@@ -2363,19 +2355,18 @@ function StatTile({ label, value, hint, accent }) {
 }
 
 // One card in the dashboard: a title, a link to the full tool, and content
-function DashCard({ title, action, onOpen, id, span = 1, children }) {
+function DashCard({ title, id, span = 1, children }) {
   return (
     <section className={`dash-card${span === 2 ? " dash-span-2" : ""}`} aria-labelledby={id}>
       <div className="dash-card-head">
         <h3 id={id} className="dash-card-title">{title}</h3>
-        <button type="button" className="dash-card-link" onClick={onOpen}>{action} →</button>
       </div>
       {children}
     </section>
   );
 }
 
-function OverviewTool({ token, onAuthError, onOpen }) {
+function OverviewTool({ token, onAuthError }) {
   const [data, setData] = useState(null);
   const { error, run } = useToolRunner(onAuthError);
 
@@ -2419,7 +2410,7 @@ function OverviewTool({ token, onAuthError, onOpen }) {
       </div>
 
       <div className="dash-grid">
-        <DashCard id="dash-contacts" title="Recent contacts" action="All contacts" onOpen={() => onOpen("contacts")} span={2}>
+        <DashCard id="dash-contacts" title="Recent contacts" span={2}>
           {!data ? (
             <ToolLoading label="Loading…" />
           ) : recent.length === 0 ? (
@@ -2439,11 +2430,11 @@ function OverviewTool({ token, onAuthError, onOpen }) {
           )}
         </DashCard>
 
-        <DashCard id="dash-credits" title="Credits" action="Search" onOpen={() => onOpen("credits")}>
+        <DashCard id="dash-credits" title="Credits">
           <p className="dash-copy">Search any album and see every producer, engineer and mixer behind it.</p>
         </DashCard>
 
-        <DashCard id="dash-packs" title="Packs" action="All packs" onOpen={() => onOpen("packs")}>
+        <DashCard id="dash-packs" title="Packs">
           {!data ? (
             <ToolLoading label="Loading…" />
           ) : data.packs.length === 0 ? (
@@ -2463,7 +2454,7 @@ function OverviewTool({ token, onAuthError, onOpen }) {
           )}
         </DashCard>
 
-        <DashCard id="dash-campaign" title="Latest campaign" action="Campaigns" onOpen={() => onOpen("campaigns")} span={2}>
+        <DashCard id="dash-campaign" title="Latest campaign" span={2}>
           {!data ? (
             <ToolLoading label="Loading…" />
           ) : !latest ? (
@@ -2484,7 +2475,7 @@ function OverviewTool({ token, onAuthError, onOpen }) {
           )}
         </DashCard>
 
-        <DashCard id="dash-dealdesk" title="Deal Desk" action="Open" onOpen={() => onOpen("dealdesk")}>
+        <DashCard id="dash-dealdesk" title="Deal Desk">
           <p className="dash-copy">Split sheets, agreements and invoices. Saved in this browser.</p>
         </DashCard>
       </div>
@@ -2516,7 +2507,6 @@ function App() {
   const [roleFilter, setRoleFilter] = useState(ROLE_FILTERS.includes(initialRole) ? initialRole : "ALL");
   const [token, setToken] = useState(readToken);
   const [showLogin, setShowLogin] = useState(false);
-  const [tool, setTool] = useState(() => (TOOLS.some(([id]) => id === initialParams.get("tool")) ? initialParams.get("tool") : "overview"));
   const [apiStatus, setApiStatus] = useState("checking"); // checking | online | offline
 
   // 1=search, 2=pick album, 3=credits
@@ -2602,16 +2592,9 @@ function App() {
     setError(null);
   }
 
-  function changeTool(id) {
-    setTool(id);
-    setError(null);
-    setUrlParam("tool", id === "overview" ? "" : id);
-  }
-
   function signOut(message = null) {
     storeToken("");
     setToken("");
-    setTool("overview");
     setShowLogin(false);
     setSearchResults(null);
     setSelectedAlbum(null);
@@ -2633,19 +2616,14 @@ function App() {
   return (
     <>
     {token && (
-      <nav className="app-bar" aria-label="Tools">
+      <div className="app-bar">
         <div className="app-bar-inner">
           <span className="app-bar-brand">
             <img src="logo.svg" alt="" width="22" height="22" />
             CreditCrate
           </span>
-          <div className="tool-nav">
-            {TOOLS.map(([id, label]) => (
-              <button key={id} type="button" className="tool-tab" aria-current={tool === id ? "page" : undefined} onClick={() => changeTool(id)}>{label}</button>
-            ))}
-          </div>
         </div>
-      </nav>
+      </div>
     )}
     <div className={token ? "page signed-in" : "page"}>
       <header>
@@ -2670,7 +2648,8 @@ function App() {
       <main id="main">
         {error && <div className="error-msg" role="alert">⚠ {error}</div>}
 
-        {token && tool === "credits" && <AppWindow name="Credits"><>
+        {token && <AppWindow name="Dashboard"><OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
+        {token && <AppWindow name="Credits"><>
         <ol className="step-indicator" aria-label="Progress">
           {STEPS.map(([n, label]) => (
             <li
@@ -2823,11 +2802,10 @@ function App() {
 
         </></AppWindow>}
 
-        {token && tool === "overview" && <AppWindow name="Dashboard"><OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} onOpen={changeTool} /></AppWindow>}
-        {token && tool === "contacts" && <AppWindow name="Contacts"><ContactsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
-        {token && tool === "packs" && <AppWindow name="Packs"><PacksTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
-        {token && tool === "campaigns" && <AppWindow name="Campaigns"><CampaignsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
-        {token && tool === "dealdesk" && <AppWindow name="Deal Desk"><DealDeskTool /></AppWindow>}
+        {token && <AppWindow name="Contacts"><ContactsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
+        {token && <AppWindow name="Packs"><PacksTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
+        {token && <AppWindow name="Campaigns"><CampaignsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
+        {token && <AppWindow name="Deal Desk"><DealDeskTool /></AppWindow>}
 
         {!token && <>
           <section className="hero" aria-labelledby="hero-heading">
