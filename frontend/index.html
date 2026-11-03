@@ -327,10 +327,10 @@
     color: var(--fog);
     white-space: nowrap;
   }
-  .role-tag.producer { color: var(--mist); background: var(--graphite); }
-  .role-tag.engineer { color: var(--mist); background: var(--graphite); }
-  .role-tag.mixer    { color: var(--mist); background: var(--graphite); }
-  .role-tag.writer   { color: var(--mist); background: var(--graphite); }
+  .role-tag.producer { color: #a8dcc0; background: rgba(168, 220, 192, .14); }
+  .role-tag.engineer { color: #b8c4f2; background: rgba(184, 196, 242, .14); }
+  .role-tag.mixer { color: #f2c3a3; background: rgba(242, 195, 163, .14); }
+  .role-tag.writer { color: #e9b8d6; background: rgba(233, 184, 214, .14); }
 
   .ig-link {
     color: var(--mist);
@@ -1099,6 +1099,45 @@
   }
   @media (prefers-reduced-motion: reduce) { .page:not(.signed-in)::before { animation: none; } }
 
+  /* ── MINI CREDITS: the How-it-works demo in miniature, for the landing feature card ── */
+  .fx-mini {
+    flex-direction: column; align-items: stretch; justify-content: center; gap: 7px;
+    height: auto; min-height: 156px; padding: 14px;
+  }
+  .mini-bar { display: flex; gap: 6px; }
+  .mini-input {
+    flex: 1; min-width: 0; height: 24px; padding: 0 8px;
+    display: flex; align-items: center;
+    border: 1px solid var(--smoke); border-radius: 6px;
+    background: rgba(255, 255, 255, .02);
+    font-size: 11px; color: var(--mist); white-space: nowrap; overflow: hidden;
+  }
+  .mini-ph { color: var(--ash); }
+  .mini-caret { width: 1px; height: 12px; margin-left: 2px; background: var(--mist); animation: blink 1s steps(1) infinite; }
+  .mini-btn {
+    height: 24px; padding: 0 10px; border-radius: 6px;
+    display: flex; align-items: center;
+    background: var(--graphite); color: var(--fog); font-size: 11px;
+    transition: background-color .2s, color .2s;
+  }
+  .mini-btn.pressed { background: var(--paper); color: var(--void); }
+  .mini-album {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--paper);
+    opacity: 0; transform: translateY(4px);
+    transition: opacity .4s, transform .4s;
+  }
+  .mini-album.in { opacity: 1; transform: none; }
+  .mini-cover { width: 18px; height: 18px; border-radius: 4px; background: linear-gradient(135deg, var(--smoke), var(--graphite)); flex: none; }
+  .mini-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; opacity: 0; transition: opacity .4s;
+  }
+  .mini-row.in { opacity: 1; }
+  .mini-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--mist); }
+  .mini-found { font-family: var(--mono); font-size: 10px; color: var(--fog); white-space: nowrap; }
+  @media (prefers-reduced-motion: reduce) { .mini-caret { animation: none; } }
+
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
@@ -1712,13 +1751,51 @@ const FEATURES = [
 ];
 
 // Small CSS-only illustrations. They loop on their own and stop with reduced motion.
+// A small version of the "How it works" demo: type an album, see its credits, find their emails.
+const MINI_LOOP = 7000;
+const MINI_ALBUM = "Whisper My Name";
+const MINI_ROWS = [["OZ", "producer", 3400], ["London Cyr", "producer", 3900]];
+
+function MiniCredits() {
+  const [t, setT] = useState(prefersReducedMotion() ? MINI_LOOP - 100 : 0);
+
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    const id = setInterval(() => setT(prev => (prev + 100) % MINI_LOOP), 100);
+    return () => clearInterval(id);
+  }, []);
+
+  const typed = MINI_ALBUM.slice(0, Math.max(0, Math.min(MINI_ALBUM.length, Math.floor((t - 300) / 150))));
+  const pressed = t >= 2100 && t < 2400;
+  const albumIn = t >= 2600;
+
+  return (
+    <div className="fx-art fx-mini" aria-hidden="true">
+      <div className="mini-bar">
+        <span className="mini-input">
+          {typed || <span className="mini-ph">Album name</span>}
+          {t < 2400 && <span className="mini-caret" />}
+        </span>
+        <span className={`mini-btn${pressed ? " pressed" : ""}`}>Search</span>
+      </div>
+      <div className={`mini-album${albumIn ? " in" : ""}`}>
+        <span className="mini-cover" />
+        <span>{MINI_ALBUM}</span>
+      </div>
+      {MINI_ROWS.map(([name, cls, at]) => (
+        <div key={name} className={`mini-row${t >= at ? " in" : ""}`}>
+          <span className="mini-name">{name}</span>
+          <span className={`role-tag ${cls}`}>{cls}</span>
+          <span className="mini-found">{t >= at + 500 ? "✓ email" : "…"}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function FeatureArt({ id }) {
   if (id === "credits") {
-    return (
-      <div className="fx-art fx-credits" aria-hidden="true">
-        {[0, 1, 2, 3, 4, 5, 6].map(i => <span key={i} style={{ "--i": i }} />)}
-      </div>
-    );
+    return <MiniCredits />;
   }
   if (id === "contacts") {
     return (
@@ -1727,7 +1804,7 @@ function FeatureArt({ id }) {
           <div key={initials} className="fx-person" style={{ "--i": i }}>
             <span className="fx-avatar">{initials}</span>
             <span className="fx-line" />
-            <span className="fx-tag">{["producer", "mixer", "engineer"][i]}</span>
+            <span className={`role-tag ${["producer", "mixer", "engineer"][i]}`}>{["producer", "mixer", "engineer"][i]}</span>
           </div>
         ))}
       </div>
