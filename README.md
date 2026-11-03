@@ -86,8 +86,9 @@ Save contacts (CSV import or by hand), keep sample and beat pack links (Dropbox 
 Sign-in is required for these tools. The title bar switches between Credits, Contacts, Packs, Campaigns and Deal Desk.
 
 Safety rules, all enforced on the server:
-- **Dry run by default.** `MAIL_MODE` defaults to `dry_run`. A send request without `"confirm": true` only reports how many people it would reach.
-- **Live sends need all of:** `MAIL_MODE=resend`, `RESEND_API_KEY`, `MAIL_FROM` and `MAIL_SENDER_ADDRESS` (your postal address, required by anti-spam law). Missing settings block the send.
+- **Preview first.** A send request without `"confirm": true` only reports how many people it would reach.
+- **Sending uses each user's own Gmail account** with an app password (2-Step Verification, then App passwords in the Google account). The password is stored encrypted with `CREDENTIAL_KEY`, a Fernet key set on the server. Generate one with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
+- **Daily cap:** 500 emails per Gmail account in any 24 hours. Sends run in the background, a few seconds apart, and the Campaigns app shows progress. `MAIL_SENDER_ADDRESS` (your postal address) is required, by anti-spam law.
 - **Every email** includes an unsubscribe link and a `List-Unsubscribe` header. Unsubscribed addresses are never mailed again, and re-importing a CSV does not clear that.
 - **Open and click tracking is ours, not Mailtrack's.** Each email carries a 1×1 image and rewritten links. Both use signed tokens, so the click redirect only goes to links we wrote into an email. Set `track: false` on a campaign to turn it off. Opens are estimates, because some mail apps load images automatically.
 - **Each person gets a campaign once.** Re-sending skips anyone already sent to.

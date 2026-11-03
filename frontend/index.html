@@ -1217,6 +1217,20 @@
   .pk-examples .pk-card .pk-art { width: 44px; height: 44px; aspect-ratio: auto; border-radius: 10px; flex: none; }
   .pk-examples .pk-card .pk-name { flex: 1; min-width: 0; }
 
+  /* ── CAMPAIGNS: Gmail connection, activity and send progress ── */
+  .gmail-card { gap: 14px; }
+  .gmail-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .gmail-title { font-size: 15px; font-weight: 510; color: var(--paper); }
+  .activity-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .activity-list, .activity-top { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .activity-list li, .activity-top li { display: flex; align-items: baseline; gap: 8px; font-size: 14px; min-width: 0; }
+  .activity-name { font-weight: 510; color: var(--paper); white-space: nowrap; }
+  .activity-text { color: var(--fog); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .activity-time { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ash); white-space: nowrap; }
+  .activity-rank { font-family: var(--mono); font-size: 12px; color: var(--ash); width: 14px; }
+  .send-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  @media (max-width: 760px) { .activity-grid { grid-template-columns: minmax(0, 1fr); } }
+
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
@@ -2132,8 +2146,8 @@ function sectionLetter(c) {
 }
 
 // Faded examples that fill the empty space, so each app looks lived in. They are never real data.
-const CONTACT_EXAMPLES = ["Quincy Jones", "Dr. Dre", "Timbaland", "J Dilla", "Metro Boomin", "Pharrell Williams"];
-const PACK_EXAMPLES = ["September 2026 Samples", "August 2026 Beat Pack", "Lo-fi Keys Vol. 2", "Drum Kits Vol. 3"];
+const CONTACT_EXAMPLES = ["Producer 1", "Producer 2", "Producer 3", "Producer 4"];
+const PACK_EXAMPLES = ["September 2026 Samples", "October 2026 Samples", "November 2026 Samples"];
 
 function ContactSheet({ contact, onClose }) {
   const rows = [
@@ -2274,11 +2288,11 @@ function ContactsTool({ token, onAuthError }) {
         ))
       )}
 
-      {!q && contacts && contacts.length < 5 && (
+      {!q && contacts && contacts.length < 4 && (
         <div className="ios-section is-example" aria-hidden="true">
           <h3 className="ios-letter">Examples</h3>
           <ul className="ios-group">
-            {CONTACT_EXAMPLES.slice(0, 5 - contacts.length).map(name => (
+            {CONTACT_EXAMPLES.slice(0, 4 - contacts.length).map(name => (
               <li key={name}>
                 <div className="ios-row">
                   <span className="ios-avatar" style={{ background: avatarColor() }}>{initialsOf({ name })}</span>
@@ -2495,11 +2509,11 @@ function PacksTool({ token, onAuthError }) {
         </>
       )}
 
-      {!q && packs && packs.length < 4 && (
+      {!q && packs && packs.length < 3 && (
         <div className="pk-examples is-example" aria-hidden="true">
           <p className="pk-kicker">Examples</p>
           <ul className="pk-grid">
-            {PACK_EXAMPLES.slice(0, 4 - packs.length).map(name => (
+            {PACK_EXAMPLES.slice(0, 3 - packs.length).map(name => (
               <li key={name}>
                 <div className="pk-card">
                   <PackDisc name={name} />
@@ -2596,9 +2610,137 @@ function PackPicker({ packs, value, onChange }) {
   );
 }
 
+// Faded examples for the activity panels, shown until real opens arrive
+const ACTIVITY_EXAMPLES = ["Producer 1", "Producer 2", "Producer 3"];
+
+function timeAgo(timestamp) {
+  const seconds = Math.max(0, Date.now() / 1000 - timestamp);
+  if (seconds < 3600) return `${Math.max(1, Math.round(seconds / 60))}m ago`;
+  if (seconds < 86400) return `${Math.round(seconds / 3600)}h ago`;
+  return `${Math.round(seconds / 86400)}d ago`;
+}
+
+function statusText(status) {
+  if (!status) return "";
+  if (status === "sending") return "Sending now";
+  if (status === "partial") return "Partly sent. The daily limit or a stop left people waiting.";
+  if (status.startsWith("stopped")) return `Stopped. ${status.replace(/^stopped:\s*/, "")}`;
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function GmailConnect({ token, onAuthError, account, onChange }) {
+  const [address, setAddress] = useState("");
+  const [appPassword, setAppPassword] = useState("");
+  const { busy, error, run } = useToolRunner(onAuthError);
+
+  function connect(e) {
+    e.preventDefault();
+    run(async () => {
+      const next = await callApi("/mail/account", token, { method: "POST", body: { address, app_password: appPassword } });
+      setAppPassword("");
+      onChange(next);
+    });
+  }
+
+  function disconnect() {
+    run(async () => {
+      onChange(await callApi("/mail/account", token, { method: "DELETE" }));
+    });
+  }
+
+  if (account?.connected) {
+    return (
+      <div className="tool-card gmail-card">
+        <div className="gmail-row">
+          <div>
+            <p className="gmail-title">Sending from {account.address}</p>
+            <p className="panel-copy">{account.sent_today} of {account.daily_limit} sent in the last 24 hours</p>
+          </div>
+          <button type="button" className="back-btn" onClick={disconnect} disabled={busy}>Disconnect</button>
+        </div>
+        <ToolMessages error={error} />
+      </div>
+    );
+  }
+
+  return (
+    <form className="tool-card gmail-card" onSubmit={connect}>
+      <h3 className="tool-card-title">Connect your Gmail</h3>
+      <p className="panel-copy">
+        Campaigns send from your own address, so they land in your Sent folder. Turn on 2-Step Verification in your
+        Google account, create an app password under App passwords, and paste it here. It is stored encrypted.
+      </p>
+      <Field label="Gmail address" id="gmail-address" type="email" value={address} onChange={setAddress} required />
+      <Field label="App password" id="gmail-app-password" type="password" value={appPassword} onChange={setAppPassword} required />
+      <button type="submit" className="search-btn" disabled={busy || !address.trim() || !appPassword.trim()}>Connect Gmail</button>
+      <ToolMessages error={error} />
+    </form>
+  );
+}
+
+function ActivityPanel({ activity }) {
+  const recent = activity?.recent ?? [];
+  const top = activity?.top ?? [];
+  return (
+    <div className="activity-grid">
+      <section className="tool-card" aria-labelledby="recent-opens-heading">
+        <h3 id="recent-opens-heading" className="tool-card-title">Recently opened your email</h3>
+        {recent.length === 0 ? (
+          <ul className="activity-list is-example" aria-hidden="true">
+            {ACTIVITY_EXAMPLES.map((name, i) => (
+              <li key={name}>
+                <span className="activity-name">{name}</span>
+                <span className="activity-text">opened your email</span>
+                <span className="activity-time">{i + 1}h ago</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <ul className="activity-list">
+            {recent.slice(0, 5).map((a, i) => (
+              <li key={i}>
+                <span className="activity-name">{a.name}</span>
+                <span className="activity-text">{a.kind === "click" ? "clicked a link in" : "opened"} {a.subject}</span>
+                <span className="activity-time">{timeAgo(a.created_at)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="tool-card" aria-labelledby="top-openers-heading">
+        <h3 id="top-openers-heading" className="tool-card-title">Top openers</h3>
+        {top.length === 0 ? (
+          <ol className="activity-top is-example" aria-hidden="true">
+            {ACTIVITY_EXAMPLES.map((name, i) => (
+              <li key={name}>
+                <span className="activity-rank">{i + 1}</span>
+                <span className="activity-name">{name}</span>
+                <span className="activity-time">{4 - i} opens</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <ol className="activity-top">
+            {top.map((p, i) => (
+              <li key={p.email}>
+                <span className="activity-rank">{i + 1}</span>
+                <span className="activity-name">{p.name}</span>
+                <span className="activity-time">{p.opens} {p.opens === 1 ? "open" : "opens"}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function CampaignsTool({ token, onAuthError }) {
   const [campaigns, setCampaigns] = useState(null);
   const [packs, setPacks] = useState([]);
+  const [account, setAccount] = useState(null);
+  const [activity, setActivity] = useState(null);
   const [form, setForm] = useState({ name: "", subject: "", body: "Hi {{name}},\n\n", pack_id: "", track: true });
   const [selectedId, setSelectedId] = useState("");
   const [audience, setAudience] = useState({ role: "", tag: "" });
@@ -2608,21 +2750,37 @@ function CampaignsTool({ token, onAuthError }) {
   const { busy, error, run } = useToolRunner(onAuthError);
 
   async function load() {
-    const [c, p] = await Promise.all([callApi("/campaigns", token), callApi("/packs", token)]);
+    const [c, p, a, act] = await Promise.all([
+      callApi("/campaigns", token),
+      callApi("/packs", token),
+      callApi("/mail/account", token),
+      callApi("/activity", token),
+    ]);
     setCampaigns(c.campaigns);
     setPacks(p.packs);
+    setAccount(a);
+    setActivity(act);
   }
-
-  useEffect(() => { run(load); }, []);
 
   async function loadStats(id) {
     setStats(await callApi(`/campaigns/${id}/stats`, token));
   }
 
+  useEffect(() => { run(load); }, []);
+
   useEffect(() => {
     if (selectedId) run(() => loadStats(selectedId));
     else setStats(null);
   }, [selectedId]);
+
+  // While a campaign is sending, keep the progress up to date
+  useEffect(() => {
+    if (stats?.status !== "sending" || !selectedId) return undefined;
+    const id = setInterval(() => {
+      loadStats(selectedId).catch(() => {});
+    }, 4000);
+    return () => clearInterval(id);
+  }, [stats?.status, selectedId]);
 
   function createCampaign(e) {
     e.preventDefault();
@@ -2654,22 +2812,44 @@ function CampaignsTool({ token, onAuthError }) {
   }
 
   function sendNow() {
-    if (!preview || !window.confirm(`Send this campaign to ${preview.would_send} people now? This cannot be undone.`)) return;
+    if (!preview || !window.confirm(`Send this campaign to ${preview.would_send} people from ${account.address}? This cannot be undone.`)) return;
     run(async () => {
       const result = await requestSend(true);
       setPreview(null);
-      setMessage(`Sent ${result.sent}. Failed ${result.failed}. Still waiting: ${result.remaining}.`);
+      setMessage(
+        `Sending ${result.queued} emails from ${account.address}.` +
+        (result.waiting ? ` ${result.waiting} more wait until the daily limit resets.` : "") +
+        " Progress updates here."
+      );
       await load();
       await loadStats(selectedId);
     });
   }
 
+  function sendTest() {
+    run(async () => {
+      const result = await callApi("/mail/test", token, { method: "POST", body: { campaign_id: Number(selectedId) } });
+      setMessage(`Test sent to ${result.sent_to}. Check your inbox.`);
+    });
+  }
+
   const selected = campaigns?.find(c => String(c.id) === selectedId);
+  const canSend = Boolean(account?.connected);
 
   return (
     <section className="tool-section" aria-labelledby="campaigns-heading">
-      <ToolHeading id="campaigns-heading" eyebrow="Outreach" title="Campaigns" copy="Write an email, choose who receives it, and preview before anything is sent. Every email has an unsubscribe link." />
+      <div className="tool-heading">
+        <p className="tool-eyebrow">Outreach</p>
+        <h2 id="campaigns-heading" className="tool-title">Campaigns</h2>
+        <p className="tool-copy">
+          Write an email, choose who receives it, and preview before anything is sent. Every email has an unsubscribe link.
+        </p>
+      </div>
       <ToolMessages error={error} message={message} />
+
+      <GmailConnect token={token} onAuthError={onAuthError} account={account} onChange={setAccount} />
+
+      <ActivityPanel activity={activity} />
 
       <div className="tool-grid">
         <form className="tool-card" onSubmit={createCampaign}>
@@ -2697,31 +2877,36 @@ function CampaignsTool({ token, onAuthError }) {
             <Field label="Role" id="audience-role" value={audience.role} onChange={v => { setAudience(a => ({ ...a, role: v })); setPreview(null); }} />
             <Field label="Tag" id="audience-tag" value={audience.tag} onChange={v => { setAudience(a => ({ ...a, tag: v })); setPreview(null); }} />
           </div>
-          <button type="button" className="back-btn" onClick={previewSend} disabled={busy || !selectedId}>Preview recipients</button>
+          <div className="send-actions">
+            <button type="button" className="back-btn" onClick={previewSend} disabled={busy || !selectedId}>Preview recipients</button>
+            <button type="button" className="back-btn" onClick={sendTest} disabled={busy || !selectedId || !canSend}>Send test to me</button>
+          </div>
 
           {preview && (
             <div className="tool-preview" role="status">
               <p>
                 This would reach <strong>{preview.would_send}</strong> people.
-                {preview.mode !== "resend" && " Live sending is off on this server, so nothing will be sent."}
+                {!canSend && " Connect your Gmail above to send."}
               </p>
               {preview.sample?.length > 0 && <p className="panel-copy">Sample: {preview.sample.join(", ")}</p>}
               <button
                 type="button"
                 className="search-btn"
                 onClick={sendNow}
-                disabled={busy || preview.mode !== "resend" || preview.would_send === 0}
+                disabled={busy || !canSend || preview.would_send === 0}
               >
                 Send to {preview.would_send} people
               </button>
             </div>
           )}
+
           {stats && (
             <div className="campaign-stats">
+              {selected && <p className="panel-copy">Status: {statusText(stats.status)}</p>}
               {stats.tracking ? (
                 <>
                   <div className="stat-grid stat-grid-compact">
-                    <StatTile label="Sent" value={stats.sent} hint="Accepted by the mail provider" />
+                    <StatTile label="Sent" value={stats.sent} hint="Accepted by Gmail" />
                     <StatTile
                       label="Opened"
                       value={stats.opened}
@@ -2764,11 +2949,6 @@ function CampaignsTool({ token, onAuthError }) {
                 <p className="panel-copy">Tracking was off for this campaign.</p>
               )}
             </div>
-          )}
-          {selected && (
-            <p className="panel-copy">
-              Status: {selected.status}{selected.sent_at ? `, sent ${new Date(selected.sent_at * 1000).toLocaleString()}` : ""}
-            </p>
           )}
         </div>
       </div>

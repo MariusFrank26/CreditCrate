@@ -1,9 +1,9 @@
 """
 Mailing for the hub: contacts, sample and beat packs, and campaigns.
 
-Sending stays off until MAIL_MODE=resend is set. In the default dry_run mode a
-campaign only reports who it would reach. Sending also needs confirm=true in the
-request, so a stray request can't mail anyone.
+Sending goes through the signed-in user's own Gmail account (see gmail.py). A
+preview only reports who would be reached. Sending also needs confirm=true in the
+request, so a stray request can't mail anyone, and a daily cap of 500 applies.
 
 Every email carries an unsubscribe link and the sender's postal address. Anyone
 who unsubscribed is never mailed again, including when they are imported again.
@@ -18,31 +18,33 @@ import io
 import re
 import base64
 import html
+import random
+import smtplib
+import threading
 import time
 import sqlite3
 import logging
 from contextlib import contextmanager
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
-import requests
 from flask import Blueprint, request, jsonify, redirect, Response
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 import accounts
+import gmail
 
 logger = logging.getLogger(__name__)
 
 bp = Blueprint("mailing", __name__)
 
-MAIL_MODE = os.getenv("MAIL_MODE", "dry_run")  # "dry_run" or "resend"
-RESEND_API_KEY = os.getenv("RESEND_API_KEY")
-MAIL_FROM = os.getenv("MAIL_FROM")  # e.g. "CreditCrate <hello@creditcrate.app>"
 MAIL_SENDER_ADDRESS = os.getenv("MAIL_SENDER_ADDRESS")  # postal address, required for live sends
 PUBLIC_API_URL = os.getenv("PUBLIC_API_URL", "https://api.creditcrate.app/api").rstrip("/")
 
 MAX_CSV_BYTES = 10 * 1024 * 1024
 MAX_RECIPIENTS_PER_SEND = 500
-SEND_INTERVAL_SECONDS = 0.6  # Resend allows about two requests per second
+SEND_INTERVAL_SECONDS = (2.0, 4.0)  # a random pause between emails, like a person sending by hand
+_sending = set()  # campaign ids currently being sent
+_sending_lock = threading.Lock()
 
 # Pack links must point at Dropbox or Google Drive
 
@@ -136,6 +138,19 @@ def init_db():
         columns = {row[1] for row in conn.execute("PRAGMA table_info(mail_campaigns)")}
         if "track" not in columns:
             conn.execute("ALTER TABLE mail_campaigns ADD COLUMN track INTEGER DEFAULT 1")
+        if "owner" not in columns:
+            conn.execute("ALTER TABLE mail_campaigns ADD COLUMN owner TEXT")
+        sent_columns = {row[1] for row in conn.execute("PRAGMA table_info(mail_sends)")}
+        if "sender" not in sent_columns:
+            conn.execute("ALTER TABLE mail_sends ADD COLUMN sender TEXT")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS mail_accounts (
+                owner TEXT PRIMARY KEY,
+                address TEXT,
+                password_enc TEXT,
+                updated_at REAL
+            )
+        """)
 
 
 # ── Contacts ────────────────────────────────────────────────────────────────
@@ -306,9 +321,9 @@ def create_campaign():
         if data.get("pack_id") and not conn.execute("SELECT 1 FROM mail_packs WHERE id = ?", (data["pack_id"],)).fetchone():
             return jsonify({"error": "Pack not found."}), 404
         cur = conn.execute(
-            "INSERT INTO mail_campaigns (name, subject, body, pack_id, track, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO mail_campaigns (name, subject, body, pack_id, track, created_at, owner) VALUES (?, ?, ?, ?, ?, ?, ?)",
             ((data.get("name") or subject)[:120], subject, body, data.get("pack_id"),
-             1 if data.get("track", True) else 0, time.time()),
+             1 if data.get("track", True) else 0, time.time(), accounts.current_email()),
         )
     return jsonify({"id": cur.lastrowid})
 
@@ -318,7 +333,8 @@ def create_campaign():
 def list_campaigns():
     with _conn() as conn:
         rows = [dict(r) for r in conn.execute(
-            "SELECT id, name, subject, pack_id, status, created_at, sent_at FROM mail_campaigns ORDER BY created_at DESC")]
+            "SELECT id, name, subject, pack_id, status, created_at, sent_at FROM mail_campaigns WHERE owner = ? ORDER BY created_at DESC",
+            (accounts.current_email(),))]
     return jsonify({"campaigns": rows})
 
 
@@ -389,24 +405,42 @@ def _render(campaign, contact, pack_url):
     return tracked, _html_body(tracked, _pixel_url(campaign_id, email))
 
 
-def _live_config_error():
-    if MAIL_MODE != "resend":
-        return "MAIL_MODE is not 'resend', so nothing is sent."
-    missing = [k for k, v in {"RESEND_API_KEY": RESEND_API_KEY, "MAIL_FROM": MAIL_FROM,
-                              "MAIL_SENDER_ADDRESS": MAIL_SENDER_ADDRESS}.items() if not v]
-    return f"Set {', '.join(missing)} before sending." if missing else None
+def _send_config_error():
+    if not MAIL_SENDER_ADDRESS:
+        return "Set MAIL_SENDER_ADDRESS (your postal address) before sending. Anti-spam law requires it."
+    return None
 
 
-def _send_resend(to, subject, text, html_body, unsub_url):
-    resp = requests.post(
-        "https://api.resend.com/emails",
-        headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
-        json={"from": MAIL_FROM, "to": [to], "subject": subject, "text": text, "html": html_body,
-              "headers": {"List-Unsubscribe": f"<{unsub_url}>"}},
-        timeout=15,
-    )
-    if resp.status_code >= 300:
-        raise RuntimeError(f"Resend {resp.status_code}: {resp.text[:200]}")
+def _load_account(owner):
+    with _conn() as conn:
+        row = conn.execute("SELECT address, password_enc FROM mail_accounts WHERE owner = ?", (owner,)).fetchone()
+    return (row["address"], row["password_enc"]) if row else None
+
+
+def _sent_today(address):
+    with _conn() as conn:
+        return conn.execute(
+            "SELECT COUNT(*) FROM mail_sends WHERE sender = ? AND status = 'sent' AND sent_at > ?",
+            (address, time.time() - 86400),
+        ).fetchone()[0]
+
+
+def _account_status(owner):
+    account = _load_account(owner)
+    if not account:
+        return {"connected": False, "daily_limit": gmail.DAILY_LIMIT, "sent_today": 0}
+    address = account[0]
+    return {"connected": True, "address": address, "daily_limit": gmail.DAILY_LIMIT, "sent_today": _sent_today(address)}
+
+
+def _log_send(campaign_id, email, sender, status, error):
+    with _conn() as conn:
+        conn.execute(
+            "INSERT INTO mail_sends (campaign_id, email, status, error, sent_at, sender) VALUES (?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(campaign_id, email) DO UPDATE SET status = excluded.status, error = excluded.error, "
+            "sent_at = excluded.sent_at, sender = excluded.sender",
+            (campaign_id, email, status, error, time.time(), sender),
+        )
 
 
 def _record_event(campaign_id, email, kind, url=None):
@@ -442,11 +476,56 @@ def track_click(token):
     return redirect(url, code=302)
 
 
+@bp.route("/api/mail/account", methods=["GET"])
+@accounts.login_required
+def get_account():
+    return jsonify(_account_status(accounts.current_email()))
+
+
+@bp.route("/api/mail/account", methods=["POST"])
+@accounts.login_required
+def connect_account():
+    data = request.get_json(silent=True) or {}
+    address = accounts.normalize_email(data.get("address"))
+    app_password = (data.get("app_password") or "").replace(" ", "")
+    if not accounts.is_valid_email(address):
+        return jsonify({"error": "Enter the Gmail address you want to send from."}), 400
+    if len(app_password) < 8:
+        return jsonify({"error": "Paste the 16-character app password from your Google account."}), 400
+    try:
+        encrypted = gmail.encrypt_password(app_password)
+    except gmail.CredentialError as e:
+        return jsonify({"error": str(e)}), 503
+    try:
+        gmail.check_login(address, app_password)
+    except smtplib.SMTPAuthenticationError:
+        return jsonify({"error": "Google did not accept this address and app password."}), 401
+    except (smtplib.SMTPException, OSError):
+        return jsonify({"error": "Could not reach Gmail. Try again in a moment."}), 502
+    with _conn() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO mail_accounts (owner, address, password_enc, updated_at) VALUES (?, ?, ?, ?)",
+            (accounts.current_email(), address, encrypted, time.time()),
+        )
+    return jsonify(_account_status(accounts.current_email()))
+
+
+@bp.route("/api/mail/account", methods=["DELETE"])
+@accounts.login_required
+def disconnect_account():
+    with _conn() as conn:
+        conn.execute("DELETE FROM mail_accounts WHERE owner = ?", (accounts.current_email(),))
+    return jsonify(_account_status(accounts.current_email()))
+
+
 @bp.route("/api/campaigns/<int:campaign_id>/stats", methods=["GET"])
 @accounts.login_required
 def campaign_stats(campaign_id):
     with _conn() as conn:
-        campaign = conn.execute("SELECT track FROM mail_campaigns WHERE id = ?", (campaign_id,)).fetchone()
+        campaign = conn.execute(
+            "SELECT track, status FROM mail_campaigns WHERE id = ? AND owner = ?",
+            (campaign_id, accounts.current_email()),
+        ).fetchone()
         if not campaign:
             return jsonify({"error": "Campaign not found."}), 404
         sent = conn.execute(
@@ -466,6 +545,7 @@ def campaign_stats(campaign_id):
             (campaign_id,),
         )]
     return jsonify({
+        "status": campaign["status"],
         "tracking": bool(campaign["track"]),
         "sent": sent,
         "opened": opens["people"],
@@ -476,56 +556,158 @@ def campaign_stats(campaign_id):
     })
 
 
+@bp.route("/api/activity", methods=["GET"])
+@accounts.login_required
+def activity():
+    owner = accounts.current_email()
+    with _conn() as conn:
+        recent = [dict(r) for r in conn.execute(
+            "SELECT e.kind, e.email, e.created_at, c.subject, COALESCE(NULLIF(m.name, ''), e.email) AS name "
+            "FROM mail_events e JOIN mail_campaigns c ON c.id = e.campaign_id AND c.owner = ? "
+            "LEFT JOIN mail_contacts m ON m.email = e.email ORDER BY e.created_at DESC LIMIT 8",
+            (owner,),
+        )]
+        top = [dict(r) for r in conn.execute(
+            "SELECT e.email, COUNT(*) AS opens, COALESCE(NULLIF(m.name, ''), e.email) AS name "
+            "FROM mail_events e JOIN mail_campaigns c ON c.id = e.campaign_id AND c.owner = ? "
+            "LEFT JOIN mail_contacts m ON m.email = e.email WHERE e.kind = 'open' "
+            "GROUP BY e.email ORDER BY opens DESC LIMIT 3",
+            (owner,),
+        )]
+    return jsonify({"recent": recent, "top": top})
+
+
+def _run_campaign(campaign, batch, pack_url, role, tag, address, app_password):
+    """Runs in a background thread. Sends one message per person over one Gmail session."""
+    status = "sent"
+    try:
+        with gmail.Sender(address, app_password) as sender:
+            for contact in batch:
+                text, html_body = _render(campaign, contact, pack_url)
+                try:
+                    sender.send(contact["email"], campaign["subject"], text, html_body,
+                                unsubscribe_link(contact["email"]))
+                    _log_send(campaign["id"], contact["email"], address, "sent", None)
+                except (smtplib.SMTPRecipientsRefused, smtplib.SMTPSenderRefused, smtplib.SMTPDataError) as e:
+                    logger.warning(f"Send to {contact['email']} refused: {e}")
+                    _log_send(campaign["id"], contact["email"], address, "failed", str(e)[:300])
+                time.sleep(random.uniform(*SEND_INTERVAL_SECONDS))
+    except smtplib.SMTPAuthenticationError:
+        status = "stopped: Google rejected the login"
+    except (smtplib.SMTPException, OSError) as e:
+        status = f"stopped: {str(e)[:120]}"
+    except gmail.CredentialError as e:
+        status = f"stopped: {str(e)[:120]}"
+    with _conn() as conn:
+        remaining = len(_recipients(conn, campaign["id"], role, tag))
+    if status == "sent" and remaining > 0:
+        status = "partial"  # the daily limit or a stop left people waiting
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE mail_campaigns SET status = ?, sent_at = CASE WHEN ? = 'sent' THEN ? ELSE sent_at END WHERE id = ?",
+            (status, status, time.time(), campaign["id"]),
+        )
+    with _sending_lock:
+        _sending.discard(campaign["id"])
+
+
 @bp.route("/api/campaigns/<int:campaign_id>/send", methods=["POST"])
 @accounts.login_required
 def send_campaign(campaign_id):
     data = request.get_json(silent=True) or {}
     role = (data.get("role") or "").strip()
     tag = (data.get("tag") or "").strip()
+    owner = accounts.current_email()
 
     with _conn() as conn:
-        campaign = conn.execute("SELECT * FROM mail_campaigns WHERE id = ?", (campaign_id,)).fetchone()
+        campaign = conn.execute(
+            "SELECT * FROM mail_campaigns WHERE id = ? AND owner = ?", (campaign_id, owner)
+        ).fetchone()
         if not campaign:
             return jsonify({"error": "Campaign not found."}), 404
         recipients = _recipients(conn, campaign_id, role, tag)
+        pack = conn.execute("SELECT url FROM mail_packs WHERE id = ?", (campaign["pack_id"],)).fetchone() \
+            if campaign["pack_id"] else None
+    pack_url = pack["url"] if pack else None
+    account = _load_account(owner)
+    config_error = _send_config_error()
 
     if not data.get("confirm"):
         return jsonify({
-            "mode": MAIL_MODE,
             "dry_run": True,
+            "can_send": bool(account) and not config_error,
             "would_send": len(recipients),
             "sample": [r["email"] for r in recipients[:5]],
             "message": "Nothing was sent. Repeat the request with confirm: true to send.",
         })
 
-    config_error = _live_config_error()
+    if not account:
+        return jsonify({"error": "Connect your Gmail account first."}), 409
     if config_error:
         return jsonify({"error": config_error}), 409
+    address, encrypted = account
+    try:
+        app_password = gmail.decrypt_password(encrypted)
+    except gmail.CredentialError as e:
+        return jsonify({"error": str(e)}), 409
+
+    with _sending_lock:
+        if campaign_id in _sending:
+            return jsonify({"error": "This campaign is already sending."}), 409
+        allowance = gmail.DAILY_LIMIT - _sent_today(address)
+        if allowance <= 0:
+            return jsonify({"error": f"You reached the daily limit of {gmail.DAILY_LIMIT} emails. Try again tomorrow."}), 409
+        batch = recipients[:allowance]
+        if not batch:
+            return jsonify({"error": "Nobody left to send to in this campaign."}), 409
+        _sending.add(campaign_id)
 
     with _conn() as conn:
-        pack = conn.execute("SELECT url FROM mail_packs WHERE id = ?", (campaign["pack_id"],)).fetchone() if campaign["pack_id"] else None
-    pack_url = pack["url"] if pack else None
-    sent = failed = 0
-    for contact in recipients:
-        text, html_body = _render(campaign, contact, pack_url)
-        try:
-            _send_resend(contact["email"], campaign["subject"], text, html_body, unsubscribe_link(contact["email"]))
-            status, error = "sent", None
-            sent += 1
-        except (requests.RequestException, RuntimeError) as e:
-            logger.warning(f"Send to {contact['email']} failed: {e}")
-            status, error = "failed", str(e)[:300]
-            failed += 1
-        with _conn() as conn:
-            conn.execute(
-                "INSERT INTO mail_sends (campaign_id, email, status, error, sent_at) VALUES (?, ?, ?, ?, ?) "
-                "ON CONFLICT(campaign_id, email) DO UPDATE SET status = excluded.status, error = excluded.error, sent_at = excluded.sent_at",
-                (campaign_id, contact["email"], status, error, time.time()),
-            )
-        time.sleep(SEND_INTERVAL_SECONDS)
+        conn.execute("UPDATE mail_campaigns SET status = 'sending' WHERE id = ?", (campaign_id,))
+    thread = threading.Thread(
+        target=_run_campaign,
+        args=(dict(campaign), batch, pack_url, role, tag, address, app_password),
+        daemon=True,
+    )
+    thread.start()
+    return jsonify({
+        "started": True,
+        "queued": len(batch),
+        "waiting": len(recipients) - len(batch),
+        "left_today": allowance - len(batch),
+    })
 
+
+@bp.route("/api/mail/test", methods=["POST"])
+@accounts.login_required
+def send_test():
+    data = request.get_json(silent=True) or {}
+    owner = accounts.current_email()
+    campaign = None
     with _conn() as conn:
-        remaining = len(_recipients(conn, campaign_id, role, tag))
-        if remaining == 0:
-            conn.execute("UPDATE mail_campaigns SET status = 'sent', sent_at = ? WHERE id = ?", (time.time(), campaign_id))
-    return jsonify({"sent": sent, "failed": failed, "remaining": remaining})
+        row = conn.execute("SELECT * FROM mail_campaigns WHERE id = ? AND owner = ?",
+                           (data.get("campaign_id"), owner)).fetchone()
+        if row:
+            campaign = dict(row)
+            pack = conn.execute("SELECT url FROM mail_packs WHERE id = ?", (row["pack_id"],)).fetchone() \
+                if row["pack_id"] else None
+    if not campaign:
+        return jsonify({"error": "Campaign not found."}), 404
+    account = _load_account(owner)
+    if not account:
+        return jsonify({"error": "Connect your Gmail account first."}), 409
+    config_error = _send_config_error()
+    if config_error:
+        return jsonify({"error": config_error}), 409
+    address, encrypted = account
+    try:
+        app_password = gmail.decrypt_password(encrypted)
+        me = {"email": address, "name": "Test"}
+        text, html_body = _render(campaign, me, pack["url"] if pack else None)
+        with gmail.Sender(address, app_password) as sender:
+            sender.send(address, "[Test] " + campaign["subject"], text, html_body, unsubscribe_link(address))
+    except gmail.CredentialError as e:
+        return jsonify({"error": str(e)}), 409
+    except (smtplib.SMTPException, OSError) as e:
+        return jsonify({"error": f"Gmail did not accept the test: {str(e)[:150]}"}), 502
+    return jsonify({"ok": True, "sent_to": address})
