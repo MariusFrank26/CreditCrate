@@ -588,6 +588,40 @@
   }
   .quick-action:hover { border-color: var(--smoke); background: var(--obsidian); }
   .quick-title { font-size: 15px; font-weight: 510; color: var(--paper); }
+
+  /* ── POLISH: signed-in screens ── */
+  .signed-in header { display: flex; justify-content: flex-end; align-items: center; padding-top: 20px; padding-bottom: 20px; }
+  .signed-in header .brand, .signed-in .tagline { display: none; }
+  .signed-in .header-actions { flex-direction: row; align-items: center; gap: 16px; }
+  .tool-heading { display: flex; flex-direction: column; gap: 8px; }
+  .tool-eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--acid); }
+  .tool-title { font-size: 30px; font-weight: 510; line-height: 1.15; letter-spacing: -0.022em; color: var(--paper); }
+  .tool-copy { font-size: 15px; line-height: 1.55; color: var(--fog); max-width: 640px; }
+  .tool-empty {
+    display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;
+    padding: 48px 24px;
+    border: 1px dashed var(--smoke); border-radius: 10px;
+  }
+  .tool-empty-title { font-size: 16px; font-weight: 510; color: var(--paper); }
+  .tool-empty-copy { font-size: 14px; color: var(--fog); }
+  .tool-loading { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--fog); padding: 24px 0; }
+  .stat-tile { position: relative; overflow: hidden; }
+  .stat-tile::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+    background: var(--accent, var(--graphite));
+  }
+  .stat-tile.accent-teal { --accent: var(--teal); }
+  .stat-tile.accent-lavender { --accent: var(--lavender); }
+  .stat-tile.accent-iris { --accent: var(--iris); }
+  .quick-action { position: relative; transition: border-color .15s, background-color .15s, transform .15s; }
+  .quick-action:hover { transform: translateY(-1px); }
+  .quick-arrow { position: absolute; top: 18px; right: 18px; color: var(--ash); transition: color .15s, transform .15s; }
+  .quick-action:hover .quick-arrow { color: var(--acid); transform: translateX(3px); }
+  .data-table tbody tr { transition: background-color .15s; }
+  .data-table tbody tr:hover td { background: rgba(255, 255, 255, 0.02); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .tool-section { gap: 28px; }
+  .tool-card { gap: 18px; background: linear-gradient(180deg, var(--carbon), var(--obsidian)); }
   .check-row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--fog); cursor: pointer; }
   .check-row input { width: 16px; height: 16px; accent-color: var(--acid); }
   .campaign-stats { display: flex; flex-direction: column; gap: 16px; border-top: 1px solid var(--graphite); padding-top: 16px; }
@@ -1229,6 +1263,29 @@ function NewsletterForm() {
   );
 }
 
+function ToolHeading({ id, eyebrow, title, copy }) {
+  return (
+    <div className="tool-heading">
+      <p className="tool-eyebrow">{eyebrow}</p>
+      <h2 id={id} className="tool-title">{title}</h2>
+      {copy && <p className="tool-copy">{copy}</p>}
+    </div>
+  );
+}
+
+function EmptyState({ title, copy }) {
+  return (
+    <div className="tool-empty">
+      <p className="tool-empty-title">{title}</p>
+      <p className="tool-empty-copy">{copy}</p>
+    </div>
+  );
+}
+
+function ToolLoading({ label }) {
+  return <p className="tool-loading"><span className="spinner" aria-hidden="true" />{label}</p>;
+}
+
 // ── Tools: the title bar switches between these once you are signed in ─────
 
 const TOOLS = [
@@ -1351,11 +1408,7 @@ function ContactsTool({ token, onAuthError }) {
 
   return (
     <section className="tool-section" aria-labelledby="contacts-heading">
-      <h2 id="contacts-heading" className="panel-title">Contacts</h2>
-      <p className="panel-copy">
-        Everyone you can email. Import a CSV with an <code>email</code> column (optional: name, instagram, roles, tags)
-        or add one by hand. Anyone who unsubscribes is hidden here and never emailed again.
-      </p>
+      <ToolHeading id="contacts-heading" eyebrow="Audience" title="Contacts" copy="Everyone you can email. Import a CSV or add people one at a time. Anyone who unsubscribes is hidden and never emailed again." />
       <ToolMessages error={error} message={message} />
 
       <div className="tool-grid">
@@ -1385,9 +1438,9 @@ function ContactsTool({ token, onAuthError }) {
       </form>
 
       {contacts === null ? (
-        <p className="inline-empty">Loading contacts…</p>
+        <ToolLoading label="Loading contacts…" />
       ) : contacts.length === 0 ? (
-        <p className="inline-empty">No contacts yet.</p>
+        <EmptyState title="No contacts yet" copy="Import a CSV or add your first contact to get started." />
       ) : (
         <div className="table-wrap">
           <table className="data-table">
@@ -1453,11 +1506,7 @@ function PacksTool({ token, onAuthError }) {
 
   return (
     <section className="tool-section" aria-labelledby="packs-heading">
-      <h2 id="packs-heading" className="panel-title">Packs</h2>
-      <p className="panel-copy">
-        Sample and beat packs stay in your Dropbox or Google Drive. Paste the share link here and campaigns will send it.
-        Make sure the link is set to “anyone with the link can view”.
-      </p>
+      <ToolHeading id="packs-heading" eyebrow="Library" title="Packs" copy="Sample and beat packs, saved as Dropbox or Google Drive links. Set each link to “anyone with the link can view”." />
       <ToolMessages error={error} message={message} />
 
       <form className="tool-card tool-card-wide" onSubmit={addPack}>
@@ -1468,9 +1517,9 @@ function PacksTool({ token, onAuthError }) {
       </form>
 
       {packs === null ? (
-        <p className="inline-empty">Loading packs…</p>
+        <ToolLoading label="Loading packs…" />
       ) : packs.length === 0 ? (
-        <p className="inline-empty">No packs yet.</p>
+        <EmptyState title="No packs yet" copy="Paste a Dropbox or Google Drive link to add your first pack." />
       ) : (
         <div className="table-wrap">
           <table className="data-table">
@@ -1574,11 +1623,7 @@ function CampaignsTool({ token, onAuthError }) {
 
   return (
     <section className="tool-section" aria-labelledby="campaigns-heading">
-      <h2 id="campaigns-heading" className="panel-title">Campaigns</h2>
-      <p className="panel-copy">
-        Write an email to a filtered part of your contacts. Use <code>{"{{name}}"}</code> for each person’s name.
-        Every email gets an unsubscribe link. Nothing is sent until you press Send and confirm.
-      </p>
+      <ToolHeading id="campaigns-heading" eyebrow="Outreach" title="Campaigns" copy="Write an email, choose who receives it, and preview before anything is sent. Every email has an unsubscribe link." />
       <ToolMessages error={error} message={message} />
 
       <div className="tool-grid">
@@ -1692,19 +1737,15 @@ function CampaignsTool({ token, onAuthError }) {
 function DealDeskTool() {
   return (
     <section className="tool-section" aria-labelledby="dealdesk-heading">
-      <h2 id="dealdesk-heading" className="panel-title">Deal Desk</h2>
-      <p className="panel-copy">
-        Split sheets, producer agreements and invoices. Everything stays in this browser. Nothing is uploaded,
-        and it doesn’t touch your contacts or campaigns.
-      </p>
+      <ToolHeading id="dealdesk-heading" eyebrow="Tools" title="Deal Desk" copy="Split sheets, producer agreements and invoices. Everything stays in this browser." />
       <iframe className="tool-frame" src="tools/dealdesk/" title="Deal Desk" />
     </section>
   );
 }
 
-function StatTile({ label, value, hint }) {
+function StatTile({ label, value, hint, accent }) {
   return (
-    <div className="stat-tile">
+    <div className={`stat-tile${accent ? ` accent-${accent}` : ""}`}>
       <span className="stat-label">{label}</span>
       <span className="stat-value">{value ?? "—"}</span>
       <span className="stat-hint">{hint}</span>
@@ -1742,14 +1783,14 @@ function OverviewTool({ token, onAuthError, onOpen }) {
 
   return (
     <section className="tool-section" aria-labelledby="overview-heading">
-      <h2 id="overview-heading" className="panel-title">Overview</h2>
-      <p className="panel-copy">Your audience, packs and campaigns at a glance.</p>
+      <ToolHeading id="overview-heading" eyebrow="Home" title="Welcome back" copy="Your audience, packs and campaigns at a glance." />
       <ToolMessages error={error} />
 
       <div className="stat-grid">
-        <StatTile label="Contacts" value={stats?.contacts} hint="Subscribed and ready to email" />
-        <StatTile label="Packs" value={stats?.packs} hint="Dropbox and Drive links" />
+        <StatTile accent="teal" label="Contacts" value={stats?.contacts} hint="Subscribed and ready to email" />
+        <StatTile accent="lavender" label="Packs" value={stats?.packs} hint="Dropbox and Drive links" />
         <StatTile
+          accent="iris"
           label="Campaigns sent"
           value={stats?.sent}
           hint={stats?.lastSent ? `Last sent ${new Date(stats.lastSent * 1000).toLocaleDateString()}` : "None sent yet"}
@@ -1762,6 +1803,7 @@ function OverviewTool({ token, onAuthError, onOpen }) {
           <button key={id} type="button" className="quick-action" onClick={() => onOpen(id)}>
             <span className="quick-title">{title}</span>
             <span className="quick-copy">{copy}</span>
+            <span className="quick-arrow" aria-hidden="true">→</span>
           </button>
         ))}
       </div>
@@ -1915,7 +1957,7 @@ function App() {
         </div>
       </nav>
     )}
-    <div className="page">
+    <div className={token ? "page signed-in" : "page"}>
       <header>
         <h1 className="brand">
           <img className="brand-mark" src="logo.svg" alt="" width="56" height="56" />
