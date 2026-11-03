@@ -948,6 +948,69 @@
     .app-window, .ios-backdrop, .ios-sheet { animation: none !important; }
   }
 
+  /* ── DASHBOARD: every tool summarised on one screen ── */
+  .dash { display: flex; flex-direction: column; gap: 22px; }
+  .dash-greeting { display: flex; flex-direction: column; gap: 6px; }
+  .dash-title { font-size: 30px; font-weight: 600; letter-spacing: -0.03em; color: var(--paper); line-height: 1.15; }
+  .dash-grid {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;
+  }
+  .dash-span-2 { grid-column: span 2; }
+  .dash-card {
+    display: flex; flex-direction: column; gap: 14px;
+    min-width: 0;
+    background: linear-gradient(180deg, var(--obsidian), var(--carbon));
+    border: 1px solid var(--graphite); border-radius: 14px;
+    padding: 18px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .dash-card:hover { border-color: var(--smoke); box-shadow: 0 14px 36px -22px rgba(99, 102, 241, .5); }
+  .dash-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .dash-card-title { font-size: 14px; font-weight: 600; color: var(--paper); letter-spacing: -0.01em; }
+  .dash-card-link {
+    background: none; border: none; cursor: pointer;
+    font-family: var(--sans); font-size: 13px; color: var(--teal);
+    padding: 4px 0;
+  }
+  .dash-card-link:hover { color: var(--paper); }
+  .dash-copy { font-size: 14px; line-height: 1.55; color: var(--fog); }
+  .dash-empty { font-size: 14px; color: var(--ash); padding: 12px 0; }
+  .dash-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  .dash-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px; border-radius: 10px;
+    transition: background-color .15s;
+  }
+  .dash-item:hover { background: rgba(255, 255, 255, .03); }
+  .dash-item-text { display: flex; flex-direction: column; min-width: 0; }
+  .dash-pack-icon {
+    width: 36px; height: 36px; border-radius: 10px; flex: none;
+    display: grid; place-items: center;
+    background: rgba(139, 92, 246, .18); color: var(--lavender); font-size: 16px;
+  }
+  .dash-campaign { display: flex; flex-direction: column; gap: 14px; }
+  .dash-campaign-name { font-size: 16px; font-weight: 510; color: var(--paper); }
+  .dash-meter { display: flex; flex-direction: column; gap: 6px; }
+  .dash-meter-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--fog); font-variant-numeric: tabular-nums; }
+  .dash-meter-track { height: 8px; border-radius: 999px; background: var(--graphite); overflow: hidden; }
+  .dash-meter-track span {
+    display: block; height: 100%; border-radius: 999px;
+    transform-origin: left;
+    animation: dash-grow .9s cubic-bezier(.2, .7, .2, 1) both;
+  }
+  @keyframes dash-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @media (max-width: 900px) {
+    .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dash-span-2 { grid-column: span 2; }
+  }
+  @media (max-width: 600px) {
+    .dash-grid { grid-template-columns: minmax(0, 1fr); }
+    .dash-span-2 { grid-column: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dash-meter-track span { animation: none !important; }
+  }
+
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
@@ -1736,7 +1799,7 @@ function ToolLoading({ label }) {
 // ── Tools: the title bar switches between these once you are signed in ─────
 
 const TOOLS = [
-  ["overview", "Overview"],
+  ["overview", "Dashboard"],
   ["credits", "Credits"],
   ["contacts", "Contacts"],
   ["packs", "Packs"],
@@ -2299,8 +2362,21 @@ function StatTile({ label, value, hint, accent }) {
   );
 }
 
+// One card in the dashboard: a title, a link to the full tool, and content
+function DashCard({ title, action, onOpen, id, span = 1, children }) {
+  return (
+    <section className={`dash-card${span === 2 ? " dash-span-2" : ""}`} aria-labelledby={id}>
+      <div className="dash-card-head">
+        <h3 id={id} className="dash-card-title">{title}</h3>
+        <button type="button" className="dash-card-link" onClick={onOpen}>{action} →</button>
+      </div>
+      {children}
+    </section>
+  );
+}
+
 function OverviewTool({ token, onAuthError, onOpen }) {
-  const [stats, setStats] = useState(null);
+  const [data, setData] = useState(null);
   const { error, run } = useToolRunner(onAuthError);
 
   useEffect(() => {
@@ -2310,50 +2386,118 @@ function OverviewTool({ token, onAuthError, onOpen }) {
         callApi("/packs", token),
         callApi("/campaigns", token),
       ]);
-      const sent = campaigns.campaigns.filter(c => c.status === "sent");
-      setStats({
-        contacts: contacts.contacts.length,
-        packs: packs.packs.length,
-        sent: sent.length,
-        lastSent: sent.length ? Math.max(...sent.map(c => c.sent_at)) : null,
+      const sent = campaigns.campaigns.filter(c => c.status === "sent").sort((a, b) => b.sent_at - a.sent_at);
+      const latest = sent[0] ? await callApi(`/campaigns/${sent[0].id}/stats`, token) : null;
+      setData({
+        contacts: contacts.contacts,
+        packs: packs.packs,
+        sentCount: sent.length,
+        latest: sent[0] ? { campaign: sent[0], stats: latest } : null,
       });
     });
   }, []);
 
-  const actions = [
-    ["contacts", "Add contacts", "Import a CSV or add one by hand"],
-    ["packs", "Add a pack", "Paste a Dropbox or Drive link"],
-    ["campaigns", "New campaign", "Write an email and preview who it reaches"],
-    ["credits", "Search credits", "Find producers and engineers on an album"],
-  ];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const recent = data ? data.contacts.slice(0, 5) : [];
+  const latest = data?.latest;
+  const rate = (people, sent) => (sent ? Math.round((100 * people) / sent) : 0);
 
   return (
-    <section className="tool-section" aria-labelledby="overview-heading">
-      <ToolHeading id="overview-heading" eyebrow="Home" title="Welcome back" copy="Your audience, packs and campaigns at a glance." />
+    <div className="dash">
+      <div className="dash-greeting">
+        <p className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</p>
+        <h2 className="dash-title">{greeting}.</h2>
+      </div>
+
       <ToolMessages error={error} />
 
       <div className="stat-grid">
-        <StatTile accent="teal" label="Contacts" value={stats?.contacts} hint="Subscribed and ready to email" />
-        <StatTile accent="lavender" label="Packs" value={stats?.packs} hint="Dropbox and Drive links" />
-        <StatTile
-          accent="iris"
-          label="Campaigns sent"
-          value={stats?.sent}
-          hint={stats?.lastSent ? `Last sent ${new Date(stats.lastSent * 1000).toLocaleDateString()}` : "None sent yet"}
-        />
+        <StatTile accent="teal" label="Contacts" value={data?.contacts.length} hint="Subscribed and ready to email" />
+        <StatTile accent="lavender" label="Packs" value={data?.packs.length} hint="Dropbox and Drive links" />
+        <StatTile accent="iris" label="Campaigns sent" value={data?.sentCount} hint={latest ? `Last sent ${new Date(latest.campaign.sent_at * 1000).toLocaleDateString()}` : "None sent yet"} />
       </div>
 
-      <h3 className="dash-section-title">Quick actions</h3>
-      <div className="quick-grid">
-        {actions.map(([id, title, copy]) => (
-          <button key={id} type="button" className="quick-action" onClick={() => onOpen(id)}>
-            <span className="quick-title">{title}</span>
-            <span className="quick-copy">{copy}</span>
-            <span className="quick-arrow" aria-hidden="true">→</span>
-          </button>
-        ))}
+      <div className="dash-grid">
+        <DashCard id="dash-contacts" title="Recent contacts" action="All contacts" onOpen={() => onOpen("contacts")} span={2}>
+          {!data ? (
+            <ToolLoading label="Loading…" />
+          ) : recent.length === 0 ? (
+            <p className="dash-empty">No contacts yet. Add your first one.</p>
+          ) : (
+            <ul className="dash-list">
+              {recent.map(c => (
+                <li key={c.email} className="dash-item">
+                  <span className="ios-avatar" style={{ background: avatarColor(c.email) }} aria-hidden="true">{initialsOf(c)}</span>
+                  <span className="dash-item-text">
+                    <span className="ios-name">{displayName(c)}</span>
+                    <span className="ios-sub">{c.roles || c.email}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DashCard>
+
+        <DashCard id="dash-credits" title="Credits" action="Search" onOpen={() => onOpen("credits")}>
+          <p className="dash-copy">Search any album and see every producer, engineer and mixer behind it.</p>
+        </DashCard>
+
+        <DashCard id="dash-packs" title="Packs" action="All packs" onOpen={() => onOpen("packs")}>
+          {!data ? (
+            <ToolLoading label="Loading…" />
+          ) : data.packs.length === 0 ? (
+            <p className="dash-empty">No packs yet.</p>
+          ) : (
+            <ul className="dash-list">
+              {data.packs.slice(0, 4).map(p => (
+                <li key={p.id} className="dash-item">
+                  <span className="dash-pack-icon" aria-hidden="true">♫</span>
+                  <span className="dash-item-text">
+                    <span className="ios-name">{p.name}</span>
+                    <span className="ios-sub">{new URL(p.url).hostname}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DashCard>
+
+        <DashCard id="dash-campaign" title="Latest campaign" action="Campaigns" onOpen={() => onOpen("campaigns")} span={2}>
+          {!data ? (
+            <ToolLoading label="Loading…" />
+          ) : !latest ? (
+            <p className="dash-empty">Nothing sent yet. Save a draft and preview it first.</p>
+          ) : (
+            <div className="dash-campaign">
+              <p className="dash-campaign-name">{latest.campaign.name || "Untitled"}</p>
+              {latest.stats?.tracking ? (
+                <>
+                  <Meter label="Opened" value={rate(latest.stats.opened, latest.stats.sent)} count={latest.stats.opened} color="var(--lavender)" />
+                  <Meter label="Clicked" value={rate(latest.stats.clicked, latest.stats.sent)} count={latest.stats.clicked} color="var(--teal)" />
+                  <p className="dash-copy">Opens are estimates. Some mail apps load images automatically.</p>
+                </>
+              ) : (
+                <p className="dash-copy">Tracking was off for this campaign.</p>
+              )}
+            </div>
+          )}
+        </DashCard>
+
+        <DashCard id="dash-dealdesk" title="Deal Desk" action="Open" onOpen={() => onOpen("dealdesk")}>
+          <p className="dash-copy">Split sheets, agreements and invoices. Saved in this browser.</p>
+        </DashCard>
       </div>
-    </section>
+    </div>
+  );
+}
+
+function Meter({ label, value, count, color }) {
+  return (
+    <div className="dash-meter">
+      <div className="dash-meter-label"><span>{label}</span><span>{count} · {value}%</span></div>
+      <div className="dash-meter-track"><span style={{ width: `${value}%`, background: color }} /></div>
+    </div>
   );
 }
 
@@ -2679,7 +2823,7 @@ function App() {
 
         </></AppWindow>}
 
-        {token && tool === "overview" && <AppWindow name="Home"><OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} onOpen={changeTool} /></AppWindow>}
+        {token && tool === "overview" && <AppWindow name="Dashboard"><OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} onOpen={changeTool} /></AppWindow>}
         {token && tool === "contacts" && <AppWindow name="Contacts"><ContactsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
         {token && tool === "packs" && <AppWindow name="Packs"><PacksTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
         {token && tool === "campaigns" && <AppWindow name="Campaigns"><CampaignsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
