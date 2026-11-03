@@ -3618,7 +3618,7 @@ function App() {
       <footer className="site-footer">
         {!token && showLogin && <LoginForm onSignedIn={handleSignedIn} />}
         <div className="site-footer-row">
-          <span>CreditCrate © 2026</span>
+          <span>CreditCrate © 2026 · <a href="privacy.html">Privacy</a></span>
           {!token && (
             <button type="button" className="back-btn" aria-expanded={showLogin} onClick={() => setShowLogin(s => !s)}>
               {showLogin ? "Close" : "Member sign in"}

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CreditCrate Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --void: #08090a; --carbon: #0f1011; --obsidian: #161718; --graphite: #23252a; --smoke: #383b3f;
+    --ash: #62666d; --fog: #8a8f98; --mist: #d0d6e0; --paper: #ffffff;
+    --sunshine: #f3d58b; --sky: #a9d8ef; --mint: #a3ddc2; --lilac: #c9b6ee; --salmon: #f2a79c;
+    --sans: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--void); color: var(--mist); font-family: var(--sans); font-size: 11.5pt; line-height: 1.55; }
+  .page { width: 210mm; min-height: 297mm; padding: 16mm 18mm; page-break-after: always; background: var(--void); }
+  .page:last-child { page-break-after: auto; }
+  .eyebrow { font-family: var(--mono); font-size: 9pt; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
+  h1 { font-size: 30pt; font-weight: 600; letter-spacing: -0.03em; color: var(--paper); line-height: 1.1; margin-top: 8px; }
+  h2 { font-size: 16pt; font-weight: 600; letter-spacing: -0.016em; color: var(--paper); margin: 22px 0 8px; }
+  h3 { font-size: 11.5pt; font-weight: 600; color: var(--paper); margin: 14px 0 4px; }
+  p { margin: 6px 0; color: var(--fog); }
+  .lead { font-size: 13pt; color: var(--mist); margin-top: 12px; }
+  .rule { height: 1px; background: var(--graphite); margin: 18px 0; }
+  .card { background: var(--carbon); border: 1px solid var(--graphite); border-radius: 10px; padding: 14px 16px; margin: 10px 0; }
+  .step { display: flex; gap: 12px; margin: 8px 0; }
+  .num { font-family: var(--mono); font-size: 10pt; color: var(--sunshine); min-width: 22px; }
+  code, .mono { font-family: var(--mono); font-size: 9.5pt; color: var(--sky); background: var(--obsidian); padding: 1px 5px; border-radius: 4px; }
+  pre { font-family: var(--mono); font-size: 9pt; color: var(--mist); background: var(--obsidian); border: 1px solid var(--graphite); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; margin: 8px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 10pt; }
+  th { text-align: left; font-family: var(--mono); font-size: 8.5pt; color: var(--ash); text-transform: uppercase; letter-spacing: .06em; padding: 6px 8px; border-bottom: 1px solid var(--graphite); }
+  td { padding: 7px 8px; border-bottom: 1px solid var(--graphite); color: var(--mist); vertical-align: top; }
+  .pill { display: inline-block; font-size: 9pt; color: var(--void); background: var(--sunshine); border-radius: 999px; padding: 2px 10px; }
+  .pill.quiet { background: var(--graphite); color: var(--mist); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .foot { font-family: var(--mono); font-size: 8.5pt; color: var(--ash); margin-top: 26px; }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <p class="eyebrow">CreditCrate · Guide for testers</p>
+  <h1>Everything you do outside your DAW.</h1>
+  <p class="lead">You already make the music. CreditCrate helps you get it to the people who need to hear it. This guide walks you through the five tools, in the order you'll probably use them.</p>
+
+  <div class="card">
+    <h3>Before you start</h3>
+    <p>Marius creates your account and sends you the email and password. Sign in at <span class="mono">creditcrate.app</span>. Sign-up is closed, so if you forget your password, ask Marius to reset it.</p>
+  </div>
+
+  <h2>The five tools</h2>
+  <table>
+    <tr><th>Tool</th><th>What it does</th></tr>
+    <tr><td><b>Credits</b></td><td>Search an album and see the producers, engineers and mixers behind it, with the public emails we can find.</td></tr>
+    <tr><td><b>Contacts</b></td><td>Your own list of people to reach. Add them by hand or import a CSV file.</td></tr>
+    <tr><td><b>Packs</b></td><td>Your sample and beat packs, saved as Dropbox or Google Drive links.</td></tr>
+    <tr><td><b>Campaigns</b></td><td>Write an email, choose who receives it, and send it from your own Gmail.</td></tr>
+    <tr><td><b>Deal Desk</b></td><td>Split sheets, producer agreements and invoices. Everything stays in your browser.</td></tr>
+  </table>
+  <p>The start page shows all five apps side by side. Swipe, drag or use the tabs at the top to move between them. Each app scrolls inside its own window.</p>
+
+  <p class="foot">CreditCrate · page 1 of 3</p>
+</section>
+
+<section class="page">
+  <p class="eyebrow">Step by step</p>
+  <h2>1 · Add your contacts</h2>
+  <p>Open <b>Contacts</b> and press <b>+</b> to add one person. Or press <b>+</b> and then <b>Import a CSV</b>.</p>
+  <div class="card">
+    <h3>CSV format</h3>
+    <p>The first row holds the column names. Only <span class="mono">email</span> is required.</p>
+    <pre>email,name,instagram,roles,tags
+alex@example.com,Alex Rivera,alexrivera,producer,trap
+sam@example.com,Sam Lee,,mixer,drill</pre>
+  </div>
+  <p>Anyone who unsubscribes is hidden from your list and never emailed again, even if you import them again.</p>
+
+  <h2>2 · Save your packs</h2>
+  <p>Upload your pack to Dropbox or Google Drive, then copy its share link. In <b>Packs</b>, press <b>+</b>, give it a name and paste the link.</p>
+  <div class="card">
+    <p><span class="dot" style="background: var(--mint)"></span><b>Make sure the link is set to “anyone with the link can view”.</b> Otherwise people who receive your email can't open it.</p>
+  </div>
+
+  <h2>3 · Connect your Gmail</h2>
+  <p>Campaigns send from your own Gmail address, so the emails land in your Sent folder. Connect once, in the <b>Campaigns</b> app, with an app password:</p>
+  <div class="step"><span class="num">01</span><p>In your Google account, turn on <b>2-Step Verification</b>.</p></div>
+  <div class="step"><span class="num">02</span><p>Open <b>App passwords</b> in the same security settings, create one called CreditCrate, and copy the 16-character code.</p></div>
+  <div class="step"><span class="num">03</span><p>In CreditCrate, enter your Gmail address and paste the code into <b>Connect Gmail</b>. We store it encrypted.</p></div>
+  <p>You can disconnect at any time with the same card.</p>
+
+  <p class="foot">CreditCrate · page 2 of 3</p>
+</section>
+
+<section class="page">
+  <p class="eyebrow">Step by step</p>
+  <h2>4 · Send a campaign</h2>
+  <div class="step"><span class="num">01</span><p>In <b>Campaigns</b>, write a subject and a message. Use <span class="mono">{{name}}</span> to put in each person's name. Choose a pack if you want to attach one.</p></div>
+  <div class="step"><span class="num">02</span><p>Press <b>Save draft</b>. Then choose it in the Send card and press <b>Preview recipients</b>. Check who it would reach.</p></div>
+  <div class="step"><span class="num">03</span><p>Press <b>Send test to me</b> and look at the email in your own inbox.</p></div>
+  <div class="step"><span class="num">04</span><p>Press <b>Send to … people</b> and confirm. Emails go out one by one, a few seconds apart. The progress updates in the Send card.</p></div>
+
+  <div class="card">
+    <h3>Rules that keep your emails out of spam</h3>
+    <p><span class="dot" style="background: var(--sunshine)"></span>Only write to people you have a real reason to contact, such as producers and engineers whose work you know.</p>
+    <p><span class="dot" style="background: var(--sunshine)"></span>Gmail allows <b>500 emails in any 24 hours</b>. The Gmail card shows how many you have left.</p>
+    <p><span class="dot" style="background: var(--sunshine)"></span>Every email has an unsubscribe link. Respect it, and leave those people out of future campaigns.</p>
+    <p><span class="dot" style="background: var(--sunshine)"></span>Keep messages short and personal. A short note with a link works better than a long pitch.</p>
+  </div>
+
+  <h2>5 · See who opens your emails</h2>
+  <p>The top of <b>Campaigns</b> shows who recently opened your email and your three top openers. Opens are estimates: some mail apps load images automatically, so they can count opens nobody read. Clicks are reliable.</p>
+
+  <h2>Credits and Deal Desk</h2>
+  <p><b>Credits</b>: search an album and press it to see its credits. Every album you search shows up under <b>Recent searches</b>, with the emails found. Not every person has a public email, so treat the list as a starting point.</p>
+  <p><b>Deal Desk</b> keeps everything in your browser. Nothing is uploaded, so export or copy your work before you clear your browser data.</p>
+
+  <p class="foot">CreditCrate · page 3 of 3 · Questions? Ask Marius.</p>
+</section>
+
+</body>
+</html>

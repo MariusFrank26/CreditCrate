@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#08090a" />
+<title>Privacy · CreditCrate</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    color-scheme: dark;
+    --void: #08090a; --carbon: #0f1011; --obsidian: #161718; --graphite: #23252a; --smoke: #383b3f;
+    --ash: #62666d; --fog: #8a8f98; --mist: #d0d6e0; --paper: #ffffff; --sunshine: #f3d58b; --sky: #a9d8ef;
+    --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  html, body { min-height: 100%; background: var(--void); color: var(--mist); font-family: var(--sans); font-size: 16px; line-height: 1.6; letter-spacing: -0.011em; }
+  .page { max-width: 760px; margin: 0 auto; padding: 56px 24px 96px; }
+  a { color: var(--sky); }
+  .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
+  h1 { font-size: clamp(30px, 4vw, 40px); font-weight: 600; letter-spacing: -0.03em; color: var(--paper); line-height: 1.15; margin-top: 12px; }
+  h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.016em; color: var(--paper); margin: 40px 0 10px; }
+  p, li { color: var(--fog); margin: 10px 0; }
+  ul { padding-left: 20px; }
+  strong { color: var(--mist); font-weight: 600; }
+  .draft { margin-top: 24px; padding: 14px 16px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 12px; font-size: 14px; }
+  .draft strong { color: var(--sunshine); }
+  .back { display: inline-block; margin-top: 40px; font-size: 14px; }
+  .rule { height: 1px; background: var(--graphite); margin: 32px 0 0; }
+</style>
+</head>
+<body>
+<main class="page">
+  <p class="eyebrow">Legal</p>
+  <h1>Privacy</h1>
+
+  <div class="draft">
+    <p><strong>Draft.</strong> This page describes how CreditCrate works today. It has not been reviewed by a lawyer yet. Have it checked before you invite people beyond a small test group.</p>
+  </div>
+
+  <h2>Who runs CreditCrate</h2>
+  <p>CreditCrate is run by <em>your name and postal address, to be added</em>. Questions about your data go to <em>contact email to be added</em>.</p>
+
+  <h2>What we store</h2>
+  <ul>
+    <li><strong>Your account:</strong> your email address and a password hash. We never store your password in plain text.</li>
+    <li><strong>Your Gmail connection:</strong> the Gmail address you send from and your Google app password, encrypted on the server. Google's own password is never asked for.</li>
+    <li><strong>Your contacts:</strong> the names, emails, roles, tags and Instagram handles you add or import. Only you can see them.</li>
+    <li><strong>Your packs:</strong> the names and Dropbox or Google Drive links you save.</li>
+    <li><strong>Your campaigns:</strong> the subject, message, recipients, send status, and which emails were sent and when.</li>
+    <li><strong>Opens and clicks:</strong> when a recipient opens a campaign email or clicks a link in it, we record the time and the link. Opens are estimates.</li>
+    <li><strong>Your Credits searches:</strong> the albums you searched and the credits and public emails that were found for them.</li>
+  </ul>
+
+  <h2>Public emails from Credits</h2>
+  <p>The Credits app shows email addresses that producers, engineers and mixers have published themselves, for example in their Genius biography or on their own website. We do not collect private email addresses. Use these addresses only for relevant, respectful contact, and remove anyone who asks you to.</p>
+
+  <h2>Why we use it</h2>
+  <p>To run the tools you use: searching credits, keeping your lists, sending your campaigns, and showing you how they perform. We do not sell your data and do not use it for advertising.</p>
+
+  <h2>Tracking in emails</h2>
+  <p>Campaign emails contain a small invisible image and tracked links so you can see opens and clicks. You can switch tracking off for each campaign. Recipients can unsubscribe from any campaign email, and we stop emailing them from that list.</p>
+
+  <h2>Third parties</h2>
+  <ul>
+    <li><strong>Google:</strong> sends your campaign emails through your Gmail account.</li>
+    <li><strong>Genius:</strong> provides album and credit data for searches.</li>
+    <li><strong>Dropbox and Google Drive:</strong> host the packs you link. You control those files.</li>
+  </ul>
+
+  <h2>How long we keep it</h2>
+  <p>We keep your data while your account exists. <em>Retention periods and the deletion process to be added.</em></p>
+
+  <h2>Your rights</h2>
+  <p>You can ask to see, correct or delete your data at any time. Under the GDPR you also have the right to lodge a complaint with a supervisory authority.</p>
+
+  <h2>Security</h2>
+  <p>Passwords are hashed, Gmail app passwords are encrypted, and the site is served over HTTPS. No system is perfectly secure, so keep your password and your Google app passwords private.</p>
+
+  <h2>Changes</h2>
+  <p>We will update this page when the service changes and note the date below.</p>
+
+  <div class="rule"></div>
+  <a class="back" href="index.html">← Back to CreditCrate</a>
+</main>
+</body>
+</html>
