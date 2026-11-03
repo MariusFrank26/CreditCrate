@@ -442,28 +442,6 @@
   .panel-form { margin-top: 20px; }
 
   /* ── TOOLS (title bar and tool screens) ── */
-  .tool-bar {
-    display: flex; gap: 4px;
-    margin-top: 32px;
-    border-bottom: 1px solid var(--graphite);
-    overflow-x: auto;
-  }
-  .tool-tab {
-    font-family: var(--sans);
-    font-size: 14px;
-    letter-spacing: -0.011em;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    color: var(--fog);
-    padding: 12px 14px;
-    margin-bottom: -1px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: color .15s, border-color .15s;
-  }
-  .tool-tab:hover { color: var(--paper); }
-  .tool-tab[aria-current="page"] { color: var(--paper); border-bottom-color: var(--acid); }
   .tool-section { margin-top: 32px; display: flex; flex-direction: column; gap: 20px; }
   .tool-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
   .tool-card {
@@ -513,6 +491,104 @@
   @media (max-width: 760px) {
     .tool-grid { grid-template-columns: minmax(0, 1fr); }
   }
+
+  /* ── APP BAR: the tool title bar, sticky across the top once signed in ── */
+  .app-bar {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(22, 23, 24, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--smoke);
+    box-shadow: inset 0 -1px 0 rgba(228, 242, 34, 0.12);
+  }
+  .app-bar-inner {
+    max-width: 1200px; margin: 0 auto;
+    padding: 10px 24px;
+    display: flex; align-items: center; gap: 28px;
+  }
+  .app-bar-brand {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 15px; font-weight: 510; letter-spacing: -0.016em;
+    color: var(--paper);
+    white-space: nowrap;
+  }
+  @media (max-width: 760px) {
+    .app-bar-inner { padding: 10px 16px; gap: 16px; }
+    .app-bar-brand { display: none; }
+  }
+  .tool-nav {
+    display: flex; gap: 6px;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .tool-nav::-webkit-scrollbar { display: none; }
+  .tool-tab {
+    font-family: var(--sans);
+    font-size: 14px; font-weight: 510;
+    letter-spacing: -0.011em;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    color: var(--fog);
+    padding: 8px 16px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color .15s, background-color .15s, border-color .15s;
+  }
+  .tool-tab:hover { color: var(--paper); background: var(--obsidian); }
+  .tool-tab[aria-current="page"] {
+    background: var(--acid);
+    border-color: var(--acid);
+    color: var(--void);
+  }
+  .tool-tab:focus-visible { outline-offset: 0; }
+
+  /* ── DASHBOARD: cards, stat tiles and quick actions for signed-in users ── */
+  .tool-section { margin-top: 40px; display: flex; flex-direction: column; gap: 20px; }
+  .tool-section .table-wrap {
+    background: var(--carbon);
+    border: 1px solid var(--graphite);
+    border-radius: 10px;
+    padding: 4px 16px;
+  }
+  .search-block {
+    background: var(--carbon);
+    border: 1px solid var(--graphite);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 24px;
+  }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .stat-tile {
+    background: var(--carbon);
+    border: 1px solid var(--graphite);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .stat-label { font-size: 12px; color: var(--fog); text-transform: uppercase; letter-spacing: .06em; }
+  .stat-value {
+    font-size: 36px; font-weight: 510; line-height: 1.1;
+    letter-spacing: -0.03em; color: var(--paper);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-hint { font-size: 13px; color: var(--ash); }
+  .dash-section-title { font-size: 13px; font-weight: 510; color: var(--fog); text-transform: uppercase; letter-spacing: .06em; margin-top: 8px; }
+  .quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .quick-action {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+    text-align: left;
+    background: var(--carbon);
+    border: 1px solid var(--graphite);
+    border-radius: 10px;
+    padding: 18px;
+    font-family: var(--sans);
+    color: var(--mist);
+    cursor: pointer;
+    transition: border-color .15s, background-color .15s;
+  }
+  .quick-action:hover { border-color: var(--smoke); background: var(--obsidian); }
+  .quick-title { font-size: 15px; font-weight: 510; color: var(--paper); }
+  .quick-copy { font-size: 13px; color: var(--fog); }
 
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
@@ -1151,6 +1227,7 @@ function NewsletterForm() {
 // ── Tools: the title bar switches between these once you are signed in ─────
 
 const TOOLS = [
+  ["overview", "Overview"],
   ["credits", "Credits"],
   ["contacts", "Contacts"],
   ["packs", "Packs"],
@@ -1556,6 +1633,73 @@ function DealDeskTool() {
   );
 }
 
+function StatTile({ label, value, hint }) {
+  return (
+    <div className="stat-tile">
+      <span className="stat-label">{label}</span>
+      <span className="stat-value">{value ?? "—"}</span>
+      <span className="stat-hint">{hint}</span>
+    </div>
+  );
+}
+
+function OverviewTool({ token, onAuthError, onOpen }) {
+  const [stats, setStats] = useState(null);
+  const { error, run } = useToolRunner(onAuthError);
+
+  useEffect(() => {
+    run(async () => {
+      const [contacts, packs, campaigns] = await Promise.all([
+        callApi("/contacts", token),
+        callApi("/packs", token),
+        callApi("/campaigns", token),
+      ]);
+      const sent = campaigns.campaigns.filter(c => c.status === "sent");
+      setStats({
+        contacts: contacts.contacts.length,
+        packs: packs.packs.length,
+        sent: sent.length,
+        lastSent: sent.length ? Math.max(...sent.map(c => c.sent_at)) : null,
+      });
+    });
+  }, []);
+
+  const actions = [
+    ["contacts", "Add contacts", "Import a CSV or add one by hand"],
+    ["packs", "Add a pack", "Paste a Dropbox or Drive link"],
+    ["campaigns", "New campaign", "Write an email and preview who it reaches"],
+    ["credits", "Search credits", "Find producers and engineers on an album"],
+  ];
+
+  return (
+    <section className="tool-section" aria-labelledby="overview-heading">
+      <h2 id="overview-heading" className="panel-title">Overview</h2>
+      <p className="panel-copy">Your audience, packs and campaigns at a glance.</p>
+      <ToolMessages error={error} />
+
+      <div className="stat-grid">
+        <StatTile label="Contacts" value={stats?.contacts} hint="Subscribed and ready to email" />
+        <StatTile label="Packs" value={stats?.packs} hint="Dropbox and Drive links" />
+        <StatTile
+          label="Campaigns sent"
+          value={stats?.sent}
+          hint={stats?.lastSent ? `Last sent ${new Date(stats.lastSent * 1000).toLocaleDateString()}` : "None sent yet"}
+        />
+      </div>
+
+      <h3 className="dash-section-title">Quick actions</h3>
+      <div className="quick-grid">
+        {actions.map(([id, title, copy]) => (
+          <button key={id} type="button" className="quick-action" onClick={() => onOpen(id)}>
+            <span className="quick-title">{title}</span>
+            <span className="quick-copy">{copy}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const initialParams = new URLSearchParams(window.location.search);
   const initialRole = initialParams.get("role");
@@ -1571,7 +1715,7 @@ function App() {
   const [roleFilter, setRoleFilter] = useState(ROLE_FILTERS.includes(initialRole) ? initialRole : "ALL");
   const [token, setToken] = useState(readToken);
   const [showLogin, setShowLogin] = useState(false);
-  const [tool, setTool] = useState(() => (TOOLS.some(([id]) => id === initialParams.get("tool")) ? initialParams.get("tool") : "credits"));
+  const [tool, setTool] = useState(() => (TOOLS.some(([id]) => id === initialParams.get("tool")) ? initialParams.get("tool") : "overview"));
   const [apiStatus, setApiStatus] = useState("checking"); // checking | online | offline
 
   // 1=search, 2=pick album, 3=credits
@@ -1660,13 +1804,13 @@ function App() {
   function changeTool(id) {
     setTool(id);
     setError(null);
-    setUrlParam("tool", id === "credits" ? "" : id);
+    setUrlParam("tool", id === "overview" ? "" : id);
   }
 
   function signOut(message = null) {
     storeToken("");
     setToken("");
-    setTool("credits");
+    setTool("overview");
     setShowLogin(false);
     setSearchResults(null);
     setSelectedAlbum(null);
@@ -1686,6 +1830,22 @@ function App() {
   }) : [];
 
   return (
+    <>
+    {token && (
+      <nav className="app-bar" aria-label="Tools">
+        <div className="app-bar-inner">
+          <span className="app-bar-brand">
+            <img src="logo.svg" alt="" width="22" height="22" />
+            CreditCrate
+          </span>
+          <div className="tool-nav">
+            {TOOLS.map(([id, label]) => (
+              <button key={id} type="button" className="tool-tab" aria-current={tool === id ? "page" : undefined} onClick={() => changeTool(id)}>{label}</button>
+            ))}
+          </div>
+        </div>
+      </nav>
+    )}
     <div className="page">
       <header>
         <h1 className="brand">
@@ -1707,14 +1867,6 @@ function App() {
       </header>
 
       <main id="main">
-        {token && (
-          <nav className="tool-bar" aria-label="Tools">
-            {TOOLS.map(([id, label]) => (
-              <button key={id} type="button" className="tool-tab" aria-current={tool === id ? "page" : undefined} onClick={() => changeTool(id)}>{label}</button>
-            ))}
-          </nav>
-        )}
-
         {error && <div className="error-msg" role="alert">⚠ {error}</div>}
 
         {token && tool === "credits" && <>
@@ -1870,6 +2022,7 @@ function App() {
 
         </>}
 
+        {token && tool === "overview" && <OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} onOpen={changeTool} />}
         {token && tool === "contacts" && <ContactsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} />}
         {token && tool === "packs" && <PacksTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} />}
         {token && tool === "campaigns" && <CampaignsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} />}
@@ -1901,6 +2054,7 @@ function App() {
         </div>
       </footer>
     </div>
+    </>
   );
 }
 
