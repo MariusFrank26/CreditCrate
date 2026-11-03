@@ -432,12 +432,6 @@ def _render(campaign, contact, pack_url):
     return tracked, _html_body(tracked, _pixel_url(campaign_id, email))
 
 
-def _send_config_error():
-    if not MAIL_SENDER_ADDRESS:
-        return "Set MAIL_SENDER_ADDRESS (your postal address) before sending. Anti-spam law requires it."
-    return None
-
-
 def _load_account(owner):
     with _conn() as conn:
         row = conn.execute("SELECT address, password_enc FROM mail_accounts WHERE owner = ?", (owner,)).fetchone()
@@ -657,12 +651,11 @@ def send_campaign(campaign_id):
             if campaign["pack_id"] else None
     pack_url = pack["url"] if pack else None
     account = _load_account(owner)
-    config_error = _send_config_error()
 
     if not data.get("confirm"):
         return jsonify({
             "dry_run": True,
-            "can_send": bool(account) and not config_error,
+            "can_send": bool(account),
             "would_send": len(recipients),
             "sample": [r["email"] for r in recipients[:5]],
             "message": "Nothing was sent. Repeat the request with confirm: true to send.",
@@ -670,8 +663,6 @@ def send_campaign(campaign_id):
 
     if not account:
         return jsonify({"error": "Connect your Gmail account first."}), 409
-    if config_error:
-        return jsonify({"error": config_error}), 409
     address, encrypted = account
     try:
         app_password = gmail.decrypt_password(encrypted)
@@ -723,9 +714,6 @@ def send_test():
     account = _load_account(owner)
     if not account:
         return jsonify({"error": "Connect your Gmail account first."}), 409
-    config_error = _send_config_error()
-    if config_error:
-        return jsonify({"error": config_error}), 409
     address, encrypted = account
     try:
         app_password = gmail.decrypt_password(encrypted)
