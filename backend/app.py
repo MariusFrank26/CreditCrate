@@ -31,6 +31,7 @@ from instaloader.exceptions import (
 
 import contacts
 import accounts
+import mailing
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -183,6 +184,7 @@ def init_cache_db():
 
 init_cache_db()
 accounts.init_db()
+mailing.register(app, DB_PATH)
 
 
 def get_cached_ig(genius_id):

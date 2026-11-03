@@ -441,6 +441,79 @@
   .panel-copy { margin-top: 8px; font-size: 14px; color: var(--fog); }
   .panel-form { margin-top: 20px; }
 
+  /* ── TOOLS (title bar and tool screens) ── */
+  .tool-bar {
+    display: flex; gap: 4px;
+    margin-top: 32px;
+    border-bottom: 1px solid var(--graphite);
+    overflow-x: auto;
+  }
+  .tool-tab {
+    font-family: var(--sans);
+    font-size: 14px;
+    letter-spacing: -0.011em;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--fog);
+    padding: 12px 14px;
+    margin-bottom: -1px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color .15s, border-color .15s;
+  }
+  .tool-tab:hover { color: var(--paper); }
+  .tool-tab[aria-current="page"] { color: var(--paper); border-bottom-color: var(--acid); }
+  .tool-section { margin-top: 32px; display: flex; flex-direction: column; gap: 20px; }
+  .tool-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+  .tool-card {
+    display: flex; flex-direction: column; gap: 16px;
+    background: var(--carbon);
+    border: 1px solid var(--graphite);
+    border-radius: 8px;
+    padding: 20px;
+    min-width: 0;
+  }
+  .tool-card-wide { max-width: 720px; }
+  .tool-card-title { font-size: 15px; font-weight: 510; color: var(--paper); }
+  .tool-filter { align-items: flex-end; }
+  .tool-file-label { display: inline-flex; align-self: flex-start; cursor: pointer; }
+  .tool-preview { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--graphite); padding-top: 16px; }
+  .tool-preview p { font-size: 14px; color: var(--mist); }
+  .tool-preview strong { color: var(--paper); font-weight: 510; }
+  .tool-frame {
+    width: 100%; height: calc(100vh - 220px); min-height: 640px;
+    border: 1px solid var(--graphite); border-radius: 8px;
+    background: var(--void);
+  }
+  textarea, select {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    color: var(--mist);
+    font-family: var(--sans);
+    font-size: 16px;
+    letter-spacing: -0.011em;
+    padding: 12px 14px;
+  }
+  textarea { resize: vertical; }
+  select option { background: var(--obsidian); }
+  textarea:focus, select:focus { outline: none; border-color: var(--mist); }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .data-table th {
+    text-align: left; font-size: 12px; font-weight: 510; color: var(--fog);
+    padding: 10px 12px; border-bottom: 1px solid var(--graphite);
+  }
+  .data-table td {
+    padding: 12px; border-bottom: 1px solid var(--graphite);
+    color: var(--mist); vertical-align: middle; overflow-wrap: anywhere;
+  }
+  .data-table .cell-link { color: var(--fog); }
+  @media (max-width: 760px) {
+    .tool-grid { grid-template-columns: minmax(0, 1fr); }
+  }
+
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
@@ -1075,6 +1148,414 @@ function NewsletterForm() {
   );
 }
 
+// ── Tools: the title bar switches between these once you are signed in ─────
+
+const TOOLS = [
+  ["credits", "Credits"],
+  ["contacts", "Contacts"],
+  ["packs", "Packs"],
+  ["campaigns", "Campaigns"],
+  ["dealdesk", "Deal Desk"],
+];
+
+// Calls the hub API. A 401 is flagged so the page can sign the user out.
+async function callApi(path, token, { method = "GET", body, form } = {}) {
+  const init = { method, headers: authHeaders(token) };
+  if (form) {
+    init.body = form;
+  } else if (body !== undefined) {
+    init.headers = { ...init.headers, "Content-Type": "application/json" };
+    init.body = JSON.stringify(body);
+  }
+  const res = await fetch(`${API}${path}`, init);
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    const err = new Error(SESSION_EXPIRED);
+    err.expired = true;
+    throw err;
+  }
+  if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+  return data;
+}
+
+function Field({ label, id, value, onChange, as = "input", type = "text", children, ...rest }) {
+  const Control = as;
+  return (
+    <div className="search-input-wrap">
+      <label className="search-label" htmlFor={id}>{label}</label>
+      <Control
+        id={id}
+        type={as === "input" ? type : undefined}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        autoComplete="off"
+        spellCheck={false}
+        {...rest}
+      >
+        {children}
+      </Control>
+    </div>
+  );
+}
+
+function ToolMessages({ error, message }) {
+  return (
+    <>
+      {error && <div className="error-msg" role="alert">⚠ {error}</div>}
+      {message && <div className="status-bar" role="status"><span>{message}</span></div>}
+    </>
+  );
+}
+
+// Runs a tool's API action with shared busy and error handling
+function useToolRunner(onAuthError) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function run(action) {
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+    } catch (e) {
+      if (e.expired) onAuthError();
+      else setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return { busy, error, run };
+}
+
+function ContactsTool({ token, onAuthError }) {
+  const [contacts, setContacts] = useState(null);
+  const [roleFilter, setRoleFilter] = useState("");
+  const [form, setForm] = useState({ email: "", name: "", roles: "", instagram: "", tags: "" });
+  const [message, setMessage] = useState(null);
+  const { busy, error, run } = useToolRunner(onAuthError);
+  const set = key => value => setForm(f => ({ ...f, [key]: value }));
+
+  async function load(role) {
+    const query = role ? `?role=${encodeURIComponent(role)}` : "";
+    const data = await callApi(`/contacts${query}`, token);
+    setContacts(data.contacts);
+  }
+
+  useEffect(() => { run(() => load("")); }, []);
+
+  function addContact(e) {
+    e.preventDefault();
+    run(async () => {
+      await callApi("/contacts", token, { method: "POST", body: form });
+      setForm({ email: "", name: "", roles: "", instagram: "", tags: "" });
+      setMessage("Contact saved.");
+      await load(roleFilter);
+    });
+  }
+
+  function importCsv(e) {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    const data = new FormData();
+    data.append("file", file);
+    run(async () => {
+      const result = await callApi("/contacts/import", token, { method: "POST", form: data });
+      setMessage(`Imported ${result.saved} contacts. ${result.skipped} rows had no valid email and were skipped.`);
+      await load(roleFilter);
+    });
+  }
+
+  return (
+    <section className="tool-section" aria-labelledby="contacts-heading">
+      <h2 id="contacts-heading" className="panel-title">Contacts</h2>
+      <p className="panel-copy">
+        Everyone you can email. Import a CSV with an <code>email</code> column (optional: name, instagram, roles, tags)
+        or add one by hand. Anyone who unsubscribes is hidden here and never emailed again.
+      </p>
+      <ToolMessages error={error} message={message} />
+
+      <div className="tool-grid">
+        <form className="tool-card" onSubmit={addContact}>
+          <h3 className="tool-card-title">Add a contact</h3>
+          <Field label="Email" id="contact-email" type="email" value={form.email} onChange={set("email")} required />
+          <Field label="Name" id="contact-name" value={form.name} onChange={set("name")} />
+          <Field label="Roles (e.g. producer, mixer)" id="contact-roles" value={form.roles} onChange={set("roles")} />
+          <Field label="Instagram" id="contact-ig" value={form.instagram} onChange={set("instagram")} />
+          <Field label="Tags (e.g. trap, drill)" id="contact-tags" value={form.tags} onChange={set("tags")} />
+          <button type="submit" className="search-btn" disabled={busy || !form.email.trim()}>Save contact</button>
+        </form>
+
+        <div className="tool-card">
+          <h3 className="tool-card-title">Import a CSV</h3>
+          <p className="panel-copy">First row must be the column names. Rows without a valid email are skipped.</p>
+          <label className="back-btn tool-file-label">
+            Choose CSV file
+            <input type="file" accept=".csv,text/csv" onChange={importCsv} disabled={busy} className="sr-only" />
+          </label>
+        </div>
+      </div>
+
+      <form className="search-row tool-filter" role="search" onSubmit={e => { e.preventDefault(); run(() => load(roleFilter)); }}>
+        <Field label="Filter by role" id="contact-filter" value={roleFilter} onChange={setRoleFilter} />
+        <button type="submit" className="back-btn" disabled={busy}>Apply</button>
+      </form>
+
+      {contacts === null ? (
+        <p className="inline-empty">Loading contacts…</p>
+      ) : contacts.length === 0 ? (
+        <p className="inline-empty">No contacts yet.</p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data-table">
+            <caption className="sr-only">{contacts.length} contacts</caption>
+            <thead>
+              <tr>
+                <th scope="col">Email</th>
+                <th scope="col">Name</th>
+                <th scope="col">Roles</th>
+                <th scope="col">Tags</th>
+                <th scope="col">Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {contacts.map(c => (
+                <tr key={c.email}>
+                  <td>{c.email}</td>
+                  <td>{c.name}</td>
+                  <td>{c.roles}</td>
+                  <td>{c.tags}</td>
+                  <td>{c.source}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PacksTool({ token, onAuthError }) {
+  const [packs, setPacks] = useState(null);
+  const [form, setForm] = useState({ name: "", url: "" });
+  const [message, setMessage] = useState(null);
+  const { busy, error, run } = useToolRunner(onAuthError);
+
+  async function load() {
+    const data = await callApi("/packs", token);
+    setPacks(data.packs);
+  }
+
+  useEffect(() => { run(load); }, []);
+
+  function addPack(e) {
+    e.preventDefault();
+    run(async () => {
+      await callApi("/packs", token, { method: "POST", body: form });
+      setForm({ name: "", url: "" });
+      setMessage("Pack saved.");
+      await load();
+    });
+  }
+
+  function removePack(id) {
+    if (!window.confirm("Remove this pack from CreditCrate? The file in Dropbox or Drive stays where it is.")) return;
+    run(async () => {
+      await callApi(`/packs/${id}`, token, { method: "DELETE" });
+      setMessage("Pack removed.");
+      await load();
+    });
+  }
+
+  return (
+    <section className="tool-section" aria-labelledby="packs-heading">
+      <h2 id="packs-heading" className="panel-title">Packs</h2>
+      <p className="panel-copy">
+        Sample and beat packs stay in your Dropbox or Google Drive. Paste the share link here and campaigns will send it.
+        Make sure the link is set to “anyone with the link can view”.
+      </p>
+      <ToolMessages error={error} message={message} />
+
+      <form className="tool-card tool-card-wide" onSubmit={addPack}>
+        <h3 className="tool-card-title">Add a pack</h3>
+        <Field label="Pack name" id="pack-name" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} required />
+        <Field label="Dropbox or Google Drive link" id="pack-url" type="url" value={form.url} onChange={v => setForm(f => ({ ...f, url: v }))} required placeholder="https://www.dropbox.com/…" />
+        <button type="submit" className="search-btn" disabled={busy || !form.name.trim() || !form.url.trim()}>Save pack</button>
+      </form>
+
+      {packs === null ? (
+        <p className="inline-empty">Loading packs…</p>
+      ) : packs.length === 0 ? (
+        <p className="inline-empty">No packs yet.</p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data-table">
+            <caption className="sr-only">{packs.length} packs</caption>
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Link</th>
+                <th scope="col">Added</th>
+                <th scope="col"><span className="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {packs.map(p => (
+                <tr key={p.id}>
+                  <td>{p.name}</td>
+                  <td className="cell-link">{new URL(p.url).hostname}</td>
+                  <td>{new Date(p.created_at * 1000).toLocaleDateString()}</td>
+                  <td>
+                    <button type="button" className="back-btn" onClick={() => removePack(p.id)} disabled={busy}>Remove</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CampaignsTool({ token, onAuthError }) {
+  const [campaigns, setCampaigns] = useState(null);
+  const [packs, setPacks] = useState([]);
+  const [form, setForm] = useState({ name: "", subject: "", body: "Hi {{name}},\n\n", pack_id: "" });
+  const [selectedId, setSelectedId] = useState("");
+  const [audience, setAudience] = useState({ role: "", tag: "" });
+  const [preview, setPreview] = useState(null);
+  const [message, setMessage] = useState(null);
+  const { busy, error, run } = useToolRunner(onAuthError);
+
+  async function load() {
+    const [c, p] = await Promise.all([callApi("/campaigns", token), callApi("/packs", token)]);
+    setCampaigns(c.campaigns);
+    setPacks(p.packs);
+  }
+
+  useEffect(() => { run(load); }, []);
+
+  function createCampaign(e) {
+    e.preventDefault();
+    run(async () => {
+      const data = await callApi("/campaigns", token, {
+        method: "POST",
+        body: { ...form, pack_id: form.pack_id ? Number(form.pack_id) : null },
+      });
+      setSelectedId(String(data.id));
+      setForm({ name: "", subject: "", body: "Hi {{name}},\n\n", pack_id: "" });
+      setPreview(null);
+      setMessage("Draft saved. Preview who it reaches before you send.");
+      await load();
+    });
+  }
+
+  function requestSend(confirm) {
+    return callApi(`/campaigns/${selectedId}/send`, token, {
+      method: "POST",
+      body: { role: audience.role.trim(), tag: audience.tag.trim(), confirm },
+    });
+  }
+
+  function previewSend() {
+    run(async () => {
+      setMessage(null);
+      setPreview(await requestSend(false));
+    });
+  }
+
+  function sendNow() {
+    if (!preview || !window.confirm(`Send this campaign to ${preview.would_send} people now? This cannot be undone.`)) return;
+    run(async () => {
+      const result = await requestSend(true);
+      setPreview(null);
+      setMessage(`Sent ${result.sent}. Failed ${result.failed}. Still waiting: ${result.remaining}.`);
+      await load();
+    });
+  }
+
+  const selected = campaigns?.find(c => String(c.id) === selectedId);
+
+  return (
+    <section className="tool-section" aria-labelledby="campaigns-heading">
+      <h2 id="campaigns-heading" className="panel-title">Campaigns</h2>
+      <p className="panel-copy">
+        Write an email to a filtered part of your contacts. Use <code>{"{{name}}"}</code> for each person’s name.
+        Every email gets an unsubscribe link. Nothing is sent until you press Send and confirm.
+      </p>
+      <ToolMessages error={error} message={message} />
+
+      <div className="tool-grid">
+        <form className="tool-card" onSubmit={createCampaign}>
+          <h3 className="tool-card-title">New campaign</h3>
+          <Field label="Name (internal)" id="campaign-name" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} />
+          <Field label="Subject" id="campaign-subject" value={form.subject} onChange={v => setForm(f => ({ ...f, subject: v }))} required />
+          <Field label="Message" id="campaign-body" as="textarea" rows={8} value={form.body} onChange={v => setForm(f => ({ ...f, body: v }))} required />
+          <Field label="Attach pack link" id="campaign-pack" as="select" value={form.pack_id} onChange={v => setForm(f => ({ ...f, pack_id: v }))}>
+            <option value="">No pack</option>
+            {packs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Field>
+          <button type="submit" className="search-btn" disabled={busy || !form.subject.trim() || !form.body.trim()}>Save draft</button>
+        </form>
+
+        <div className="tool-card">
+          <h3 className="tool-card-title">Send</h3>
+          <Field label="Campaign" id="campaign-select" as="select" value={selectedId} onChange={v => { setSelectedId(v); setPreview(null); }}>
+            <option value="">Choose a campaign</option>
+            {(campaigns || []).map(c => (
+              <option key={c.id} value={c.id}>{c.name || c.subject} ({c.status})</option>
+            ))}
+          </Field>
+          <div className="search-row">
+            <Field label="Role" id="audience-role" value={audience.role} onChange={v => { setAudience(a => ({ ...a, role: v })); setPreview(null); }} />
+            <Field label="Tag" id="audience-tag" value={audience.tag} onChange={v => { setAudience(a => ({ ...a, tag: v })); setPreview(null); }} />
+          </div>
+          <button type="button" className="back-btn" onClick={previewSend} disabled={busy || !selectedId}>Preview recipients</button>
+
+          {preview && (
+            <div className="tool-preview" role="status">
+              <p>
+                This would reach <strong>{preview.would_send}</strong> people.
+                {preview.mode !== "resend" && " Live sending is off on this server, so nothing will be sent."}
+              </p>
+              {preview.sample?.length > 0 && <p className="panel-copy">Sample: {preview.sample.join(", ")}</p>}
+              <button
+                type="button"
+                className="search-btn"
+                onClick={sendNow}
+                disabled={busy || preview.mode !== "resend" || preview.would_send === 0}
+              >
+                Send to {preview.would_send} people
+              </button>
+            </div>
+          )}
+          {selected && (
+            <p className="panel-copy">
+              Status: {selected.status}{selected.sent_at ? `, sent ${new Date(selected.sent_at * 1000).toLocaleString()}` : ""}
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DealDeskTool() {
+  return (
+    <section className="tool-section" aria-labelledby="dealdesk-heading">
+      <h2 id="dealdesk-heading" className="panel-title">Deal Desk</h2>
+      <p className="panel-copy">
+        Split sheets, producer agreements and invoices. Everything stays in this browser. Nothing is uploaded,
+        and it doesn’t touch your contacts or campaigns.
+      </p>
+      <iframe className="tool-frame" src="tools/dealdesk/" title="Deal Desk" />
+    </section>
+  );
+}
+
 function App() {
   const initialParams = new URLSearchParams(window.location.search);
   const initialRole = initialParams.get("role");
@@ -1090,6 +1571,7 @@ function App() {
   const [roleFilter, setRoleFilter] = useState(ROLE_FILTERS.includes(initialRole) ? initialRole : "ALL");
   const [token, setToken] = useState(readToken);
   const [showLogin, setShowLogin] = useState(false);
+  const [tool, setTool] = useState(() => (TOOLS.some(([id]) => id === initialParams.get("tool")) ? initialParams.get("tool") : "credits"));
   const [apiStatus, setApiStatus] = useState("checking"); // checking | online | offline
 
   // 1=search, 2=pick album, 3=credits
@@ -1175,9 +1657,16 @@ function App() {
     setError(null);
   }
 
+  function changeTool(id) {
+    setTool(id);
+    setError(null);
+    setUrlParam("tool", id === "credits" ? "" : id);
+  }
+
   function signOut(message = null) {
     storeToken("");
     setToken("");
+    setTool("credits");
     setShowLogin(false);
     setSearchResults(null);
     setSelectedAlbum(null);
@@ -1218,9 +1707,17 @@ function App() {
       </header>
 
       <main id="main">
+        {token && (
+          <nav className="tool-bar" aria-label="Tools">
+            {TOOLS.map(([id, label]) => (
+              <button key={id} type="button" className="tool-tab" aria-current={tool === id ? "page" : undefined} onClick={() => changeTool(id)}>{label}</button>
+            ))}
+          </nav>
+        )}
+
         {error && <div className="error-msg" role="alert">⚠ {error}</div>}
 
-        {token && <>
+        {token && tool === "credits" && <>
         <ol className="step-indicator" aria-label="Progress">
           {STEPS.map(([n, label]) => (
             <li
@@ -1372,6 +1869,11 @@ function App() {
         )}
 
         </>}
+
+        {token && tool === "contacts" && <ContactsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} />}
+        {token && tool === "packs" && <PacksTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} />}
+        {token && tool === "campaigns" && <CampaignsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} />}
+        {token && tool === "dealdesk" && <DealDeskTool />}
 
         {!token && <>
           <section className="hero" aria-labelledby="hero-heading">

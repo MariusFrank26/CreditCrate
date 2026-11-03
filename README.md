@@ -80,6 +80,22 @@ Results are cached by Genius ID in `creditcrate.db` (`artist_cache` table), so r
 - A 2–5 s random delay applies only on cache misses.
 - Private profiles, non-business accounts and profiles without a contact email show as "not available".
 
+## Contacts, packs and campaigns (mailing)
+Save contacts (CSV import or by hand), keep sample and beat pack links (Dropbox or Google Drive), and email a campaign to a filtered list with the pack link.
+
+Sign-in is required for these tools. The title bar switches between Credits, Contacts, Packs, Campaigns and Deal Desk.
+
+Safety rules, all enforced on the server:
+- **Dry run by default.** `MAIL_MODE` defaults to `dry_run`. A send request without `"confirm": true` only reports how many people it would reach.
+- **Live sends need all of:** `MAIL_MODE=resend`, `RESEND_API_KEY`, `MAIL_FROM` and `MAIL_SENDER_ADDRESS` (your postal address, required by anti-spam law). Missing settings block the send.
+- **Every email** includes an unsubscribe link and a `List-Unsubscribe` header. Unsubscribed addresses are never mailed again, and re-importing a CSV does not clear that.
+- **Each person gets a campaign once.** Re-sending skips anyone already sent to.
+- **Packs are links only.** Files stay in Dropbox or Google Drive. Only `dropbox.com` and `drive.google.com`/`docs.google.com` https links are accepted. Nothing is uploaded to the server.
+
+Endpoints (sign-in required unless noted): `POST /api/contacts`, `POST /api/contacts/import` (CSV with an `email` column; optional `name, instagram, roles, tags`), `GET /api/contacts?role=&tag=`, `POST /api/packs` (`name`, `url`), `GET /api/packs`, `DELETE /api/packs/{id}`, `POST /api/campaigns`, `GET /api/campaigns`, `POST /api/campaigns/{id}/send` (`role`, `tag`, `confirm`), and public `GET /api/unsubscribe`.
+
+Sends run inside the request, about 0.6 s per email. Lists are capped at 500 per request, so large lists need a background worker later.
+
 ## Deal Desk (local tool)
 Deal Desk builds split sheets, producer agreements and invoices. It lives at `/tools/dealdesk/` and is deliberately kept apart from the library:
 - All data stays in the browser's localStorage. Nothing is sent to the backend, and it never reads or writes contacts, packs or campaigns.
@@ -91,6 +107,7 @@ CreditCrate/
 ├── backend/
 │   ├── app.py             # Flask API server, Genius + Instagram lookups, SQLite cache
 │   ├── accounts.py        # Sign-in tokens, login gate, newsletter sign-ups
+│   ├── mailing.py         # Contacts, CSV import, packs, campaigns, unsubscribe, sending
 │   ├── create_user.py     # Creates or resets a CreditCrate account
 │   ├── login.py           # One-time Instagram session setup
 │   ├── requirements.txt

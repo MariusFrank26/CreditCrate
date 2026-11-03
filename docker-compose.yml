@@ -12,6 +12,11 @@ services:
       - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN}
       - IG_SESSION_USERNAME=${IG_SESSION_USERNAME}
       - AUTH_SECRET=${AUTH_SECRET}
+      - MAIL_MODE=${MAIL_MODE:-dry_run}          # set to "resend" to allow real campaign sends
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - MAIL_FROM=${MAIL_FROM:-}
+      - MAIL_SENDER_ADDRESS=${MAIL_SENDER_ADDRESS:-}
+      - PUBLIC_API_URL=${PUBLIC_API_URL:-https://creditcrate.app/api}
     volumes:
       - ig_session:/root/.config/instaloader   # Instagram-Session überlebt Rebuilds/Redeploys
       - cache_data:/app/data                   # Verzeichnis statt Einzeldatei - vermeidet Mount-Fehler
