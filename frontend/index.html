@@ -815,6 +815,139 @@
     .signed-in::before, .tool-section > *, .search-block, .tool-eyebrow::before { animation: none !important; }
   }
 
+  /* ── APP WINDOWS: each signed-in tool is an app inside the site ── */
+  .app-window {
+    margin-top: 32px;
+    background: var(--carbon);
+    border: 1px solid var(--graphite);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px -40px rgba(0, 0, 0, .8), 0 0 0 1px rgba(255, 255, 255, .02) inset;
+    animation: ios-fade .5s ease-out both;
+  }
+  .app-window-bar {
+    display: flex; align-items: center; gap: 12px;
+    height: 44px; padding: 0 16px;
+    background: linear-gradient(180deg, var(--obsidian), var(--carbon));
+    border-bottom: 1px solid var(--graphite);
+  }
+  .app-window-dots { display: flex; gap: 7px; margin-right: 6px; }
+  .app-window-dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--smoke); }
+  .app-window-dots i:nth-child(1) { background: var(--coral); }
+  .app-window-dots i:nth-child(2) { background: var(--acid); }
+  .app-window-dots i:nth-child(3) { background: var(--pulse); }
+  .app-window-name { font-size: 13px; font-weight: 510; color: var(--mist); letter-spacing: -0.011em; }
+  .app-window-body { padding: 28px 28px 36px; }
+  .app-window-body .tool-section { margin-top: 0; }
+  @media (max-width: 760px) {
+    .app-window { border-radius: 14px; }
+    .app-window-body { padding: 20px 16px 28px; }
+  }
+
+  /* ── CONTACTS: an iPhone-style list ── */
+  .ios { display: flex; flex-direction: column; gap: 14px; }
+  .ios-large-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .ios-count { font-size: 13px; color: var(--fog); }
+  .ios-title { font-size: 34px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; color: var(--paper); }
+  .ios-add {
+    width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--acid); color: var(--void);
+    font-size: 24px; line-height: 1; font-weight: 400;
+    display: grid; place-items: center; flex: none;
+    transition: transform .15s, filter .15s;
+  }
+  .ios-add:hover { filter: brightness(1.05); }
+  .ios-add:active { transform: scale(.94); }
+  .ios-search {
+    display: flex; align-items: center; gap: 8px;
+    height: 38px; padding: 0 12px;
+    background: rgba(255, 255, 255, .07);
+    border-radius: 10px;
+    color: var(--fog);
+  }
+  .ios-search input {
+    flex: 1; min-width: 0; border: none; background: transparent; padding: 0;
+    font-size: 16px; color: var(--paper);
+  }
+  .ios-search input:focus { outline: none; }
+  .ios-search input::placeholder { color: var(--ash); }
+  .ios-section { display: flex; flex-direction: column; gap: 6px; }
+  .ios-letter {
+    font-size: 13px; font-weight: 600; color: var(--fog);
+    padding: 8px 4px 0;
+    position: sticky; top: 64px; z-index: 2;
+    background: var(--carbon);
+  }
+  .ios-group {
+    list-style: none;
+    background: var(--obsidian);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .ios-group li + li::before {
+    content: ""; display: block; height: 1px; margin-left: 60px;
+    background: rgba(255, 255, 255, .07);
+  }
+  .ios-row {
+    display: flex; align-items: center; gap: 12px;
+    width: 100%; padding: 10px 14px;
+    background: none; border: none; color: inherit; text-align: left; cursor: pointer;
+    transition: background-color .15s;
+  }
+  .ios-row:hover { background: rgba(255, 255, 255, .03); }
+  .ios-row:active { background: rgba(255, 255, 255, .06); }
+  .ios-row-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .ios-name { font-size: 16px; color: var(--paper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ios-sub { font-size: 13px; color: var(--fog); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ios-chevron { font-size: 22px; color: var(--ash); line-height: 1; }
+  .ios-avatar {
+    width: 36px; height: 36px; border-radius: 50%; flex: none;
+    display: grid; place-items: center;
+    font-size: 13px; font-weight: 600; color: var(--paper);
+    letter-spacing: .02em;
+  }
+  .ios-avatar-xl { width: 76px; height: 76px; font-size: 26px; }
+  .ios-none { font-size: 15px; color: var(--fog); padding: 24px 4px; }
+  .ios-sheet-wrap { position: fixed; inset: 0; z-index: 60; }
+  .ios-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .55); animation: ios-fade .2s ease-out both; }
+  .ios-sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    max-height: 88vh; overflow-y: auto;
+    background: var(--obsidian);
+    border-radius: 20px 20px 0 0;
+    padding: 10px 20px 28px;
+    display: flex; flex-direction: column; gap: 16px;
+    animation: ios-sheet-up .36s cubic-bezier(.2, .8, .2, 1) both;
+  }
+  @media (min-width: 760px) {
+    .ios-sheet { left: 50%; right: auto; width: 480px; margin-left: -240px; bottom: 24px; border-radius: 20px; }
+  }
+  .ios-handle { width: 40px; height: 5px; border-radius: 999px; background: var(--smoke); align-self: center; }
+  .ios-sheet-title { font-size: 20px; font-weight: 600; color: var(--paper); text-align: center; }
+  .ios-profile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 4px; }
+  .ios-profile .ios-sub { text-align: center; }
+  .ios-detail {
+    display: flex; justify-content: space-between; gap: 16px;
+    padding: 12px 14px; font-size: 15px;
+  }
+  .ios-detail + .ios-detail { border-top: 1px solid rgba(255, 255, 255, .07); }
+  .ios-detail span:first-child { color: var(--fog); }
+  .ios-detail span:last-child { color: var(--paper); text-align: right; overflow-wrap: anywhere; }
+  .ios-action {
+    display: block; text-align: center; text-decoration: none;
+    padding: 14px; border-radius: 12px;
+    background: var(--acid); color: var(--void);
+    font-size: 16px; font-weight: 510;
+  }
+  .ios-action-quiet { background: var(--graphite); color: var(--paper); border: none; cursor: pointer; font-family: var(--sans); }
+  .ios-form { display: flex; flex-direction: column; gap: 14px; }
+  .ios-divider { height: 1px; background: var(--graphite); }
+  @keyframes ios-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes ios-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .app-window, .ios-backdrop, .ios-sheet { animation: none !important; }
+  }
+
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
@@ -1681,29 +1814,86 @@ function useToolRunner(onAuthError) {
   return { busy, error, run };
 }
 
+const AVATAR_COLORS = ["#02b8cc", "#8b5cf6", "#6366f1", "#27a644", "#eb5757"];
+
+function avatarColor(seed) {
+  let hash = 0;
+  for (const ch of seed) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+function displayName(c) {
+  return c.name || c.email;
+}
+
+function initialsOf(c) {
+  const parts = displayName(c).replace(/[^\p{L}\p{N} ]/gu, " ").trim().split(/\s+/).slice(0, 2);
+  return parts.map(p => p.charAt(0).toUpperCase()).join("") || "?";
+}
+
+function sectionLetter(c) {
+  const first = displayName(c).trim().charAt(0).toUpperCase();
+  return /[A-Z]/.test(first) ? first : "#";
+}
+
+function ContactSheet({ contact, onClose }) {
+  const rows = [
+    ["Email", contact.email],
+    ["Roles", contact.roles],
+    ["Instagram", contact.instagram ? `@${contact.instagram.replace(/^@/, "")}` : ""],
+    ["Tags", contact.tags],
+    ["Added from", contact.source],
+  ].filter(([, value]) => value);
+  return (
+    <div className="ios-sheet-wrap">
+      <div className="ios-backdrop" onClick={onClose} />
+      <div className="ios-sheet" role="dialog" aria-modal="true" aria-label={displayName(contact)}>
+        <div className="ios-handle" aria-hidden="true" />
+        <div className="ios-profile">
+          <span className="ios-avatar ios-avatar-xl" style={{ background: avatarColor(contact.email) }} aria-hidden="true">{initialsOf(contact)}</span>
+          <h3 className="ios-sheet-title">{displayName(contact)}</h3>
+          {contact.roles && <p className="ios-sub">{contact.roles}</p>}
+        </div>
+        <div className="ios-group">
+          {rows.map(([label, value]) => (
+            <div key={label} className="ios-detail">
+              <span>{label}</span>
+              <span>{value}</span>
+            </div>
+          ))}
+        </div>
+        <a className="ios-action" href={`mailto:${contact.email}`}>Send email</a>
+        <button type="button" className="ios-action ios-action-quiet" onClick={onClose}>Done</button>
+      </div>
+    </div>
+  );
+}
+
 function ContactsTool({ token, onAuthError }) {
   const [contacts, setContacts] = useState(null);
-  const [roleFilter, setRoleFilter] = useState("");
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ email: "", name: "", roles: "", instagram: "", tags: "" });
   const [message, setMessage] = useState(null);
   const { busy, error, run } = useToolRunner(onAuthError);
   const set = key => value => setForm(f => ({ ...f, [key]: value }));
 
-  async function load(role) {
-    const query = role ? `?role=${encodeURIComponent(role)}` : "";
-    const data = await callApi(`/contacts${query}`, token);
+  async function load() {
+    const data = await callApi("/contacts", token);
     setContacts(data.contacts);
   }
 
-  useEffect(() => { run(() => load("")); }, []);
+  useEffect(() => { run(load); }, []);
 
   function addContact(e) {
     e.preventDefault();
     run(async () => {
       await callApi("/contacts", token, { method: "POST", body: form });
       setForm({ email: "", name: "", roles: "", instagram: "", tags: "" });
+      setAdding(false);
       setMessage("Contact saved.");
-      await load(roleFilter);
+      await load();
     });
   }
 
@@ -1715,71 +1905,99 @@ function ContactsTool({ token, onAuthError }) {
     data.append("file", file);
     run(async () => {
       const result = await callApi("/contacts/import", token, { method: "POST", form: data });
+      setAdding(false);
       setMessage(`Imported ${result.saved} contacts. ${result.skipped} rows had no valid email and were skipped.`);
-      await load(roleFilter);
+      await load();
     });
   }
 
+  const q = query.trim().toLowerCase();
+  const visible = (contacts || [])
+    .filter(c => !q || [c.name, c.email, c.roles, c.tags, c.instagram].some(v => (v || "").toLowerCase().includes(q)))
+    .sort((a, b) => displayName(a).localeCompare(displayName(b)));
+  const groups = [];
+  for (const c of visible) {
+    const letter = sectionLetter(c);
+    const last = groups[groups.length - 1];
+    if (last && last.letter === letter) last.items.push(c);
+    else groups.push({ letter, items: [c] });
+  }
+
   return (
-    <section className="tool-section" aria-labelledby="contacts-heading">
-      <ToolHeading id="contacts-heading" eyebrow="Audience" title="Contacts" copy="Everyone you can email. Import a CSV or add people one at a time. Anyone who unsubscribes is hidden and never emailed again." />
-      <ToolMessages error={error} message={message} />
-
-      <div className="tool-grid">
-        <form className="tool-card" onSubmit={addContact}>
-          <h3 className="tool-card-title">Add a contact</h3>
-          <Field label="Email" id="contact-email" type="email" value={form.email} onChange={set("email")} required />
-          <Field label="Name" id="contact-name" value={form.name} onChange={set("name")} />
-          <Field label="Roles (e.g. producer, mixer)" id="contact-roles" value={form.roles} onChange={set("roles")} />
-          <Field label="Instagram" id="contact-ig" value={form.instagram} onChange={set("instagram")} />
-          <Field label="Tags (e.g. trap, drill)" id="contact-tags" value={form.tags} onChange={set("tags")} />
-          <button type="submit" className="search-btn" disabled={busy || !form.email.trim()}>Save contact</button>
-        </form>
-
-        <div className="tool-card">
-          <h3 className="tool-card-title">Import a CSV</h3>
-          <p className="panel-copy">First row must be the column names. Rows without a valid email are skipped.</p>
-          <label className="back-btn tool-file-label">
-            Choose CSV file
-            <input type="file" accept=".csv,text/csv" onChange={importCsv} disabled={busy} className="sr-only" />
-          </label>
+    <section className="ios" aria-labelledby="contacts-heading">
+      <div className="ios-large-title">
+        <div>
+          <p className="ios-count">{contacts ? `${contacts.length} ${contacts.length === 1 ? "person" : "people"}` : "Loading"}</p>
+          <h2 id="contacts-heading" className="ios-title">Contacts</h2>
         </div>
+        <button type="button" className="ios-add" onClick={() => setAdding(true)} aria-label="Add contact">+</button>
       </div>
 
-      <form className="search-row tool-filter" role="search" onSubmit={e => { e.preventDefault(); run(() => load(roleFilter)); }}>
-        <Field label="Filter by role" id="contact-filter" value={roleFilter} onChange={setRoleFilter} />
-        <button type="submit" className="back-btn" disabled={busy}>Apply</button>
-      </form>
+      <ToolMessages error={error} message={message} />
+
+      <label className="ios-search">
+        <span aria-hidden="true">⌕</span>
+        <input
+          type="search"
+          placeholder="Search"
+          aria-label="Search contacts"
+          autoComplete="off"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+      </label>
 
       {contacts === null ? (
         <ToolLoading label="Loading contacts…" />
       ) : contacts.length === 0 ? (
-        <EmptyState title="No contacts yet" copy="Import a CSV or add your first contact to get started." />
+        <EmptyState title="No contacts yet" copy="Tap + to add someone, or import a CSV." />
+      ) : visible.length === 0 ? (
+        <p className="ios-none">No matches for “{query}”.</p>
       ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <caption className="sr-only">{contacts.length} contacts</caption>
-            <thead>
-              <tr>
-                <th scope="col">Email</th>
-                <th scope="col">Name</th>
-                <th scope="col">Roles</th>
-                <th scope="col">Tags</th>
-                <th scope="col">Source</th>
-              </tr>
-            </thead>
-            <tbody>
-              {contacts.map(c => (
-                <tr key={c.email}>
-                  <td>{c.email}</td>
-                  <td>{c.name}</td>
-                  <td>{c.roles}</td>
-                  <td>{c.tags}</td>
-                  <td>{c.source}</td>
-                </tr>
+        groups.map(group => (
+          <div key={group.letter} className="ios-section">
+            <h3 className="ios-letter">{group.letter}</h3>
+            <ul className="ios-group">
+              {group.items.map(c => (
+                <li key={c.email}>
+                  <button type="button" className="ios-row" onClick={() => setSelected(c)}>
+                    <span className="ios-avatar" style={{ background: avatarColor(c.email) }} aria-hidden="true">{initialsOf(c)}</span>
+                    <span className="ios-row-text">
+                      <span className="ios-name">{displayName(c)}</span>
+                      <span className="ios-sub">{c.roles || c.email}</span>
+                    </span>
+                    <span className="ios-chevron" aria-hidden="true">›</span>
+                  </button>
+                </li>
               ))}
-            </tbody>
-          </table>
+            </ul>
+          </div>
+        ))
+      )}
+
+      {selected && <ContactSheet contact={selected} onClose={() => setSelected(null)} />}
+
+      {adding && (
+        <div className="ios-sheet-wrap">
+          <div className="ios-backdrop" onClick={() => !busy && setAdding(false)} />
+          <div className="ios-sheet" role="dialog" aria-modal="true" aria-labelledby="add-contact-heading">
+            <div className="ios-handle" aria-hidden="true" />
+            <h3 id="add-contact-heading" className="ios-sheet-title">New contact</h3>
+            <form className="ios-form" onSubmit={addContact}>
+              <Field label="Email" id="contact-email" type="email" value={form.email} onChange={set("email")} required />
+              <Field label="Name" id="contact-name" value={form.name} onChange={set("name")} />
+              <Field label="Roles (e.g. producer, mixer)" id="contact-roles" value={form.roles} onChange={set("roles")} />
+              <Field label="Instagram" id="contact-ig" value={form.instagram} onChange={set("instagram")} />
+              <Field label="Tags (e.g. trap, drill)" id="contact-tags" value={form.tags} onChange={set("tags")} />
+              <button type="submit" className="search-btn" disabled={busy || !form.email.trim()}>Save contact</button>
+            </form>
+            <div className="ios-divider" />
+            <label className="back-btn tool-file-label">
+              Import a CSV
+              <input type="file" accept=".csv,text/csv" onChange={importCsv} disabled={busy} className="sr-only" />
+            </label>
+            <p className="panel-copy">The CSV needs an email column. Name, instagram, roles and tags are optional.</p>
+          </div>
         </div>
       )}
     </section>
@@ -2057,6 +2275,20 @@ function DealDeskTool() {
   );
 }
 
+// Each signed-in tool opens as its own app window inside the site
+function AppWindow({ name, children }) {
+  return (
+    <div className="app-window">
+      <div className="app-window-bar">
+        <span className="app-window-dots" aria-hidden="true"><i /><i /><i /></span>
+        <img src="logo.svg" alt="" width="18" height="18" />
+        <span className="app-window-name">{name}</span>
+      </div>
+      <div className="app-window-body">{children}</div>
+    </div>
+  );
+}
+
 function StatTile({ label, value, hint, accent }) {
   return (
     <div className={`stat-tile${accent ? ` accent-${accent}` : ""}`}>
@@ -2294,7 +2526,7 @@ function App() {
       <main id="main">
         {error && <div className="error-msg" role="alert">⚠ {error}</div>}
 
-        {token && tool === "credits" && <>
+        {token && tool === "credits" && <AppWindow name="Credits"><>
         <ol className="step-indicator" aria-label="Progress">
           {STEPS.map(([n, label]) => (
             <li
@@ -2445,13 +2677,13 @@ function App() {
           </div>
         )}
 
-        </>}
+        </></AppWindow>}
 
-        {token && tool === "overview" && <OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} onOpen={changeTool} />}
-        {token && tool === "contacts" && <ContactsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} />}
-        {token && tool === "packs" && <PacksTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} />}
-        {token && tool === "campaigns" && <CampaignsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} />}
-        {token && tool === "dealdesk" && <DealDeskTool />}
+        {token && tool === "overview" && <AppWindow name="Home"><OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} onOpen={changeTool} /></AppWindow>}
+        {token && tool === "contacts" && <AppWindow name="Contacts"><ContactsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
+        {token && tool === "packs" && <AppWindow name="Packs"><PacksTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
+        {token && tool === "campaigns" && <AppWindow name="Campaigns"><CampaignsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
+        {token && tool === "dealdesk" && <AppWindow name="Deal Desk"><DealDeskTool /></AppWindow>}
 
         {!token && <>
           <section className="hero" aria-labelledby="hero-heading">
