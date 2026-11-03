@@ -2718,7 +2718,7 @@ function DealDeskTool() {
 
 // Each signed-in tool is an app window. Its body is a preview until expanded.
 function AppWindow({ name, children }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   return (
     <div className={`app-window${open ? " is-open" : ""}`}>
       <div className="app-window-bar">
