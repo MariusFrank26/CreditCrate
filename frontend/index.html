@@ -1242,6 +1242,20 @@
   }
   .ios-chip:hover { color: var(--paper); border-color: var(--smoke); }
   .ios-chip[aria-pressed="true"] { background: var(--paper); border-color: var(--paper); color: var(--void); }
+  .rate-bar { display: flex; flex-direction: column; gap: 4px; min-width: 110px; }
+  .rate-bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--fog); font-variant-numeric: tabular-nums; }
+  .rate-bar-track { height: 6px; border-radius: 999px; background: var(--graphite); overflow: hidden; }
+  .rate-bar-track span { display: block; height: 100%; border-radius: 999px; }
+
+  .past-campaigns { margin-top: 28px; display: flex; flex-direction: column; gap: 12px; }
+  .past-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .past-table-wrap { background: var(--carbon); border: 1px solid var(--graphite); border-radius: 12px; padding: 4px 16px; overflow-x: auto; }
+  .past-row { cursor: pointer; }
+  .past-row:hover td { background: rgba(255, 255, 255, .02); }
+  .past-name { display: block; font-size: 14px; font-weight: 510; color: var(--paper); }
+  .past-date { display: block; font-family: var(--mono); font-size: 11px; color: var(--ash); }
+  .past-off { font-size: 12px; color: var(--ash); }
+  .past-campaigns td { min-width: 90px; }
   .ios-album-select {
     background: var(--carbon); border: 1px solid var(--graphite); border-radius: 10px;
     color: var(--mist); font-family: var(--sans); font-size: 14px; padding: 8px 10px;
@@ -2778,6 +2792,15 @@ function ActivityPanel({ activity }) {
   );
 }
 
+function RateBar({ value, count, color }) {
+  return (
+    <div className="rate-bar">
+      <div className="rate-bar-label"><span>{count}</span><span>{value}%</span></div>
+      <div className="rate-bar-track"><span style={{ width: `${value}%`, background: color }} /></div>
+    </div>
+  );
+}
+
 function CampaignsTool({ token, onAuthError }) {
   const [campaigns, setCampaigns] = useState(null);
   const [packs, setPacks] = useState([]);
@@ -2877,6 +2900,18 @@ function CampaignsTool({ token, onAuthError }) {
 
   const selected = campaigns?.find(c => String(c.id) === selectedId);
   const canSend = Boolean(account?.connected);
+
+  const pastCampaigns = (campaigns || []).filter(c => c.status && c.status !== "draft");
+  const pastExamples = [
+    { id: "ex1", name: "September 2026 Samples", sent: 42, opened: 31, clicked: 12, sent_at: null, status: "sent" },
+    { id: "ex2", name: "October 2026 Samples", sent: 38, opened: 19, clicked: 4, sent_at: null, status: "sent" },
+    { id: "ex3", name: "November 2026 Samples", sent: 27, opened: 14, clicked: 6, sent_at: null, status: "sent" },
+  ].slice(0, Math.max(0, 3 - pastCampaigns.length));
+
+  function pct(part, whole) {
+    return whole ? Math.round((100 * part) / whole) : 0;
+  }
+
 
   return (
     <section className="tool-section" aria-labelledby="campaigns-heading">
@@ -2994,6 +3029,60 @@ function CampaignsTool({ token, onAuthError }) {
           )}
         </div>
       </div>
+
+      <section className="past-campaigns" aria-labelledby="past-heading">
+        <div className="past-head">
+          <h3 id="past-heading" className="tool-card-title">Past campaigns</h3>
+          <span className="history-meta">{pastCampaigns.length} sent</span>
+        </div>
+        {(
+          <div className="past-table-wrap">
+            <table className="data-table">
+              <caption className="sr-only">Past campaigns and their results</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Campaign</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Sent</th>
+                  <th scope="col">Opened</th>
+                  <th scope="col">Clicked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pastCampaigns.map(c => (
+                  <tr key={c.id} className="past-row" onClick={() => { setSelectedId(String(c.id)); setPreview(null); }}>
+                    <td>
+                      <span className="past-name">{c.name || c.subject}</span>
+                      <span className="past-date">{c.sent_at ? new Date(c.sent_at * 1000).toLocaleDateString() : "Not sent"}</span>
+                    </td>
+                    <td>{statusText(c.status)}</td>
+                    <td>{c.sent ?? 0}</td>
+                    <td>
+                      {c.track ? <RateBar value={pct(c.opened, c.sent)} count={c.opened ?? 0} color="var(--lilac)" /> : <span className="past-off">Tracking off</span>}
+                    </td>
+                    <td>
+                      {c.track ? <RateBar value={pct(c.clicked, c.sent)} count={c.clicked ?? 0} color="var(--mint)" /> : <span className="past-off">Tracking off</span>}
+                    </td>
+                  </tr>
+                ))}
+                {pastExamples.map(c => (
+                  <tr key={c.id} className="is-example" aria-hidden="true">
+                    <td>
+                      <span className="past-name">{c.name}</span>
+                      <span className="past-date">Example</span>
+                    </td>
+                    <td>Sent</td>
+                    <td>{c.sent}</td>
+                    <td><RateBar value={pct(c.opened, c.sent)} count={c.opened} color="var(--lilac)" /></td>
+                    <td><RateBar value={pct(c.clicked, c.sent)} count={c.clicked} color="var(--mint)" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="panel-copy">Click a campaign to load it into the Send card. Opens are estimates.</p>
+      </section>
     </section>
   );
 }

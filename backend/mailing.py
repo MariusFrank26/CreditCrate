@@ -392,7 +392,11 @@ def create_campaign():
 def list_campaigns():
     with _conn() as conn:
         rows = [dict(r) for r in conn.execute(
-            "SELECT id, name, subject, pack_id, status, created_at, sent_at FROM mail_campaigns WHERE owner = ? ORDER BY created_at DESC",
+            "SELECT c.id, c.name, c.subject, c.pack_id, c.status, c.created_at, c.sent_at, c.track, "
+            "(SELECT COUNT(*) FROM mail_sends s WHERE s.campaign_id = c.id AND s.status = 'sent') AS sent, "
+            "(SELECT COUNT(DISTINCT e.email) FROM mail_events e WHERE e.campaign_id = c.id AND e.kind = 'open') AS opened, "
+            "(SELECT COUNT(DISTINCT e.email) FROM mail_events e WHERE e.campaign_id = c.id AND e.kind = 'click') AS clicked "
+            "FROM mail_campaigns c WHERE c.owner = ? ORDER BY c.created_at DESC",
             (accounts.current_email(),))]
     return jsonify({"campaigns": rows})
 
