@@ -98,6 +98,13 @@ Endpoints (sign-in required unless noted): `POST /api/contacts`, `POST /api/cont
 
 Sends run inside the request, about 0.6 s per email. Lists are capped at 500 per request, so large lists need a background worker later.
 
+## Plans and billing
+- **Free trial:** 7 days from account creation, with every tool. After that, tools return "trial ended" until the account has Pro.
+- **Pro:** $5 a month or $50 a year, paid through Stripe Checkout. The Stripe webhook at `/api/billing/webhook` marks the account as Pro. Renewals extend Pro automatically.
+- **Setup:** create two recurring prices in Stripe (monthly $5, yearly $50) and set `STRIPE_PRICE_MONTH` and `STRIPE_PRICE_YEAR`. Add a webhook endpoint `https://api.creditcrate.app/api/billing/webhook` for `checkout.session.completed` and `invoice.paid`, and set its signing secret as `STRIPE_WEBHOOK_SECRET`. Start in Stripe's test mode.
+- **Your own account:** `python set_plan.py you@example.com pro 12` gives Pro for 12 months. `python set_plan.py someone@example.com trial` restarts a trial.
+- **Settings page:** `settings.html` changes the password and checks the Gmail connection.
+
 ## Deal Desk (local tool)
 Deal Desk builds split sheets, producer agreements and invoices. It lives at `/tools/dealdesk/` and is deliberately kept apart from the library:
 - All data stays in the browser's localStorage. Nothing is sent to the backend, and it never reads or writes contacts, packs or campaigns.

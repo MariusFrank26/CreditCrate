@@ -15,6 +15,11 @@ services:
       - CREDENTIAL_KEY=${CREDENTIAL_KEY}   # Fernet key that encrypts Gmail app passwords
       - MAIL_SENDER_ADDRESS=${MAIL_SENDER_ADDRESS:-}
       - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.creditcrate.app/api}
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:-https://creditcrate.app}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_PRICE_MONTH=${STRIPE_PRICE_MONTH:-}
+      - STRIPE_PRICE_YEAR=${STRIPE_PRICE_YEAR:-}
     volumes:
       - ig_session:/root/.config/instaloader   # Instagram-Session überlebt Rebuilds/Redeploys
       - cache_data:/app/data                   # Verzeichnis statt Einzeldatei - vermeidet Mount-Fehler

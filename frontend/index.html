@@ -512,6 +512,8 @@
     padding: 10px 24px;
     display: flex; align-items: center; gap: 28px;
   }
+  .app-bar-link { margin-left: auto; font-size: 13px; color: var(--fog); text-decoration: none; }
+  .app-bar-link:hover { color: var(--paper); }
   .app-bar-brand {
     display: flex; align-items: center; gap: 10px;
     font-size: 15px; font-weight: 510; letter-spacing: -0.016em;
@@ -3523,6 +3525,7 @@ function App() {
             <img src="logo.svg" alt="" width="22" height="22" />
             CreditCrate
           </span>
+          <a className="app-bar-link" href="settings.html">Settings</a>
           <nav className="tool-nav" aria-label="Apps">
             {DECK_TABS.map((label, i) => (
               <button
@@ -3833,7 +3836,7 @@ function App() {
       <footer className="site-footer">
         {!token && showLogin && <LoginForm onSignedIn={handleSignedIn} />}
         <div className="site-footer-row">
-          <span>CreditCrate © 2026 · <a href="privacy.html">Privacy</a></span>
+          <span>CreditCrate © 2026 · <a href="pricing.html">Pricing</a> · <a href="privacy.html">Privacy</a></span>
           {!token && (
             <button type="button" className="back-btn" aria-expanded={showLogin} onClick={() => setShowLogin(s => !s)}>
               {showLogin ? "Close" : "Member sign in"}

@@ -567,6 +567,25 @@ def connect_account():
     return jsonify(_account_status(accounts.current_email()))
 
 
+@bp.route("/api/mail/check", methods=["POST"])
+@accounts.signed_in
+def check_mail_connection():
+    """Logs in to Gmail with the saved app password, without sending anything."""
+    account = _load_account(accounts.current_email())
+    if not account:
+        return jsonify({"ok": False, "error": "No Gmail account is connected yet."}), 409
+    address, encrypted = account
+    try:
+        gmail.check_login(address, gmail.decrypt_password(encrypted))
+    except gmail.CredentialError as e:
+        return jsonify({"ok": False, "error": str(e)}), 409
+    except smtplib.SMTPAuthenticationError:
+        return jsonify({"ok": False, "error": "Google rejected the saved app password. Connect the account again."}), 401
+    except (smtplib.SMTPException, OSError):
+        return jsonify({"ok": False, "error": "Could not reach Gmail. Try again in a moment."}), 502
+    return jsonify({"ok": True, "address": address})
+
+
 @bp.route("/api/mail/account", methods=["DELETE"])
 @accounts.login_required
 def disconnect_account():

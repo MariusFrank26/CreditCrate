@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#08090a" />
+<title>Settings · CreditCrate</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    color-scheme: dark;
+    --void: #08090a; --carbon: #0f1011; --obsidian: #161718; --graphite: #23252a; --smoke: #383b3f;
+    --ash: #62666d; --fog: #8a8f98; --mist: #d0d6e0; --paper: #ffffff;
+    --sunshine: #f3d58b; --salmon: #f2a79c; --mint: #a3ddc2; --sky: #a9d8ef;
+    --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  html, body { min-height: 100%; background: var(--void); color: var(--mist); font-family: var(--sans); font-size: 16px; line-height: 1.6; letter-spacing: -0.011em; }
+  .page { max-width: 760px; margin: 0 auto; padding: 48px 24px 96px; }
+  a { color: var(--sky); }
+  .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
+  h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.03em; color: var(--paper); margin-top: 10px; }
+  h2 { font-size: 17px; font-weight: 600; color: var(--paper); }
+  p { color: var(--fog); margin: 8px 0; font-size: 15px; }
+  .card { background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; padding: 22px; margin-top: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .label { font-size: 13px; color: var(--fog); }
+  .value { font-size: 15px; color: var(--paper); }
+  .pill { font-family: var(--mono); font-size: 12px; border-radius: 999px; padding: 3px 10px; border: 1px solid var(--graphite); color: var(--mist); }
+  .pill.ok { color: var(--mint); border-color: var(--mint); }
+  .pill.warn { color: var(--salmon); border-color: var(--salmon); }
+  label.field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--fog); }
+  input { width: 100%; background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; color: var(--mist); font-family: var(--sans); font-size: 16px; padding: 11px 13px; }
+  input:focus { outline: none; border-color: var(--mist); }
+  button, .button { font-family: var(--sans); font-size: 14px; border-radius: 8px; padding: 10px 16px; cursor: pointer; border: 1px solid var(--graphite); background: none; color: var(--mist); text-decoration: none; display: inline-block; }
+  button:hover, .button:hover { color: var(--paper); border-color: var(--smoke); }
+  button.primary { background: var(--paper); color: var(--void); border-color: var(--paper); }
+  button:disabled { opacity: .4; cursor: default; }
+  .msg { font-size: 14px; border-radius: 8px; padding: 10px 12px; }
+  .msg.ok { color: var(--mint); background: rgba(163,221,194,.08); }
+  .msg.bad { color: var(--salmon); background: rgba(242,167,156,.08); }
+  .back { display: inline-block; margin-top: 28px; font-size: 14px; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="top">
+    <div>
+      <p class="eyebrow">Account</p>
+      <h1>Settings</h1>
+    </div>
+    <a class="button" href="index.html">← Back to CreditCrate</a>
+  </div>
+
+  <div id="signed-out" class="card" hidden>
+    <h2>You are not signed in</h2>
+    <p>Sign in on the start page to see your settings.</p>
+    <div><a class="button primary" href="index.html">Go to sign in</a></div>
+  </div>
+
+  <div id="signed-in" hidden>
+    <section class="card" aria-labelledby="plan-heading">
+      <h2 id="plan-heading">Plan</h2>
+      <div class="row">
+        <div>
+          <p class="label">Signed in as</p>
+          <p class="value" id="account-email">…</p>
+        </div>
+        <span class="pill" id="plan-pill">…</span>
+      </div>
+      <p id="plan-text"></p>
+      <div id="plan-actions"></div>
+    </section>
+
+    <section class="card" aria-labelledby="mail-heading">
+      <h2 id="mail-heading">Gmail connection</h2>
+      <p>Campaigns send from this Gmail address. Check that the saved app password still works.</p>
+      <div class="row">
+        <div>
+          <p class="label">Address</p>
+          <p class="value" id="mail-address">Not connected</p>
+        </div>
+        <button type="button" id="check-mail">Check connection</button>
+      </div>
+      <div id="mail-result"></div>
+    </section>
+
+    <section class="card" aria-labelledby="password-heading">
+      <h2 id="password-heading">Change password</h2>
+      <form id="password-form" autocomplete="on">
+        <label class="field">Current password
+          <input type="password" id="current" autocomplete="current-password" required />
+        </label>
+        <label class="field">New password (at least 8 characters)
+          <input type="password" id="new" minlength="8" autocomplete="new-password" required />
+        </label>
+        <label class="field">Repeat new password
+          <input type="password" id="repeat" minlength="8" autocomplete="new-password" required />
+        </label>
+        <div style="margin-top: 14px"><button type="submit" class="primary" id="password-save">Change password</button></div>
+      </form>
+      <div id="password-result"></div>
+    </section>
+
+    <section class="card" aria-labelledby="session-heading">
+      <h2 id="session-heading">Session</h2>
+      <div><button type="button" id="sign-out">Sign out on this device</button></div>
+    </section>
+  </div>
+</main>
+
+<script>
+const API = "https://api.creditcrate.app/api";
+const TOKEN_KEY = "creditcrate-token";
+const $ = id => document.getElementById(id);
+
+function token() {
+  try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
+}
+
+async function api(path, options = {}) {
+  const headers = { Authorization: `Bearer ${token()}` };
+  if (options.body) headers["Content-Type"] = "application/json";
+  const res = await fetch(`${API}${path}`, { ...options, headers });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    const err = new Error("Your session has expired. Sign in again.");
+    err.expired = true;
+    throw err;
+  }
+  if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+  return data;
+}
+
+function show(el, text, ok) {
+  el.innerHTML = "";
+  const div = document.createElement("div");
+  div.className = `msg ${ok ? "ok" : "bad"}`;
+  div.textContent = text;
+  div.setAttribute("role", ok ? "status" : "alert");
+  el.appendChild(div);
+}
+
+function formatDate(ts) {
+  return ts ? new Date(ts * 1000).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }) : "";
+}
+
+function renderPlan(account) {
+  const pill = $("plan-pill");
+  const text = $("plan-text");
+  const actions = $("plan-actions");
+  actions.innerHTML = "";
+  if (account.plan === "pro") {
+    pill.textContent = "Pro";
+    pill.className = "pill ok";
+    text.textContent = `Your Pro plan is paid up until ${formatDate(account.expires_at)}.`;
+  } else if (account.plan === "trial") {
+    pill.textContent = "Free trial";
+    pill.className = "pill";
+    text.textContent = `Your free trial runs until ${formatDate(account.expires_at)}. Pro keeps everything working after that.`;
+  } else {
+    pill.textContent = "Trial ended";
+    pill.className = "pill warn";
+    text.textContent = "Your free trial has ended. Choose a plan to keep using CreditCrate.";
+  }
+  if (account.plan !== "pro") {
+    const link = document.createElement("a");
+    link.className = "button primary";
+    link.href = "pricing.html";
+    link.textContent = "See plans";
+    actions.appendChild(link);
+  }
+}
+
+async function load() {
+  if (!token()) {
+    $("signed-out").hidden = false;
+    return;
+  }
+  try {
+    const account = await api("/account");
+    $("signed-in").hidden = false;
+    $("account-email").textContent = account.email;
+    renderPlan(account);
+    if (account.mail.connected) $("mail-address").textContent = account.mail.address;
+    if (new URLSearchParams(location.search).get("paid")) {
+      $("plan-text").textContent = "Thanks for subscribing. Pro appears here once Stripe confirms the payment, which can take a minute.";
+    }
+  } catch (e) {
+    if (e.expired) return signOut();
+    $("signed-out").hidden = false;
+    $("signed-out").querySelector("p").textContent = e.message;
+  }
+}
+
+$("check-mail").addEventListener("click", async () => {
+  const button = $("check-mail");
+  button.disabled = true;
+  button.textContent = "Checking…";
+  try {
+    const result = await api("/mail/check", { method: "POST" });
+    show($("mail-result"), `Connected. Gmail accepted ${result.address}.`, true);
+  } catch (e) {
+    if (e.expired) return signOut();
+    show($("mail-result"), e.message, false);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Check connection";
+  }
+});
+
+$("password-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const current = $("current").value;
+  const next = $("new").value;
+  if (next !== $("repeat").value) return show($("password-result"), "The new passwords do not match.", false);
+  if (next.length < 8) return show($("password-result"), "Use at least 8 characters.", false);
+  $("password-save").disabled = true;
+  try {
+    await api("/account/password", { method: "POST", body: JSON.stringify({ current, new: next }) });
+    event.target.reset();
+    show($("password-result"), "Your password has been changed.", true);
+  } catch (e) {
+    if (e.expired) return signOut();
+    show($("password-result"), e.message, false);
+  } finally {
+    $("password-save").disabled = false;
+  }
+});
+
+function signOut() {
+  try { localStorage.removeItem(TOKEN_KEY); } catch {}
+  location.href = "index.html";
+}
+
+$("sign-out").addEventListener("click", signOut);
+load();
+</script>
+</body>
+</html>

@@ -24,6 +24,7 @@ os.makedirs(DB_DIR, exist_ok=True)
 DB_PATH = os.path.join(DB_DIR, "creditcrate.db")  # same file as app.py uses
 
 MIN_PASSWORD_LENGTH = 8
+TRIAL_DAYS = 7
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 AUTH_SECRET = os.getenv("AUTH_SECRET")
@@ -42,6 +43,12 @@ def init_db():
                 created_at REAL
             )
         """)
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+        for column, kind in (("plan", "TEXT"), ("trial_ends_at", "REAL"), ("plan_expires_at", "REAL"), ("stripe_customer", "TEXT")):
+            if column not in columns:
+                conn.execute(f"ALTER TABLE users ADD COLUMN {column} {kind}")
+        # Accounts that existed before trials got a fresh 7 days from now, not from when they were created
+        conn.execute("UPDATE users SET trial_ends_at = ? WHERE trial_ends_at IS NULL", (time.time() + TRIAL_DAYS * 86400,))
         conn.execute("""
             CREATE TABLE IF NOT EXISTS newsletter_signups (
                 email TEXT PRIMARY KEY,
@@ -67,9 +74,9 @@ def create_user(email, password):
         raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters.")
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
-            INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)
+            INSERT INTO users (email, password_hash, created_at, trial_ends_at) VALUES (?, ?, ?, ?)
             ON CONFLICT(email) DO UPDATE SET password_hash = excluded.password_hash
-        """, (email, generate_password_hash(password), time.time()))
+        """, (email, generate_password_hash(password), time.time(), time.time() + TRIAL_DAYS * 86400))
 
 
 def verify_login(email, password):
@@ -101,7 +108,38 @@ def _signed_in():
         return conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone() is not None
 
 
+def access_status(email):
+    """The account's plan: 'pro' while paid up, 'trial' for the first 7 days, otherwise 'expired'."""
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute("SELECT plan, trial_ends_at, plan_expires_at FROM users WHERE email = ?", (email,)).fetchone()
+    if not row:
+        return {"plan": "none", "active": False, "expires_at": None}
+    plan, trial_ends_at, plan_expires_at = row
+    now = time.time()
+    if plan == "pro" and plan_expires_at and plan_expires_at > now:
+        return {"plan": "pro", "active": True, "expires_at": plan_expires_at}
+    if trial_ends_at and trial_ends_at > now:
+        return {"plan": "trial", "active": True, "expires_at": trial_ends_at}
+    return {"plan": "expired", "active": False, "expires_at": trial_ends_at}
+
+
 def login_required(view):
+    """Signed in with an active trial or Pro plan."""
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if not _signed_in():
+            return jsonify({"error": "Sign in to use CreditCrate."}), 401
+        if not access_status(current_email())["active"]:
+            return jsonify({
+                "error": "Your free trial has ended. Choose a plan to keep using CreditCrate.",
+                "code": "trial_expired",
+            }), 402
+        return view(*args, **kwargs)
+    return wrapper
+
+
+def signed_in(view):
+    """Signed in, even when the trial has ended. Used for settings, billing and the pricing screen."""
     @wraps(view)
     def wrapper(*args, **kwargs):
         if not _signed_in():
