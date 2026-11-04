@@ -123,6 +123,9 @@ def init_db():
                 owner TEXT, email TEXT, name TEXT, instagram TEXT, roles TEXT, tags TEXT, source TEXT,
                 unsubscribed_at REAL, created_at REAL, PRIMARY KEY (owner, email)
             )""", "email, name, instagram, roles, tags, source, unsubscribed_at, created_at")
+        contact_columns = {row[1] for row in conn.execute("PRAGMA table_info(mail_contacts)")}
+        if "album" not in contact_columns:
+            conn.execute("ALTER TABLE mail_contacts ADD COLUMN album TEXT")
         _migrate_owner(conn, "mail_packs", """
             CREATE TABLE mail_packs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, owner TEXT, name TEXT, url TEXT, created_at REAL
@@ -179,17 +182,18 @@ def init_db():
 
 # ── Contacts ────────────────────────────────────────────────────────────────
 
-def upsert_contact(conn, owner, email, name="", instagram="", roles="", tags="", source="manual"):
+def upsert_contact(conn, owner, email, name="", instagram="", roles="", tags="", source="manual", album=""):
     # Never touches unsubscribed_at, so re-importing a list can't re-subscribe anyone
     conn.execute("""
-        INSERT INTO mail_contacts (owner, email, name, instagram, roles, tags, source, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO mail_contacts (owner, email, name, instagram, roles, tags, source, album, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(owner, email) DO UPDATE SET
             name = COALESCE(NULLIF(excluded.name, ''), mail_contacts.name),
             instagram = COALESCE(NULLIF(excluded.instagram, ''), mail_contacts.instagram),
             roles = COALESCE(NULLIF(excluded.roles, ''), mail_contacts.roles),
-            tags = COALESCE(NULLIF(excluded.tags, ''), mail_contacts.tags)
-    """, (owner, email, name, instagram, roles, tags, source, time.time()))
+            tags = COALESCE(NULLIF(excluded.tags, ''), mail_contacts.tags),
+            album = COALESCE(NULLIF(excluded.album, ''), mail_contacts.album)
+    """, (owner, email, name, instagram, roles, tags, source, album, time.time()))
 
 
 @bp.route("/api/contacts", methods=["POST"])
@@ -201,8 +205,36 @@ def save_contact():
         return jsonify({"error": "Not a valid email address."}), 400
     with _conn() as conn:
         upsert_contact(conn, accounts.current_email(), email, data.get("name", ""), data.get("instagram", ""),
-                       data.get("roles", ""), data.get("tags", ""), data.get("source", "manual"))
+                       data.get("roles", ""), data.get("tags", ""), data.get("source", "manual"),
+                       str(data.get("album", ""))[:200])
     return jsonify({"ok": True})
+
+
+@bp.route("/api/contacts/bulk", methods=["POST"])
+@accounts.login_required
+def save_contacts_bulk():
+    """Saves many contacts at once, e.g. the emails found for an album in Credits."""
+    data = request.get_json(silent=True) or {}
+    items = data.get("contacts")
+    if not isinstance(items, list) or len(items) > 500:
+        return jsonify({"error": "Send a list of up to 500 contacts."}), 400
+    source = str(data.get("source", "manual"))[:40]
+    album = str(data.get("album", ""))[:200]
+    saved = skipped = 0
+    with _conn() as conn:
+        for item in items:
+            if not isinstance(item, dict):
+                skipped += 1
+                continue
+            email = accounts.normalize_email(item.get("email"))
+            if not accounts.is_valid_email(email):
+                skipped += 1
+                continue
+            upsert_contact(conn, accounts.current_email(), email, str(item.get("name", ""))[:200],
+                           str(item.get("instagram", ""))[:100], str(item.get("roles", ""))[:200],
+                           "", source, album)
+            saved += 1
+    return jsonify({"saved": saved, "skipped": skipped})
 
 
 @bp.route("/api/contacts/import", methods=["POST"])
@@ -238,7 +270,7 @@ def import_contacts():
 def list_contacts():
     role = request.args.get("role", "").strip()
     tag = request.args.get("tag", "").strip()
-    query = "SELECT email, name, instagram, roles, tags, source, unsubscribed_at FROM mail_contacts WHERE owner = ? AND unsubscribed_at IS NULL"
+    query = "SELECT email, name, instagram, roles, tags, source, album, unsubscribed_at FROM mail_contacts WHERE owner = ? AND unsubscribed_at IS NULL"
     args = [accounts.current_email()]
     if role:
         query += " AND roles LIKE ?"

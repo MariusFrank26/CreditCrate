@@ -1231,6 +1231,22 @@
   .send-actions { display: flex; gap: 10px; flex-wrap: wrap; }
   @media (max-width: 760px) { .activity-grid { grid-template-columns: minmax(0, 1fr); } }
 
+  /* ── CONTACT FILTERS ── */
+  .ios-filters { display: flex; flex-direction: column; gap: 10px; }
+  .ios-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ios-chip {
+    font-family: var(--sans); font-size: 13px; color: var(--fog);
+    background: none; border: 1px solid var(--graphite); border-radius: 999px;
+    padding: 6px 12px; cursor: pointer;
+    transition: color .15s, border-color .15s, background-color .15s;
+  }
+  .ios-chip:hover { color: var(--paper); border-color: var(--smoke); }
+  .ios-chip[aria-pressed="true"] { background: var(--paper); border-color: var(--paper); color: var(--void); }
+  .ios-album-select {
+    background: var(--carbon); border: 1px solid var(--graphite); border-radius: 10px;
+    color: var(--mist); font-family: var(--sans); font-size: 14px; padding: 8px 10px;
+  }
+
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
@@ -2182,9 +2198,13 @@ function ContactSheet({ contact, onClose }) {
   );
 }
 
+const SOURCE_LABELS = { csv: "CSV", manual: "By hand", credits: "Credits" };
+
 function ContactsTool({ token, onAuthError }) {
   const [contacts, setContacts] = useState(null);
   const [query, setQuery] = useState("");
+  const [source, setSource] = useState("all");
+  const [album, setAlbum] = useState("");
   const [selected, setSelected] = useState(null);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ email: "", name: "", roles: "", instagram: "", tags: "" });
@@ -2225,7 +2245,11 @@ function ContactsTool({ token, onAuthError }) {
   }
 
   const q = query.trim().toLowerCase();
+  const sources = [...new Set((contacts || []).map(c => c.source).filter(Boolean))];
+  const albums = [...new Set((contacts || []).map(c => c.album).filter(Boolean))].sort();
   const visible = (contacts || [])
+    .filter(c => source === "all" || c.source === source)
+    .filter(c => !album || c.album === album)
     .filter(c => !q || [c.name, c.email, c.roles, c.tags, c.instagram].some(v => (v || "").toLowerCase().includes(q)))
     .sort((a, b) => displayName(a).localeCompare(displayName(b)));
   const groups = [];
@@ -2260,12 +2284,30 @@ function ContactsTool({ token, onAuthError }) {
         />
       </label>
 
+      {contacts && contacts.length > 0 && (
+        <div className="ios-filters">
+          <div className="ios-chips" role="group" aria-label="Filter by source">
+            {[["all", "All"], ...sources.map(id => [id, SOURCE_LABELS[id] || id])].map(([id, label]) => (
+              <button key={id} type="button" className="ios-chip" aria-pressed={source === id} onClick={() => setSource(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {albums.length > 0 && (
+            <select className="ios-album-select" aria-label="Filter by album" value={album} onChange={e => setAlbum(e.target.value)}>
+              <option value="">All albums</option>
+              {albums.map(name => <option key={name} value={name}>{name}</option>)}
+            </select>
+          )}
+        </div>
+      )}
+
       {contacts === null ? (
         <ToolLoading label="Loading contacts…" />
       ) : contacts.length === 0 ? (
         <EmptyState title="No contacts yet" copy="Tap + to add someone, or import a CSV." />
       ) : visible.length === 0 ? (
-        <p className="ios-none">No matches for “{query}”.</p>
+        <p className="ios-none">{query ? `No matches for “${query}”.` : "No contacts match this filter."}</p>
       ) : (
         groups.map(group => (
           <div key={group.letter} className="ios-section">
@@ -2288,7 +2330,7 @@ function ContactsTool({ token, onAuthError }) {
         ))
       )}
 
-      {!q && contacts && contacts.length < 4 && (
+      {!q && source === "all" && !album && contacts && contacts.length < 4 && (
         <div className="ios-section is-example" aria-hidden="true">
           <h3 className="ios-letter">Examples</h3>
           <ul className="ios-group">
@@ -3155,6 +3197,35 @@ function AppDeck({ children, index, onIndexChange }) {
 }
 
 function App() {
+  // Saves the public emails found for an album to the user's contacts, labelled with the album
+  async function saveToContacts(albumName, creditList) {
+    const contacts = creditList
+      .filter(c => c.instagram_data?.email)
+      .map(c => ({
+        email: c.instagram_data.email,
+        name: c.name,
+        instagram: c.instagram_handle || "",
+        roles: (c.roles || []).join(", "),
+      }));
+    if (contacts.length === 0) {
+      setStatusMsg("No public emails to save for this album.");
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/contacts/bulk`, {
+        method: "POST",
+        headers: { ...authHeaders(token), "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "credits", album: albumName, contacts }),
+      });
+      if (res.status === 401) return signOut(SESSION_EXPIRED);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+      setStatusMsg(`Saved ${data.saved} contact${data.saved === 1 ? "" : "s"} from ${albumName} to your Contacts.`);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   const initialParams = new URLSearchParams(window.location.search);
   const initialRole = initialParams.get("role");
 
@@ -3474,6 +3545,14 @@ function App() {
               >
                 <span aria-hidden="true">↓</span> Export CSV
               </button>
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => saveToContacts(selectedAlbum.name, credits)}
+                disabled={credits.length === 0}
+              >
+                Save emails to Contacts
+              </button>
             </div>
 
             {filteredCredits.length === 0 ? (
@@ -3561,6 +3640,9 @@ function App() {
                   disabled={openSearch.credits.length === 0}
                 >
                   <span aria-hidden="true">↓</span> Export CSV
+                </button>
+                <button type="button" className="back-btn" onClick={() => saveToContacts(openSearch.name, openSearch.credits)}>
+                  Save emails to Contacts
                 </button>
                 <button type="button" className="back-btn" onClick={() => setOpenSearch(null)}>Close</button>
               </div>
