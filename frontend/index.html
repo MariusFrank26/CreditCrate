@@ -1580,8 +1580,9 @@ function RoleTag({ role }) {
   return <span className={`role-tag ${roleClass(role)}`}>{role}</span>;
 }
 
-function CreditRow({ credit, delay }) {
+function CreditRow({ credit, delay, album, token }) {
   const [copyState, setCopyState] = useState(null); // null | "copied" | "failed"
+  const [contactState, setContactState] = useState(null); // null | "saving" | "added" | "failed"
   const email = credit.instagram_data?.email;
   const songTitles = credit.songs.map(s => s.title).join(", ");
 
@@ -1596,6 +1597,28 @@ function CreditRow({ credit, delay }) {
   }
 
   const copyLabel = copyState === "copied" ? "Copied" : copyState === "failed" ? "Failed" : "Copy";
+
+  async function addToContacts() {
+    setContactState("saving");
+    try {
+      const res = await fetch(`${API}/contacts/bulk`, {
+        method: "POST",
+        headers: { ...authHeaders(token), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "credits",
+          album,
+          contacts: [{ email, name: credit.name, instagram: credit.instagram_handle || "", roles: (credit.roles || []).join(", ") }],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.saved !== 1) throw new Error(data.error || "not saved");
+      setContactState("added");
+    } catch {
+      setContactState("failed");
+    }
+  }
+
+  const contactLabel = contactState === "saving" ? "Saving…" : contactState === "added" ? "In Contacts" : contactState === "failed" ? "Try again" : "Add to Contacts";
   const trackCount = credit.songs.length;
 
   return (
@@ -1641,6 +1664,15 @@ function CreditRow({ credit, delay }) {
               aria-label={`Copy email for ${credit.name}`}
             >
               {copyLabel}
+            </button>
+            <button
+              type="button"
+              className="email-copy"
+              onClick={addToContacts}
+              disabled={contactState === "saving" || contactState === "added"}
+              aria-label={`Add ${credit.name} to Contacts`}
+            >
+              {contactLabel}
             </button>
           </div>
         ) : (
@@ -3676,7 +3708,7 @@ function App() {
                   </thead>
                   <tbody>
                     {filteredCredits.map((c, i) => (
-                      <CreditRow key={c.name} credit={c} delay={i * 30} />
+                      <CreditRow key={c.name} credit={c} delay={i * 30} album={selectedAlbum.name} token={token} />
                     ))}
                   </tbody>
                 </table>
@@ -3764,7 +3796,7 @@ function App() {
                     </thead>
                     <tbody>
                       {openSearch.credits.map((c, i) => (
-                        <CreditRow key={c.name} credit={c} delay={i * 30} />
+                        <CreditRow key={c.name} credit={c} delay={i * 30} album={openSearch.name} token={token} />
                       ))}
                     </tbody>
                   </table>
