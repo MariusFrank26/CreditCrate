@@ -13,6 +13,7 @@ import os
 import re
 import time
 import random
+import secrets
 import sqlite3
 import json
 import logging
@@ -68,7 +69,53 @@ _ig_loader = None
 _ig_lock = threading.Lock()  # Instaloader-Requests nie parallel - eine Session, ein Request zur Zeit
 
 
+def _find_artist_id(artist_name):
+    """The Genius artist whose name matches best, found from the search hits."""
+    resp = requests.get(f"{GENIUS_BASE}/search", headers=HEADERS, params={"q": artist_name, "per_page": 10}, timeout=10)
+    resp.raise_for_status()
+    wanted = artist_name.strip().lower()
+    for hit in resp.json()["response"]["hits"]:
+        primary = hit["result"].get("primary_artist") or {}
+        if primary.get("name", "").strip().lower() == wanted:
+            return primary["id"]
+    return None
+
+
+def _artist_albums(artist_id, album_name):
+    """Lists an artist's albums on Genius, keeping those whose name contains the search."""
+    wanted = album_name.strip().lower()
+    found = []
+    for page in (1, 2):
+        resp = requests.get(f"{GENIUS_BASE}/artists/{artist_id}/albums", headers=HEADERS,
+                            params={"per_page": 50, "page": page, "sort": "popularity"}, timeout=10)
+        if resp.status_code != 200:
+            break
+        albums = resp.json()["response"]["albums"]
+        for album in albums:
+            if wanted in album["name"].lower():
+                found.append({
+                    "id": album["id"],
+                    "name": album["name"],
+                    "artist": (album.get("artist") or {}).get("name", ""),
+                    "cover_art": album.get("cover_art_url"),
+                    "songs": [],
+                })
+        if len(albums) < 50:
+            break
+    # exact name matches first, then the rest
+    found.sort(key=lambda a: (a["name"].strip().lower() != wanted, a["name"].lower()))
+    return found
+
+
 def genius_search_album(album_name, artist_name=""):
+    # With an artist, list that artist's albums directly. This finds albums even when
+    # none of their songs come up in a general search.
+    if artist_name:
+        artist_id = _find_artist_id(artist_name)
+        if artist_id:
+            albums = _artist_albums(artist_id, album_name)
+            if albums:
+                return albums
     query = f"{artist_name} {album_name}".strip()
     resp = requests.get(f"{GENIUS_BASE}/search", headers=HEADERS, params={"q": query, "per_page": 20}, timeout=10)
     resp.raise_for_status()
@@ -385,41 +432,104 @@ def search_album():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/album/<int:album_id>/credits", methods=["GET"])
-@accounts.login_required
-def get_album_credits(album_id):
-    try:
-        tracks = get_album_tracks(album_id)
-        all_credits = {}
+def build_album_credits(album_id, on_progress=None):
+    """All credits for an album, with the public emails found. on_progress(done, total) is optional."""
+    tracks = get_album_tracks(album_id)
+    all_credits = {}
 
-        for track_obj in tracks:
-            song = track_obj["song"]
-            song_id = song["id"]
-            song_title = song["title"]
-            logger.info(f"Fetching credits for: {song_title} (id={song_id})")
-            song_credits = get_song_credits(song_id)
+    for track_obj in tracks:
+        song = track_obj["song"]
+        song_id = song["id"]
+        song_title = song["title"]
+        logger.info(f"Fetching credits for: {song_title} (id={song_id})")
+        song_credits = get_song_credits(song_id)
 
-            for name, info in song_credits.items():
-                if name not in all_credits:
-                    all_credits[name] = {**info, "songs": [], "instagram_handle": None, "instagram_data": None}
-                all_credits[name]["songs"].append({"title": song_title, "roles": info["roles"]})
-                for role in info["roles"]:
-                    if role not in all_credits[name]["roles"]:
-                        all_credits[name]["roles"].append(role)
-            time.sleep(0.5)
+        for name, info in song_credits.items():
+            if name not in all_credits:
+                all_credits[name] = {**info, "songs": [], "instagram_handle": None, "instagram_data": None}
+            all_credits[name]["songs"].append({"title": song_title, "roles": info["roles"]})
+            for role in info["roles"]:
+                if role not in all_credits[name]["roles"]:
+                    all_credits[name]["roles"].append(role)
+        time.sleep(0.5)
 
-        def look_up(credit):
-            genius_id = credit.get("genius_id")
+    total = len(all_credits)
+    done = 0
+    progress_lock = threading.Lock()
+    if on_progress:
+        on_progress(0, total)
+
+    def look_up(credit):
+        nonlocal done
+        genius_id = credit.get("genius_id")
+        try:
             profile = get_artist_profile(genius_id)
             if profile:
                 credit["instagram_handle"] = profile["instagram"]
                 credit["instagram_data"] = get_contact_email(genius_id, credit["name"], profile)
+        finally:
+            with progress_lock:
+                done += 1
+                if on_progress:
+                    on_progress(done, total)
 
-        with ThreadPoolExecutor(max_workers=LOOKUP_WORKERS) as pool:
-            list(pool.map(look_up, all_credits.values()))
+    with ThreadPoolExecutor(max_workers=LOOKUP_WORKERS) as pool:
+        list(pool.map(look_up, all_credits.values()))
 
-        return jsonify({"credits": list(all_credits.values())})
+    return list(all_credits.values())
 
+
+# Credits lookups run in the background, so the browser can poll instead of waiting minutes
+# for one request (proxies cut requests that take more than about a minute or two).
+_jobs = {}
+_jobs_lock = threading.Lock()
+
+
+def _run_credits_job(job_id, album_id):
+    def progress(done, total):
+        with _jobs_lock:
+            _jobs[job_id].update(done=done, total=total)
+
+    try:
+        credits = build_album_credits(album_id, progress)
+        with _jobs_lock:
+            _jobs[job_id].update(status="done", credits=credits)
+    except Exception as e:
+        logger.error(f"Credits job {job_id} failed: {e}", exc_info=True)
+        with _jobs_lock:
+            _jobs[job_id].update(status="error", error=str(e))
+
+
+@app.route("/api/album/<int:album_id>/credits/start", methods=["POST"])
+@accounts.login_required
+def start_album_credits(album_id):
+    job_id = secrets.token_urlsafe(16)
+    now = time.time()
+    with _jobs_lock:
+        # forget finished jobs after an hour
+        for old_id in [k for k, v in _jobs.items() if v["status"] != "running" and now - v["created"] > 3600]:
+            del _jobs[old_id]
+        _jobs[job_id] = {"owner": accounts.current_email(), "status": "running", "done": 0, "total": 0,
+                         "credits": None, "error": None, "created": now}
+    threading.Thread(target=_run_credits_job, args=(job_id, album_id), daemon=True).start()
+    return jsonify({"job": job_id})
+
+
+@app.route("/api/jobs/<job_id>", methods=["GET"])
+@accounts.login_required
+def get_job(job_id):
+    with _jobs_lock:
+        job = _jobs.get(job_id)
+        if not job or job["owner"] != accounts.current_email():
+            return jsonify({"error": "Job not found."}), 404
+        return jsonify({key: job[key] for key in ("status", "done", "total", "credits", "error")})
+
+
+@app.route("/api/album/<int:album_id>/credits", methods=["GET"])
+@accounts.login_required
+def get_album_credits(album_id):
+    try:
+        return jsonify({"credits": build_album_credits(album_id)})
     except Exception as e:
         logger.error(f"Credits error: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500

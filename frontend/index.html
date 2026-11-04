@@ -3420,11 +3420,23 @@ function App() {
     setCredits(null);
     setStatusMsg(`Fetching track credits for "${album.name}"… this may take a minute.`);
     try {
-      const res = await fetch(`${API}/album/${album.id}/credits`, { headers: authHeaders(token) });
-      if (res.status === 401) return signOut(SESSION_EXPIRED);
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      // The lookup runs on the server in the background. Poll its progress until it is done.
+      const started = await fetch(`${API}/album/${album.id}/credits/start`, { method: "POST", headers: authHeaders(token) });
+      if (started.status === 401) return signOut(SESSION_EXPIRED);
+      if (!started.ok) throw new Error(`Server error ${started.status}`);
+      const { job } = await started.json();
+      let data = null;
+      for (let attempt = 0; attempt < 300 && !data; attempt++) {
+        await new Promise(r => setTimeout(r, 2000));
+        const res = await fetch(`${API}/jobs/${job}`, { headers: authHeaders(token) });
+        if (res.status === 401) return signOut(SESSION_EXPIRED);
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+        const state = await res.json();
+        if (state.status === "error") throw new Error(state.error);
+        if (state.status === "done") data = state;
+        else setStatusMsg(state.total ? `Looking up contacts: ${state.done} of ${state.total} people…` : "Reading the tracklist…");
+      }
+      if (!data) throw new Error("The lookup is taking too long. Try again in a few minutes.");
       setCredits(data.credits);
       saveSearch(album, data.credits);
       setStatusMsg(`Found ${data.credits.length} credited person${data.credits.length !== 1 ? "s" : ""}.`);
