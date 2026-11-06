@@ -602,7 +602,6 @@
     display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px;
   }
   .feature-card { grid-column: span 2; }
-  .feature-card:nth-child(n + 4) { grid-column: span 3; }
   @media (max-width: 760px) {
     .feature-grid { grid-template-columns: minmax(0, 1fr); }
     .feature-card { grid-column: auto; }
@@ -1263,6 +1262,33 @@
     color: var(--mist); font-family: var(--sans); font-size: 14px; padding: 8px 10px;
   }
 
+  /* ── SAMPLE INBOX ── */
+  .inbox-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .inbox-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .inbox-item {
+    background: var(--carbon); border: 1px solid var(--graphite); border-radius: 12px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .inbox-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .inbox-subject { font-size: 15px; font-weight: 510; color: var(--paper); }
+  .inbox-from { font-size: 13px; color: var(--fog); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .inbox-file { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--mist); }
+  .inbox-file span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .inbox-link { font-size: 13px; color: var(--sky); text-decoration: none; }
+  .inbox-link:hover { color: var(--paper); }
+
+  /* landing card: a mail row and a file to download */
+  .fx-inbox { flex-direction: column; align-items: stretch; justify-content: center; gap: 8px; padding: 14px; }
+  .fx-mail { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+  .fx-mail-from { font-size: 11px; color: var(--ash); }
+  .fx-mail-subject { color: var(--paper); }
+  .fx-file {
+    display: flex; justify-content: space-between; align-items: center;
+    border: 1px solid var(--graphite); border-radius: 8px; padding: 6px 10px;
+    font-size: 12px; color: var(--mist);
+  }
+  .fx-get { font-family: var(--mono); font-size: 11px; color: var(--sunshine); }
+
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
@@ -1894,14 +1920,20 @@ const FEATURES = [
     copy: "Keep sample and beat packs in Dropbox or Google Drive, and attach the link to any email.",
   },
   {
-    id: "campaigns",
+    id: "inbox",
     number: "04",
+    title: "Your samples, straight from Gmail",
+    copy: "Samples and shared links from your inbox in one place. Download them directly. Nothing is stored on our servers.",
+  },
+  {
+    id: "campaigns",
+    number: "05",
     title: "Send with a preview",
     copy: "See exactly who receives an email before it goes out. Every email has an unsubscribe link, and you see who opened and clicked.",
   },
   {
     id: "dealdesk",
-    number: "05",
+    number: "06",
     title: "Paperwork that stays yours",
     copy: "Split sheets, producer agreements and invoices, saved in your browser. Nothing is uploaded.",
   },
@@ -1978,6 +2010,20 @@ function FeatureArt({ id }) {
       </div>
     );
   }
+  if (id === "inbox") {
+    return (
+      <div className="fx-art fx-inbox" aria-hidden="true">
+        <div className="fx-mail">
+          <span className="fx-mail-from">Alex</span>
+          <span className="fx-mail-subject">September Samples</span>
+        </div>
+        <div className="fx-file">
+          <span>Drums.wav</span>
+          <span className="fx-get">Download</span>
+        </div>
+      </div>
+    );
+  }
   if (id === "campaigns") {
     return (
       <div className="fx-art fx-campaign" aria-hidden="true">
@@ -2005,7 +2051,7 @@ function Features() {
   return (
     <section className="features" aria-labelledby="features-heading">
       <p className="eyebrow">What’s inside</p>
-      <h2 id="features-heading" className="features-title">Five tools, one hub.</h2>
+      <h2 id="features-heading" className="features-title">Six tools, one hub.</h2>
       <div className="feature-grid">
         {FEATURES.map((f, i) => (
           <article key={f.id} className="feature-card" style={{ "--d": `${i * 90}ms` }}>
@@ -2835,6 +2881,132 @@ function RateBar({ value, count, color }) {
   );
 }
 
+// Example rows shown faded until real samples arrive
+const INBOX_EXAMPLES = [
+  { from: "Producer 1", subject: "September 2026 Samples", file: "September_Drums.wav", size: 24000000 },
+  { from: "Producer 2", subject: "Keys and loops", file: "Keys_Loops_Vol2.zip", size: 180000000 },
+];
+
+function formatSize(bytes) {
+  if (!bytes) return "";
+  if (bytes >= 1000000) return `${Math.round(bytes / 1000000)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1000))} KB`;
+}
+
+// The sample inbox. Files are read from Gmail on demand and passed straight to the browser.
+function InboxTool({ token, onAuthError }) {
+  const [messages, setMessages] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [downloadError, setDownloadError] = useState(null);
+  const [busyFile, setBusyFile] = useState(null);
+  const { busy, error, run } = useToolRunner(onAuthError);
+
+  async function load() {
+    const data = await callApi("/inbox", token);
+    setMessages(data.messages);
+  }
+
+  useEffect(() => { run(load); }, []);
+
+  async function download(uid, file) {
+    setBusyFile(file.part);
+    setDownloadError(null);
+    setMessage(null);
+    try {
+      const res = await fetch(`${API}/inbox/${uid}/attachments/${file.part}`, { headers: authHeaders(token) });
+      if (res.status === 401) return onAuthError();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Server error ${res.status}`);
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMessage(`Downloaded ${file.name}.`);
+    } catch (e) {
+      setDownloadError(e.message);
+    } finally {
+      setBusyFile(null);
+    }
+  }
+
+  return (
+    <section className="tool-section" aria-labelledby="inbox-heading">
+      <div className="tool-heading">
+        <p className="tool-eyebrow">Samples</p>
+        <h2 id="inbox-heading" className="tool-title">Sample inbox</h2>
+        <p className="tool-copy">
+          Samples and shared links from your Gmail, in one place. Downloads come straight from Gmail, and nothing is stored on CreditCrate.
+        </p>
+      </div>
+      <ToolMessages error={error || downloadError} message={message} />
+
+      <div className="inbox-head">
+        <span className="history-meta">{messages ? `${messages.length} ${messages.length === 1 ? "email" : "emails"} with samples` : ""}</span>
+        <button type="button" className="back-btn" onClick={() => run(load)} disabled={busy}>Refresh</button>
+      </div>
+
+      {messages === null ? (
+        <ToolLoading label="Loading your inbox…" />
+      ) : messages.length === 0 ? (
+        <>
+          <EmptyState title="No samples yet" copy="Emails with audio or archive attachments, and Dropbox or Drive links, show up here." />
+          <ul className="inbox-list is-example" aria-hidden="true">
+            {INBOX_EXAMPLES.map(example => (
+              <li key={example.file} className="inbox-item">
+                <div className="inbox-meta">
+                  <span className="inbox-subject">{example.subject}</span>
+                  <span className="inbox-from">{example.from}</span>
+                </div>
+                <div className="inbox-file">
+                  <span>{example.file}</span>
+                  <span className="history-meta">{formatSize(example.size)}</span>
+                  <span className="back-btn">Download</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <ul className="inbox-list">
+          {messages.map(item => (
+            <li key={item.uid} className="inbox-item">
+              <div className="inbox-meta">
+                <span className="inbox-subject">{item.subject}</span>
+                <span className="inbox-from">{item.from}</span>
+              </div>
+              {item.attachments.map(file => (
+                <div key={file.part} className="inbox-file">
+                  <span>{file.name}</span>
+                  <span className="history-meta">{formatSize(file.size)}</span>
+                  <button
+                    type="button"
+                    className="back-btn"
+                    onClick={() => download(item.uid, file)}
+                    disabled={busyFile === file.part}
+                  >
+                    {busyFile === file.part ? "Downloading…" : "Download"}
+                  </button>
+                </div>
+              ))}
+              {item.links.map(link => (
+                <a key={link} className="inbox-link" href={link} target="_blank" rel="noopener noreferrer">
+                  Open shared link ↗
+                </a>
+              ))}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function CampaignsTool({ token, onAuthError }) {
   const [campaigns, setCampaigns] = useState(null);
   const [packs, setPacks] = useState([]);
@@ -3203,7 +3375,7 @@ function OverviewTool({ token, onAuthError }) {
 
 // The apps as a picture gallery: one app in front, its neighbours peeking in from the sides.
 // Swipe or drag left and right, use the arrow keys, the tabs in the title bar, or the dots.
-const DECK_TABS = ["Credits", "Contacts", "Packs", "Campaigns", "Deal Desk"];
+const DECK_TABS = ["Credits", "Contacts", "Packs", "Inbox", "Campaigns", "Deal Desk"];
 const DECK_GAP = 24;
 
 function AppDeck({ children, index, onIndexChange }) {
@@ -3813,6 +3985,7 @@ function App() {
 
         {token && <AppWindow name="Contacts"><ContactsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
         {token && <AppWindow name="Packs"><PacksTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
+        {token && <AppWindow name="Inbox"><InboxTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
         {token && <AppWindow name="Campaigns"><CampaignsTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} /></AppWindow>}
         {token && <AppWindow name="Deal Desk"><DealDeskTool /></AppWindow>}
         </AppDeck>

@@ -303,6 +303,8 @@ def init_album_cache_db():
 init_album_cache_db()
 mailing.register(app, DB_PATH)
 billing.register(app, DB_PATH)
+import inbox
+inbox.register(app)
 
 
 def get_cached_ig(genius_id):
