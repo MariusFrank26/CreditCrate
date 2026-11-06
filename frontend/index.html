@@ -3353,7 +3353,6 @@ function App() {
   const initialRole = initialParams.get("role");
 
   const [albumQuery, setAlbumQuery] = useState(initialParams.get("q") || "");
-  const [artistQuery, setArtistQuery] = useState(initialParams.get("artist") || "");
   const [searchResults, setSearchResults] = useState(null);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [credits, setCredits] = useState(null);
@@ -3410,11 +3409,11 @@ function App() {
     return () => { cancelled = true; };
   }, []);
 
-  async function runSearch(album, artist) {
-    const q = album.trim();
+  // One search box: an album, an artist, or both. The server searches in the background; poll until it is done.
+  async function runSearch(query) {
+    const q = query.trim();
     if (!q) return;
     setUrlParam("q", q);
-    setUrlParam("artist", artist.trim());
     setLoading(true);
     setError(null);
     setSearchResults(null);
@@ -3422,14 +3421,29 @@ function App() {
     setSelectedAlbum(null);
     setStatusMsg("Searching Genius…");
     try {
-      const res = await fetch(`${API}/search?album=${encodeURIComponent(q)}&artist=${encodeURIComponent(artist.trim())}`, { headers: authHeaders(token) });
-      if (res.status === 401) return signOut(SESSION_EXPIRED);
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setSearchResults(data.results);
-      if (data.results.length === 0) setStatusMsg("No albums found. Try a different query.");
-      else setStatusMsg(`Found ${data.results.length} album${data.results.length !== 1 ? "s" : ""}. Pick one.`);
+      const started = await fetch(`${API}/search/start`, {
+        method: "POST",
+        headers: { ...authHeaders(token), "Content-Type": "application/json" },
+        body: JSON.stringify({ q }),
+      });
+      if (started.status === 401) return signOut(SESSION_EXPIRED);
+      if (!started.ok) throw new Error(`Server error ${started.status}`);
+      const { job } = await started.json();
+      let results = null;
+      for (let attempt = 0; attempt < 150 && results === null; attempt++) {
+        await new Promise(r => setTimeout(r, 2000));
+        const res = await fetch(`${API}/jobs/${job}`, { headers: authHeaders(token) });
+        if (res.status === 401) return signOut(SESSION_EXPIRED);
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+        const state = await res.json();
+        if (state.status === "error") throw new Error(state.error);
+        if (state.status === "done") results = state.result;
+        else setStatusMsg("Searching Genius… the first search for an artist takes a moment.");
+      }
+      if (results === null) throw new Error("The search is taking too long. Try again in a minute.");
+      setSearchResults(results);
+      if (results.length === 0) setStatusMsg("No albums found. Try an album name, an artist name, or both.");
+      else setStatusMsg(`Found ${results.length} album${results.length !== 1 ? "s" : ""}. Pick one.`);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -3439,12 +3453,12 @@ function App() {
 
   // Re-run the search when the page was opened with ?q= in the URL
   useEffect(() => {
-    if (token && albumQuery.trim()) runSearch(albumQuery, artistQuery);
+    if (token && albumQuery.trim()) runSearch(albumQuery);
   }, []);
 
   function handleSearch(e) {
     e.preventDefault();
-    runSearch(albumQuery, artistQuery);
+    runSearch(albumQuery);
   }
 
   async function handleSelectAlbum(album) {
@@ -3586,32 +3600,18 @@ function App() {
         <form className="search-block" role="search" onSubmit={handleSearch}>
           <div className="search-row">
             <div className="search-input-wrap">
-              <label className="search-label" htmlFor="album-input">Album name</label>
+              <label className="search-label" htmlFor="album-input">Album, artist, or both</label>
               <input
                 id="album-input"
                 type="text"
                 name="album"
-                placeholder="e.g. good kid, m.A.A.d city"
+                placeholder="e.g. Iceman Drake, or just Drake"
                 autoComplete="off"
                 spellCheck={false}
                 enterKeyHint="search"
                 required
                 value={albumQuery}
                 onChange={e => setAlbumQuery(e.target.value)}
-              />
-            </div>
-            <div className="search-input-wrap search-input-artist">
-              <label className="search-label" htmlFor="artist-input">Artist (optional)</label>
-              <input
-                id="artist-input"
-                type="text"
-                name="artist"
-                placeholder="e.g. Kendrick Lamar"
-                autoComplete="off"
-                spellCheck={false}
-                enterKeyHint="search"
-                value={artistQuery}
-                onChange={e => setArtistQuery(e.target.value)}
               />
             </div>
             <button

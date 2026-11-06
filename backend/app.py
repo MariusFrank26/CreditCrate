@@ -70,79 +70,114 @@ _ig_loader = None
 _ig_lock = threading.Lock()  # Instaloader-Requests nie parallel - eine Session, ein Request zur Zeit
 
 
-def _find_artist_id(artist_name):
-    """The Genius artist whose name matches best, found from the search hits."""
-    resp = requests.get(f"{GENIUS_BASE}/search", headers=HEADERS, params={"q": artist_name, "per_page": 10}, timeout=10)
-    resp.raise_for_status()
-    wanted = artist_name.strip().lower()
-    for hit in resp.json()["response"]["hits"]:
-        primary = hit["result"].get("primary_artist") or {}
-        if primary.get("name", "").strip().lower() == wanted:
-            return primary["id"]
-    return None
+ALBUM_CACHE_DAYS = 7
 
 
-def _artist_albums(artist_id, album_name):
-    """Lists an artist's albums on Genius, keeping those whose name contains the search."""
-    wanted = album_name.strip().lower()
-    found = []
+def _artist_songs(artist_id, limit=100):
+    """The artist's most popular songs (Genius allows listing songs, but not listing albums)."""
+    songs = []
     for page in (1, 2):
-        resp = requests.get(f"{GENIUS_BASE}/artists/{artist_id}/albums", headers=HEADERS,
+        resp = requests.get(f"{GENIUS_BASE}/artists/{artist_id}/songs", headers=HEADERS,
                             params={"per_page": 50, "page": page, "sort": "popularity"}, timeout=10)
         if resp.status_code != 200:
             break
-        albums = resp.json()["response"]["albums"]
-        for album in albums:
-            if wanted in album["name"].lower():
-                found.append({
-                    "id": album["id"],
-                    "name": album["name"],
-                    "artist": (album.get("artist") or {}).get("name", ""),
-                    "cover_art": album.get("cover_art_url"),
-                    "songs": [],
-                })
-        if len(albums) < 50:
+        batch = resp.json()["response"]["songs"]
+        songs += batch
+        if len(batch) < 50:
             break
-    # exact name matches first, then the rest
-    found.sort(key=lambda a: (a["name"].strip().lower() != wanted, a["name"].lower()))
-    return found
+    return songs[:limit]
+
+
+def _song_album(song_id):
+    resp = requests.get(f"{GENIUS_BASE}/songs/{song_id}", headers=HEADERS, timeout=10)
+    if resp.status_code != 200:
+        return None
+    song = resp.json()["response"]["song"]
+    album = song.get("album")
+    if not album:
+        return None
+    return {
+        "id": album["id"],
+        "name": album["name"],
+        "artist": (song.get("primary_artist") or {}).get("name", ""),
+        "cover_art": album.get("cover_art_url"),
+        "songs": [],
+    }
+
+
+def _cached_albums(artist_id):
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute("SELECT albums, updated_at FROM artist_albums WHERE artist_id = ?", (artist_id,)).fetchone()
+    if row and time.time() - row[1] < ALBUM_CACHE_DAYS * 86400:
+        return json.loads(row[0])
+    return None
+
+
+def artist_album_list(artist_id):
+    """Every album the artist's popular songs appear on. Cached for a week per artist."""
+    cached = _cached_albums(artist_id)
+    if cached is not None:
+        return cached
+    albums = {}
+    songs = _artist_songs(artist_id)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        for album in pool.map(_song_album, [song["id"] for song in songs]):
+            if album and album["id"] not in albums:
+                albums[album["id"]] = album
+    result = list(albums.values())
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("INSERT OR REPLACE INTO artist_albums (artist_id, albums, updated_at) VALUES (?, ?, ?)",
+                     (artist_id, json.dumps(result), time.time()))
+    return result
+
+
+def _rank_albums(albums, wanted):
+    wanted = wanted.strip().lower()
+    def key(album):
+        name = album["name"].strip().lower()
+        if not wanted:
+            return (0, name)
+        if name == wanted:
+            return (0, name)
+        if name.startswith(wanted):
+            return (1, name)
+        return (2, name)
+    return sorted((a for a in albums if not wanted or wanted in a["name"].lower()), key=key)
+
+
+def find_albums(query):
+    """One search box: an album, an artist, or both ("Iceman Drake")."""
+    query = query.strip()
+    resp = requests.get(f"{GENIUS_BASE}/search", headers=HEADERS, params={"q": query, "per_page": 10}, timeout=10)
+    resp.raise_for_status()
+    hits = resp.json()["response"]["hits"]
+    lowered = query.lower()
+
+    # An artist named in the query wins, longest name first ("A$AP Rocky" before "Rocky")
+    artists = {}
+    for hit in hits:
+        primary = hit["result"].get("primary_artist") or {}
+        if primary.get("id"):
+            artists.setdefault(primary["id"], primary.get("name", ""))
+    named = sorted(((aid, name) for aid, name in artists.items() if name and name.lower() in lowered),
+                   key=lambda item: -len(item[1]))
+    if named:
+        artist_id, artist_name = named[0]
+        wanted = lowered.replace(artist_name.lower(), "")
+    else:
+        # Otherwise use the artist of the songs whose title matches the query
+        titled = [hit["result"].get("primary_artist") or {} for hit in hits
+                  if lowered and lowered in hit["result"].get("title", "").lower()]
+        if not titled:
+            return []
+        artist_id = max(((p.get("id"), sum(1 for t in titled if t.get("id") == p.get("id"))) for p in titled),
+                        key=lambda item: item[1])[0]
+        wanted = lowered
+    return _rank_albums(artist_album_list(artist_id), wanted)
 
 
 def genius_search_album(album_name, artist_name=""):
-    # With an artist, list that artist's albums directly. This finds albums even when
-    # none of their songs come up in a general search.
-    if artist_name:
-        artist_id = _find_artist_id(artist_name)
-        if artist_id:
-            albums = _artist_albums(artist_id, album_name)
-            if albums:
-                return albums
-    query = f"{artist_name} {album_name}".strip()
-    resp = requests.get(f"{GENIUS_BASE}/search", headers=HEADERS, params={"q": query, "per_page": 20}, timeout=10)
-    resp.raise_for_status()
-    hits = resp.json()["response"]["hits"]
-
-    albums_found = {}
-    for hit in hits[:8]:
-        song_id = hit["result"]["id"]
-        song_resp = requests.get(f"{GENIUS_BASE}/songs/{song_id}", headers=HEADERS, timeout=10)
-        if song_resp.status_code != 200:
-            continue
-        song_data = song_resp.json()["response"]["song"]
-        album_info = song_data.get("album")
-        if album_info:
-            alb_id = album_info["id"]
-            if alb_id not in albums_found:
-                albums_found[alb_id] = {
-                    "id": alb_id,
-                    "name": album_info["name"],
-                    "artist": song_data["primary_artist"]["name"],
-                    "cover_art": album_info.get("cover_art_url"),
-                    "songs": [],
-                }
-        time.sleep(0.3)
-
-    return list(albums_found.values())
+    return find_albums(f"{album_name} {artist_name}".strip())
 
 
 def get_album_tracks(album_id):
@@ -252,6 +287,20 @@ def init_history_db():
 
 
 init_history_db()
+
+
+def init_album_cache_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS artist_albums (
+                artist_id INTEGER PRIMARY KEY,
+                albums TEXT,
+                updated_at REAL
+            )
+        """)
+
+
+init_album_cache_db()
 mailing.register(app, DB_PATH)
 billing.register(app, DB_PATH)
 
@@ -487,6 +536,35 @@ _jobs = {}
 _jobs_lock = threading.Lock()
 
 
+def _start_job(owner, target, *args):
+    job_id = secrets.token_urlsafe(16)
+    with _jobs_lock:
+        _jobs[job_id] = {"owner": owner, "status": "running", "done": 0, "total": 0,
+                         "credits": None, "result": None, "error": None, "created": time.time()}
+
+    def run():
+        try:
+            value = target(*args)
+            with _jobs_lock:
+                _jobs[job_id].update(status="done", result=value)
+        except Exception as e:
+            logger.error(f"Job {job_id} failed: {e}", exc_info=True)
+            with _jobs_lock:
+                _jobs[job_id].update(status="error", error=str(e))
+
+    threading.Thread(target=run, daemon=True).start()
+    return job_id
+
+
+@app.route("/api/search/start", methods=["POST"])
+@accounts.login_required
+def start_search():
+    query = ((request.get_json(silent=True) or {}).get("q") or "").strip()
+    if not query:
+        return jsonify({"error": "Type an album, an artist, or both."}), 400
+    return jsonify({"job": _start_job(accounts.current_email(), find_albums, query)})
+
+
 def _run_credits_job(job_id, album_id):
     def progress(done, total):
         with _jobs_lock:
@@ -524,7 +602,7 @@ def get_job(job_id):
         job = _jobs.get(job_id)
         if not job or job["owner"] != accounts.current_email():
             return jsonify({"error": "Job not found."}), 404
-        return jsonify({key: job[key] for key in ("status", "done", "total", "credits", "error")})
+        return jsonify({key: job.get(key) for key in ("status", "done", "total", "credits", "result", "error")})
 
 
 @app.route("/api/album/<int:album_id>/credits", methods=["GET"])
