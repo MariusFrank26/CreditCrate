@@ -10,9 +10,11 @@ shown, never fetched by the server.
 
 import base64
 import imaplib
+import io
 import logging
 import quopri
 import re
+import zipfile
 from email import message_from_bytes
 from email.header import decode_header, make_header
 
@@ -28,7 +30,10 @@ bp = Blueprint("inbox", __name__)
 
 IMAP_HOST = "imap.gmail.com"
 IMAP_PORT = 993
-MAX_MESSAGES = 25
+DAYS = 7  # how far back the sample scan looks
+BATCH = 50  # messages per IMAP request, so a scan of hundreds of emails takes a few round trips
+MAX_ZIP_BYTES = 300 * 1024 * 1024  # a whole message's samples are zipped in memory, up to this size
+UID_RE = re.compile(r"UID (\d+)")
 SAMPLE_EXTENSIONS = (".wav", ".mp3", ".aif", ".aiff", ".flac", ".zip", ".rar", ".7z")
 SEARCH = ('has:attachment (filename:wav OR filename:mp3 OR filename:aif OR filename:aiff '
           'OR filename:flac OR filename:zip OR filename:rar OR filename:7z) '
@@ -123,34 +128,60 @@ def _attachments(structure, prefix=""):
     return found
 
 
-def _message_list(server):
-    uids = server.uid("SEARCH", "X-GM-RAW", f'"{SEARCH}"')[1][0].split()
-    newest = [int(u) for u in uids][-MAX_MESSAGES:][::-1]
-    messages = []
-    for uid in newest:
-        _, data = server.uid("FETCH", str(uid), "(BODYSTRUCTURE BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])")
-        if not data or not data[0]:
-            continue
-        head = data[0][1] if isinstance(data[0], tuple) else b""
-        headers = message_from_bytes(head)
-        structure = _structure_of(data[0][0]) if isinstance(data[0], tuple) else None
-        attachments = _attachments(structure) if structure else []
-        links = []
-        if not attachments:
-            _, text_data = server.uid("FETCH", str(uid), "(BODY.PEEK[TEXT]<0.40000>)")
-            body = text_data[0][1].decode("utf-8", "replace") if text_data and isinstance(text_data[0], tuple) else ""
-            links = sorted(set(LINK_RE.findall(body)))
-        if not attachments and not links:
-            continue
-        messages.append({
-            "uid": uid,
-            "from": _decode(headers.get("From", "")),
-            "subject": _decode(headers.get("Subject", "")) or "(no subject)",
-            "date": headers.get("Date", ""),
-            "attachments": attachments,
-            "links": links,
-        })
-    return messages
+def _fetch_items(server, uids, what):
+    """Yields (uid, metadata line, literal bytes) for each message in one FETCH over several uids."""
+    _, data = server.uid("FETCH", ",".join(str(uid) for uid in uids), what)
+    for item in data or []:
+        if isinstance(item, tuple):
+            meta = item[0].decode("latin-1")
+            match = UID_RE.search(meta)
+            if match:
+                yield int(match.group(1)), meta, item[1]
+
+
+def _recent_sample_uids(server):
+    _, data = server.uid("SEARCH", "X-GM-RAW", f'"({SEARCH}) newer_than:{DAYS}d"')
+    return [int(uid) for uid in data[0].split()]
+
+
+def list_messages(address, password):
+    """Every email from the last DAYS days with sample attachments or sharing links, newest first."""
+    server = _connect(address, password)
+    try:
+        uids = _recent_sample_uids(server)
+        messages = []
+        for start in range(0, len(uids), BATCH):
+            chunk = uids[start:start + BATCH]
+            heads = {}
+            for uid, meta, literal in _fetch_items(server, chunk,
+                                                   "(UID BODYSTRUCTURE BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])"):
+                structure = _structure_of(meta)
+                heads[uid] = (literal, _attachments(structure) if structure else [])
+            without_files = [uid for uid in chunk if uid in heads and not heads[uid][1]]
+            links = {}
+            if without_files:
+                for uid, _, literal in _fetch_items(server, without_files, "(UID BODY.PEEK[TEXT]<0.40000>)"):
+                    links[uid] = sorted(set(LINK_RE.findall(literal.decode("utf-8", "replace"))))
+            for uid in chunk:
+                if uid not in heads:
+                    continue
+                literal, attachments = heads[uid]
+                found_links = links.get(uid, [])
+                if not attachments and not found_links:
+                    continue
+                headers = message_from_bytes(literal)
+                messages.append({
+                    "uid": uid,
+                    "from": _decode(headers.get("From", "")),
+                    "subject": _decode(headers.get("Subject", "")) or "(no subject)",
+                    "date": headers.get("Date", ""),
+                    "attachments": attachments,
+                    "links": found_links,
+                })
+        messages.sort(key=lambda m: m["uid"], reverse=True)
+        return messages
+    finally:
+        server.logout()
 
 
 def _decode(value):
@@ -171,6 +202,7 @@ def _connected_account():
 @bp.route("/api/inbox", methods=["GET"])
 @accounts.login_required
 def list_inbox():
+    """Scans synchronously. The site uses /api/inbox/start instead, which runs in the background."""
     try:
         address, password = _connected_account()
     except gmail.CredentialError as e:
@@ -178,17 +210,12 @@ def list_inbox():
     if not address:
         return jsonify({"error": "Connect your Gmail account in Settings first."}), 409
     try:
-        server = _connect(address, password)
-        try:
-            messages = _message_list(server)
-        finally:
-            server.logout()
+        return jsonify({"messages": list_messages(address, password), "address": address})
     except imaplib.IMAP4.error as e:
         logger.warning(f"IMAP rejected {address}: {e}")
         return jsonify({"error": "Gmail rejected the login. Check IMAP access and the app password."}), 401
     except OSError:
         return jsonify({"error": "Could not reach Gmail. Try again in a moment."}), 502
-    return jsonify({"messages": messages, "address": address})
 
 
 @bp.route("/api/inbox/<int:uid>/attachments/<part>", methods=["GET"])
@@ -219,16 +246,72 @@ def download_attachment(uid, part):
     except OSError:
         return jsonify({"error": "Could not reach Gmail. Try again in a moment."}), 502
 
-    if match["encoding"] == "base64":
-        body = base64.b64decode(raw)
-    elif match["encoding"] == "quoted-printable":
-        body = quopri.decodestring(raw)
-    else:
-        body = raw
+    body = _decode_bytes(raw, match["encoding"])
     # Keep only a safe ASCII file name for the header
     safe = re.sub(r"[^A-Za-z0-9._ -]", "_", match["name"]) or "sample"
     return Response(body, mimetype="application/octet-stream",
                     headers={"Content-Disposition": f'attachment; filename="{safe}"',
+                             "Cache-Control": "no-store"})
+
+
+def _decode_bytes(raw, encoding):
+    if encoding == "base64":
+        return base64.b64decode(raw)
+    if encoding == "quoted-printable":
+        return quopri.decodestring(raw)
+    return raw
+
+
+def _safe_name(name):
+    return re.sub(r"[^A-Za-z0-9._ -]", "_", name).strip() or "sample"
+
+
+@bp.route("/api/inbox/<int:uid>/zip", methods=["GET"])
+@accounts.login_required
+def download_pack(uid):
+    """All sample files of one message as a single zip. Built in memory and not stored."""
+    try:
+        address, password = _connected_account()
+    except gmail.CredentialError as e:
+        return jsonify({"error": str(e)}), 409
+    if not address:
+        return jsonify({"error": "Connect your Gmail account in Settings first."}), 409
+    try:
+        server = _connect(address, password)
+        try:
+            _, data = server.uid("FETCH", str(uid), "(BODYSTRUCTURE BODY.PEEK[HEADER.FIELDS (SUBJECT)])")
+            text = b" ".join(item[0] if isinstance(item, tuple) else item for item in data or [] if item != b")")
+            structure = _structure_of(text)
+            subject_raw = next((item[1] for item in data or [] if isinstance(item, tuple)), b"")
+            files = _attachments(structure) if structure else []
+            if not files:
+                return jsonify({"error": "This message has no sample files."}), 404
+            if sum(f["size"] for f in files) > MAX_ZIP_BYTES:
+                return jsonify({"error": "These files are too big for one zip. Download them one by one."}), 413
+            buffer = io.BytesIO()
+            used = set()
+            with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as archive:
+                for f in files:
+                    _, part_data = server.uid("FETCH", str(uid), f"(BODY.PEEK[{f['part']}])")
+                    raw = next((item[1] for item in part_data or [] if isinstance(item, tuple)), b"")
+                    name = _safe_name(f["name"])
+                    base, dot, ext = name.rpartition(".")
+                    candidate, index = name, 2
+                    while candidate in used:
+                        candidate = f"{base}-{index}.{ext}" if dot else f"{name}-{index}"
+                        index += 1
+                    used.add(candidate)
+                    archive.writestr(candidate, _decode_bytes(raw, f["encoding"]))
+        finally:
+            server.logout()
+    except imaplib.IMAP4.error:
+        return jsonify({"error": "Gmail rejected the login."}), 401
+    except OSError:
+        return jsonify({"error": "Could not reach Gmail. Try again in a moment."}), 502
+
+    subject = _decode(message_from_bytes(subject_raw).get("Subject", "")) or f"samples-{uid}"
+    return Response(buffer.getvalue(), mimetype="application/zip",
+                    headers={"Content-Disposition": f'attachment; filename="{_safe_name(subject)}.zip"',
                              "Cache-Control": "no-store"})
 
 

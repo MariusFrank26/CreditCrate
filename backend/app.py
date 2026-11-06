@@ -558,6 +558,18 @@ def _start_job(owner, target, *args):
     return job_id
 
 
+@app.route("/api/inbox/start", methods=["POST"])
+@accounts.login_required
+def start_inbox_scan():
+    try:
+        address, password = inbox._connected_account()
+    except inbox.gmail.CredentialError as e:
+        return jsonify({"error": str(e)}), 409
+    if not address:
+        return jsonify({"error": "Connect your Gmail account in Settings first."}), 409
+    return jsonify({"job": _start_job(accounts.current_email(), inbox.list_messages, address, password)})
+
+
 @app.route("/api/search/start", methods=["POST"])
 @accounts.login_required
 def start_search():

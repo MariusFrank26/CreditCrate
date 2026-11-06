@@ -2901,9 +2901,44 @@ function InboxTool({ token, onAuthError }) {
   const [busyFile, setBusyFile] = useState(null);
   const { busy, error, run } = useToolRunner(onAuthError);
 
+  // The scan runs on the server in the background, so a week of mail can take as long as it needs
   async function load() {
-    const data = await callApi("/inbox", token);
-    setMessages(data.messages);
+    setMessages(null);
+    const started = await callApi("/inbox/start", token, { method: "POST" });
+    for (let attempt = 0; attempt < 300; attempt++) {
+      await new Promise(r => setTimeout(r, 2000));
+      const state = await callApi(`/jobs/${started.job}`, token);
+      if (state.status === "error") throw new Error(state.error);
+      if (state.status === "done") return setMessages(state.result);
+    }
+    throw new Error("The scan is taking too long. Try again in a few minutes.");
+  }
+
+  async function downloadZip(item) {
+    setBusyFile(`zip-${item.uid}`);
+    setDownloadError(null);
+    setMessage(null);
+    try {
+      const res = await fetch(`${API}/inbox/${item.uid}/zip`, { headers: authHeaders(token) });
+      if (res.status === 401) return onAuthError();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Server error ${res.status}`);
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${item.subject}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMessage(`Downloaded ${item.subject}.zip.`);
+    } catch (e) {
+      setDownloadError(e.message);
+    } finally {
+      setBusyFile(null);
+    }
   }
 
   useEffect(() => { run(load); }, []);
@@ -2947,12 +2982,12 @@ function InboxTool({ token, onAuthError }) {
       <ToolMessages error={error || downloadError} message={message} />
 
       <div className="inbox-head">
-        <span className="history-meta">{messages ? `${messages.length} ${messages.length === 1 ? "email" : "emails"} with samples` : ""}</span>
+        <span className="history-meta">{messages ? `${messages.length} ${messages.length === 1 ? "email" : "emails"} with samples from the last 7 days` : ""}</span>
         <button type="button" className="back-btn" onClick={() => run(load)} disabled={busy}>Refresh</button>
       </div>
 
       {messages === null ? (
-        <ToolLoading label="Loading your inbox…" />
+        <ToolLoading label="Scanning the last 7 days of email… this can take a minute." />
       ) : messages.length === 0 ? (
         <>
           <EmptyState title="No samples yet" copy="Emails with audio or archive attachments, and Dropbox or Drive links, show up here." />
@@ -2994,6 +3029,16 @@ function InboxTool({ token, onAuthError }) {
                   </button>
                 </div>
               ))}
+              {item.attachments.length > 1 && (
+                <button
+                  type="button"
+                  className="back-btn"
+                  onClick={() => downloadZip(item)}
+                  disabled={busyFile === `zip-${item.uid}`}
+                >
+                  {busyFile === `zip-${item.uid}` ? "Preparing zip…" : `Download all ${item.attachments.length} as a zip`}
+                </button>
+              )}
               {item.links.map(link => (
                 <a key={link} className="inbox-link" href={link} target="_blank" rel="noopener noreferrer">
                   Open shared link ↗
