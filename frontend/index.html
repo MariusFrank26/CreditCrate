@@ -1289,6 +1289,25 @@
   }
   .fx-get { font-family: var(--mono); font-size: 11px; color: var(--sunshine); }
 
+  /* ── LANDING EXTRAS: trust strip and pricing teaser ── */
+  .trust { margin-top: 96px; }
+  .trust-title { font-size: 22px; font-weight: 510; letter-spacing: -0.02em; color: var(--paper); }
+  .trust-list { list-style: none; margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+  .trust-item { display: flex; flex-direction: column; gap: 6px; padding: 18px; border-top: 2px solid var(--graphite); }
+  .trust-name { font-size: 15px; font-weight: 510; color: var(--paper); }
+  .trust-copy { font-size: 14px; line-height: 1.55; color: var(--fog); }
+  .price-teaser {
+    margin-top: 56px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+    background: var(--carbon); border: 1px solid var(--graphite); border-radius: 16px; padding: 26px 28px;
+  }
+  .price-title { margin-top: 8px; font-size: 22px; font-weight: 510; letter-spacing: -0.02em; color: var(--paper); }
+  .price-copy { margin-top: 6px; font-size: 14px; color: var(--fog); }
+  .price-link {
+    font-size: 14px; color: var(--void); background: var(--sunshine); border-radius: 10px;
+    padding: 11px 18px; text-decoration: none; white-space: nowrap;
+  }
+  .price-link:hover { filter: brightness(1.05); }
+
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
@@ -2066,21 +2085,35 @@ function Features() {
   );
 }
 
-function Pipeline() {
-  const steps = [["Find", "Search an album"], ["Organise", "Save people and packs"], ["Send", "Preview and send"], ["Track", "See opens and clicks"]];
+// Landing: a short pricing teaser and a trust strip
+function LandingExtras() {
+  const points = [
+    ["Your own Gmail", "Campaigns go out from your address, so they land in your Sent folder."],
+    ["Nothing stored", "Your samples stay in your inbox, Dropbox and Drive. We never keep the files."],
+    ["Unsubscribe built in", "Every campaign email has an unsubscribe link, and people who opt out are never emailed again."],
+  ];
   return (
-    <section className="pipeline" aria-labelledby="pipeline-heading">
-      <h2 id="pipeline-heading" className="pipeline-title">From record to inbox</h2>
-      <ol className="pipeline-steps">
-        {steps.map(([name, copy], i) => (
-          <li key={name} className="pipeline-step" style={{ "--d": `${i * 220}ms` }}>
-            <span className="pipeline-dot" aria-hidden="true">{i + 1}</span>
-            <span className="pipeline-name">{name}</span>
-            <span className="pipeline-copy">{copy}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <>
+      <section className="trust" aria-labelledby="trust-heading">
+        <h2 id="trust-heading" className="trust-title">Built to stay out of spam, and out of your files</h2>
+        <ul className="trust-list">
+          {points.map(([title, copy]) => (
+            <li key={title} className="trust-item">
+              <span className="trust-name">{title}</span>
+              <span className="trust-copy">{copy}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section className="price-teaser" aria-labelledby="price-heading">
+        <div>
+          <p className="eyebrow">Pricing</p>
+          <h2 id="price-heading" className="price-title">Free for 7 days. Then $5 a month, or $50 a year.</h2>
+          <p className="price-copy">Every tool is included from the first day. Pro keeps it all running after the trial.</p>
+        </div>
+        <a className="price-link" href="pricing.html">See the plans</a>
+      </section>
+    </>
   );
 }
 
@@ -4046,7 +4079,7 @@ function App() {
             <NewsletterForm />
           </section>
           <Features />
-          <Pipeline />
+          <LandingExtras />
           <Explainer />
         </>}
       </main>
