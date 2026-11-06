@@ -1732,107 +1732,8 @@ function CreditRow({ credit, delay, album, token }) {
   );
 }
 
-// ── Landing explainer: a looping demo of the tool ───────────────────────────
-// Real credits from Genius. The demo only says an email was found; it never shows one.
-
-const DEMO = {
-  album: "Whisper My Name",
-  artist: "Drake",
-  cover: "demo/whisper-my-name.webp",
-  credits: [
-    { name: "OZ", role: "Producer", cls: "producer", handle: "ozmusiqe", photo: "demo/oz.webp" },
-    { name: "London Cyr", role: "Producer", cls: "producer", handle: "londoncyr", photo: "demo/london-cyr.webp" },
-    { name: "Nik D", role: "Producer", cls: "producer", handle: "iamnikd", photo: "demo/nik-d.webp" },
-  ],
-};
-const DEMO_TICK = 50;
-const DEMO_LOOP = 9000;
-const DEMO_PHASES = [
-  { start: 0, end: 1700, title: "Search an album", desc: "Type the album name, and the artist if you like." },
-  { start: 1700, end: 4000, title: "See every credit", desc: "Producers, engineers and mixers across every track." },
-  { start: 4000, end: DEMO_LOOP, title: "Reach out", desc: "Their Instagram and public contact email, ready to copy or export." },
-];
-
 function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-}
-
-function Explainer() {
-  const [reduced] = useState(prefersReducedMotion);
-  const [t, setT] = useState(reduced ? DEMO_LOOP - DEMO_TICK : 0);
-  const [playing, setPlaying] = useState(!reduced);
-
-  useEffect(() => {
-    if (!playing) return;
-    const id = setInterval(() => setT(prev => (prev + DEMO_TICK) % DEMO_LOOP), DEMO_TICK);
-    return () => clearInterval(id);
-  }, [playing]);
-
-  const typedLength = Math.max(0, Math.min(DEMO.album.length, Math.floor((t - 300) / 70)));
-  const typed = DEMO.album.slice(0, typedLength);
-  const pressed = t >= 1450 && t < 1650;
-  const albumIn = t >= 1700;
-  const albumSelected = t >= 2300;
-  return (
-    <section className="explainer" aria-labelledby="explainer-heading">
-      <h2 id="explainer-heading" className="section-title">How it works</h2>
-      <ol className="how-steps">
-        {DEMO_PHASES.map((p, i) => (
-          <li key={p.title} className="how-step">
-            <span className="num">0{i + 1}</span>
-            <h3 className="how-step-title">{p.title}</h3>
-            <p className="how-step-desc">{p.desc}</p>
-          </li>
-        ))}
-      </ol>
-
-      <div className="demo">
-        <div className="demo-card" aria-hidden="true">
-          <div className="demo-bar">
-            <div className="demo-input">
-              {typed ? <span>{typed}</span> : <span className="ph">Album name</span>}
-              {!albumIn && <span className="caret" />}
-            </div>
-            <div className={`demo-btn ${pressed ? "pressed" : ""}`}>Search</div>
-          </div>
-
-          <div className={`demo-album fade ${albumIn ? "in" : ""} ${albumSelected ? "selected" : ""}`}>
-            <img className="demo-cover" src={DEMO.cover} alt="" width="36" height="36" />
-            <div>
-              <div className="demo-album-name">{DEMO.album}</div>
-              <div className="demo-album-artist">{DEMO.artist}</div>
-            </div>
-          </div>
-
-          <div className="demo-rows">
-            {DEMO.credits.map((c, i) => {
-              const rowIn = t >= 2600 + i * 350;
-              const found = t >= 4000 + i * 450;
-              return (
-                <div key={c.name} className={`demo-row fade ${rowIn ? "in" : ""}`}>
-                  <span className="demo-name">
-                    <img className="demo-avatar" src={c.photo} alt="" width="24" height="24" />
-                    {c.name}
-                  </span>
-                  <span className="demo-role"><span className={`role-tag ${c.cls}`}>{c.role}</span></span>
-                  <span className={`demo-handle ${found ? "found" : ""}`}>{found ? `@${c.handle}` : "looking…"}</span>
-                  <span className={`demo-email ${found ? "found" : ""}`}>{found ? "✓ Email found" : "—"}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {!reduced && (
-          <div className="demo-controls">
-            <button type="button" className="demo-toggle" aria-pressed={!playing} onClick={() => setPlaying(p => !p)}>
-              {playing ? "Pause demo" : "Play demo"}
-            </button>
-          </div>
-        )}
-      </div>
-    </section>
-  );
 }
 
 // ── Accounts: the search tool is for signed-in users only ───────────────────
@@ -4080,7 +3981,6 @@ function App() {
           </section>
           <Features />
           <LandingExtras />
-          <Explainer />
         </>}
       </main>
 
