@@ -3,6 +3,8 @@ Sets an account's plan by hand, e.g. to give your own account Pro or to restart 
 
   python set_plan.py you@example.com pro 12     # Pro for 12 more months
   python set_plan.py you@example.com trial      # a fresh 7-day trial from now
+  python set_plan.py you@example.com lifetime  # Lifetime Pro, never expires (owner grants only)
+  python set_plan.py you@example.com free      # trial ended: the account is blocked until it pays
 """
 
 import sys
@@ -31,5 +33,12 @@ with accounts.sqlite3.connect(accounts.DB_PATH) as conn:
         conn.execute("UPDATE users SET trial_ends_at = ? WHERE email = ?",
                      (time.time() + TRIAL_DAYS * 86400, email))
         print(f"{email}: new {TRIAL_DAYS}-day trial.")
+    elif plan == "lifetime":
+        conn.execute("UPDATE users SET plan = 'lifetime', plan_expires_at = NULL WHERE email = ?", (email,))
+        print(f"{email}: Lifetime Pro.")
+    elif plan == "free":
+        conn.execute("UPDATE users SET plan = NULL, plan_expires_at = NULL, trial_ends_at = ? WHERE email = ?",
+                     (time.time() - 1, email))
+        print(f"{email}: trial ended, the account now needs Pro.")
     else:
-        sys.exit("Plan must be 'pro' or 'trial'.")
+        sys.exit("Plan must be 'pro', 'trial', 'lifetime' or 'free'.")

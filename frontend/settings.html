@@ -156,7 +156,11 @@ function renderPlan(account) {
   const text = $("plan-text");
   const actions = $("plan-actions");
   actions.innerHTML = "";
-  if (account.plan === "pro") {
+  if (account.plan === "lifetime") {
+    pill.textContent = "Lifetime Pro";
+    pill.className = "pill ok";
+    text.textContent = "You have Lifetime Pro. It never expires.";
+  } else if (account.plan === "pro") {
     pill.textContent = "Pro";
     pill.className = "pill ok";
     text.textContent = `Your Pro plan is paid up until ${formatDate(account.expires_at)}.`;

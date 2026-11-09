@@ -145,10 +145,10 @@ def start_checkout():
 def _set_paid_until(customer_id, email, until):
     with sqlite3.connect(_db_path) as conn:
         if email:
-            conn.execute("UPDATE users SET plan = 'pro', plan_expires_at = ?, stripe_customer = ? WHERE email = ?",
+            conn.execute("UPDATE users SET plan = CASE WHEN plan = 'lifetime' THEN plan ELSE 'pro' END, plan_expires_at = ?, stripe_customer = ? WHERE email = ?",
                          (until, customer_id, email))
         elif customer_id:
-            conn.execute("UPDATE users SET plan = 'pro', plan_expires_at = ? WHERE stripe_customer = ?",
+            conn.execute("UPDATE users SET plan = CASE WHEN plan = 'lifetime' THEN plan ELSE 'pro' END, plan_expires_at = ? WHERE stripe_customer = ?",
                          (until, customer_id))
 
 
