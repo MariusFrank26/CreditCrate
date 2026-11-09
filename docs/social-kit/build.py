@@ -111,4 +111,30 @@ make("06-link-preview", 1200, 630,
      '<div class="eyebrow" style="font-size:22px">creditcrate.app</div></div>',
      grid=48, radius=0)
 
+# 7. Instagram post, 1080 x 1080: all six tools in one image
+TOOLS = [
+    ("01", "Credits", "Find who made any album."),
+    ("02", "Contacts", "Keep your list in one place."),
+    ("03", "Packs", "Your samples, saved as links."),
+    ("04", "Inbox", "Samples from your Gmail, in one place."),
+    ("05", "Campaigns", "Send from your own Gmail. See who opens."),
+    ("06", "Deal Desk", "Split sheets and invoices."),
+]
+cards = "".join(
+    f'<div class="card" style="padding:22px 26px;display:flex;flex-direction:column;gap:10px;border-radius:20px">'
+    f'<span class="eyebrow" style="font-size:20px">{n}</span>'
+    f'<span style="font-size:36px;font-weight:600;letter-spacing:-0.02em;color:#fff">{t}</span>'
+    f'<span style="font-size:24px;line-height:1.35;color:#8a8f98">{d}</span></div>'
+    for n, t, d in TOOLS
+)
+make("07-post-six-tools", 1080, 1080,
+     '<div style="position:absolute;left:72px;right:72px;top:72px;bottom:72px;display:flex;flex-direction:column;justify-content:space-between">'
+     '<div><p class="eyebrow" style="font-size:24px">Everything you do outside your DAW</p>'
+     '<div style="margin-top:14px;font-size:76px;font-weight:600;line-height:1.02;letter-spacing:-0.035em;color:#fff">'
+     'Six tools.<br><span class="accent">One hub.</span></div></div>'
+     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' + cards + '</div>'
+     '<div style="display:flex;align-items:center;justify-content:space-between">' + brand(60, gap=16) +
+     '<span class="eyebrow" style="font-size:22px">creditcrate.app</span></div></div>',
+     grid=56, radius=20)
+
 print(SIZES)
