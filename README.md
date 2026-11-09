@@ -26,8 +26,21 @@ AUTH_SECRET=long_random_string
 
 Without it the backend still starts, but everyone is signed out on every restart.
 
-### 2b. Create an account
-The search tool is only available to signed-in users. Sign-up is closed, so accounts are created on the server:
+### 2b. Accounts and sign-up
+The tools are only available to signed-in users. People sign up on the landing page. Each sign-up gets a verification link by email, and the 7-day free trial starts when the link is opened. Passwords can be reset by email.
+
+Sign-up and reset emails are sent through [Resend](https://resend.com) (platform mail, separate from each user's Gmail). Set these in `.env` or the compose environment:
+
+```env
+RESEND_API_KEY=re_...
+MAIL_FROM=CreditCrate <hello@creditcrate.app>
+```
+
+Before opening sign-up, verify the sending domain in Resend (the DNS records it lists for `creditcrate.app`). Without these two variables, sign-up is refused with a clear message, so no account is created that can't be verified.
+
+Links are signed. Verification links work for 48 hours, reset links for one hour, and a reset link stops working as soon as the password changes. `PUBLIC_API_URL` and `PUBLIC_SITE_URL` set the addresses used in those links.
+
+To create or fix an account by hand (for example your own, or one you grant a plan to), use the owner script. It skips the email step:
 
 ```bash
 cd backend
@@ -115,14 +128,18 @@ Deal Desk builds split sheets, producer agreements and invoices. It lives at `/t
 CreditCrate/
 ├── backend/
 │   ├── app.py             # Flask API server, Genius + Instagram lookups, SQLite cache
-│   ├── accounts.py        # Sign-in tokens, login gate, newsletter sign-ups
+│   ├── accounts.py        # Accounts, sign-in tokens, verification and trial/plan gate
+│   ├── auth_flow.py       # Sign-up, email verification, password reset (Resend)
 │   ├── mailing.py         # Contacts, CSV import, packs, campaigns, unsubscribe, sending
 │   ├── create_user.py     # Creates or resets a CreditCrate account
 │   ├── login.py           # One-time Instagram session setup
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/
-│   ├── index.html         # CreditCrate search app (single-file React, no build step)
+│   ├── index.html         # Landing page, sign-up/log in, and the tools (single-file React, no build step)
+│   ├── reset.html         # Choose a new password from the reset link
+│   ├── terms.html         # Terms of service (draft)
+│   ├── privacy.html       # Privacy policy (draft)
 │   ├── tools/
 │   │   └── dealdesk/
 │   │       └── index.html # Deal Desk: split sheets, agreements, invoices. Local-only, no server calls
@@ -135,8 +152,12 @@ CreditCrate/
 
 | Endpoint | Description |
 |---|---|
-| `POST /api/login` | Sign in with email and password, returns a token |
-| `POST /api/newsletter` | Sign up for launch notifications (`{"email": …}`) |
+| `POST /api/login` | Sign in with email and password, returns a token. Unverified accounts get 403 with `code: "unverified"` |
+| `POST /api/signup` | Create an account (`email`, `password`, `accept_terms: true`) and send the verification email |
+| `GET /api/verify?token=…` | Verify the account from the email link, then redirect to the site |
+| `POST /api/verify/resend` | Send a new verification link (`{"email": …}`) |
+| `POST /api/password/forgot` | Send a reset link (`{"email": …}`). Always gives the same answer |
+| `POST /api/password/reset` | Set a new password with the reset token (`token`, `password`) |
 | `GET /api/search?album=…&artist=…` | Search albums on Genius (sign-in required) |
 | `GET /api/album/{id}/credits` | All credits for an album (sign-in required) |
 | `GET /api/health` | Server and Instaloader status |

@@ -303,6 +303,8 @@ def init_album_cache_db():
 init_album_cache_db()
 mailing.register(app, DB_PATH)
 billing.register(app, DB_PATH)
+import auth_flow
+auth_flow.register(app)
 import inbox
 inbox.register(app)
 
@@ -457,6 +459,8 @@ def login():
     email = accounts.normalize_email(data.get("email"))
     if not accounts.verify_login(email, data.get("password") or ""):
         return jsonify({"error": "Wrong email or password."}), 401
+    if not accounts.is_verified(email):
+        return jsonify({"error": "Check your email and open the link to verify your account.", "code": "unverified"}), 403
     return jsonify({"token": accounts.issue_token(email)})
 
 

@@ -9,5 +9,5 @@ import accounts
 accounts.init_db()
 email = input("Account email: ").strip()
 password = getpass.getpass("Password: ")
-accounts.create_user(email, password)
+accounts.create_user(email, password, verified=True)
 print(f"Account {accounts.normalize_email(email)} saved.")

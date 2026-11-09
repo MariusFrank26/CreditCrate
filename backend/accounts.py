@@ -47,6 +47,10 @@ def init_db():
         for column, kind in (("plan", "TEXT"), ("trial_ends_at", "REAL"), ("plan_expires_at", "REAL"), ("stripe_customer", "TEXT")):
             if column not in columns:
                 conn.execute(f"ALTER TABLE users ADD COLUMN {column} {kind}")
+        if "email_verified_at" not in columns:
+            # Existing accounts were created by the owner, so they count as verified from now on
+            conn.execute("ALTER TABLE users ADD COLUMN email_verified_at REAL")
+            conn.execute("UPDATE users SET email_verified_at = ?", (time.time(),))
         # Accounts that existed before trials got a fresh 7 days from now, not from when they were created
         conn.execute("UPDATE users SET trial_ends_at = ? WHERE trial_ends_at IS NULL", (time.time() + TRIAL_DAYS * 86400,))
         conn.execute("""
@@ -65,18 +69,32 @@ def is_valid_email(email):
     return len(email) <= 254 and EMAIL_RE.match(email) is not None
 
 
-def create_user(email, password):
-    """Creates the account, or replaces the password of an existing one."""
+def create_user(email, password, verified=False):
+    """Creates the account, or replaces the password of an existing one. New accounts start unverified
+    unless verified=True (the owner's own script), and the trial starts now either way."""
     email = normalize_email(email)
     if not is_valid_email(email):
         raise ValueError("Not a valid email address.")
     if len(password) < MIN_PASSWORD_LENGTH:
         raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters.")
+    now = time.time()
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
-            INSERT INTO users (email, password_hash, created_at, trial_ends_at) VALUES (?, ?, ?, ?)
+            INSERT INTO users (email, password_hash, created_at, trial_ends_at, email_verified_at) VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(email) DO UPDATE SET password_hash = excluded.password_hash
-        """, (email, generate_password_hash(password), time.time(), time.time() + TRIAL_DAYS * 86400))
+        """, (email, generate_password_hash(password), now, now + TRIAL_DAYS * 86400, now if verified else None))
+
+
+def is_verified(email):
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute("SELECT email_verified_at FROM users WHERE email = ?", (normalize_email(email),)).fetchone()
+    return bool(row and row[0])
+
+
+def mark_verified(email):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("UPDATE users SET email_verified_at = COALESCE(email_verified_at, ?) WHERE email = ?",
+                     (time.time(), normalize_email(email)))
 
 
 def verify_login(email, password):
@@ -131,6 +149,8 @@ def login_required(view):
     def wrapper(*args, **kwargs):
         if not _signed_in():
             return jsonify({"error": "Sign in to use CreditCrate."}), 401
+        if not is_verified(current_email()):
+            return jsonify({"error": "Check your email and open the link to verify your account.", "code": "unverified"}), 403
         if not access_status(current_email())["active"]:
             return jsonify({
                 "error": "Your free trial has ended. Choose a plan to keep using CreditCrate.",

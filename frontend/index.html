@@ -1308,6 +1308,22 @@
   }
   .price-link:hover { filter: brightness(1.05); }
 
+  /* ── AUTH: sign up and log in on the landing page ── */
+  .auth { margin-top: 36px; max-width: 460px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 16px; padding: 22px; }
+  .auth-tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+  .auth-tab { font-family: var(--sans); font-size: 14px; background: none; border: 1px solid var(--graphite); border-radius: 999px; color: var(--fog); padding: 7px 14px; cursor: pointer; }
+  .auth-tab[aria-selected="true"] { background: var(--paper); border-color: var(--paper); color: var(--void); }
+  .auth-form { display: flex; flex-direction: column; gap: 10px; }
+  .auth-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--fog); margin-top: 4px; }
+  .auth-check input { margin-top: 3px; }
+
+  .auth-sent { display: flex; flex-direction: column; gap: 10px; font-size: 15px; color: var(--mist); }
+  .auth-sent strong { color: var(--paper); font-weight: 510; }
+  .auth-title { font-size: 17px; font-weight: 510; color: var(--paper); }
+  .auth-note { font-size: 13px; color: var(--ash); }
+  .auth-link { margin-top: 12px; background: none; border: 0; color: var(--sky); font-size: 13px; cursor: pointer; font-family: var(--sans); }
+  .msg-ok { font-size: 14px; color: var(--mint); background: rgba(163,221,194,.08); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
+
   /* ── HERO + SIGN-UP ── */
   .hero { padding: 40px 0 0; max-width: 760px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
@@ -1760,11 +1776,15 @@ function LoginForm({ onSignedIn }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [unverified, setUnverified] = useState(false);
+  const [resent, setResent] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    setUnverified(false);
+    setResent(false);
     try {
       const res = await fetch(`${API}/login`, {
         method: "POST",
@@ -1772,12 +1792,27 @@ function LoginForm({ onSignedIn }) {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json().catch(() => ({}));
+      if (data.code === "unverified") {
+        setUnverified(true);
+        throw new Error(data.error);
+      }
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
       onSignedIn(data.token);
     } catch (err) {
       setError(err.message);
       setBusy(false);
     }
+  }
+
+  async function resend() {
+    setResent(true);
+    try {
+      await fetch(`${API}/verify/resend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+    } catch (_) { /* the reply is the same either way */ }
   }
 
   return (
@@ -1814,6 +1849,11 @@ function LoginForm({ onSignedIn }) {
         </button>
       </form>
       {error && <div className="error-msg" role="alert">⚠ {error}</div>}
+      {unverified && (
+        resent
+          ? <div className="msg-ok" role="status">If that account is still waiting for verification, a new link is on its way.</div>
+          : <button type="button" className="auth-link" onClick={resend}>Send me a new verification link</button>
+      )}
     </section>
   );
 }
@@ -2020,60 +2060,124 @@ function LandingExtras() {
 
 // ── Landing: newsletter sign-up until CreditCrate is released ───────────────
 
-function NewsletterForm() {
+// Sign up for the 7-day free trial, or log in. Accounts are created here; the trial starts at once.
+function SignUpForm({ onSignedIn }) {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState("idle"); // idle | sending | done | failed
+  const [password, setPassword] = useState("");
+  const [accepted, setAccepted] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [sentTo, setSentTo] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setStatus("sending");
+    setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/newsletter`, {
+      const res = await fetch(`${API}/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, accept_terms: accepted }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+      setSentTo(email);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (sentTo) {
+    return (
+      <div className="auth-sent" role="status">
+        <p className="auth-title">Check your inbox</p>
+        <p>We sent a verification link to <strong>{sentTo}</strong>. Open it to verify your account and start your 7-day free trial.</p>
+        <p className="auth-note">Nothing in your inbox? Check your spam folder.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form className="auth-form" onSubmit={handleSubmit}>
+      <label className="search-label" htmlFor="signup-email">Email</label>
+      <input id="signup-email" type="email" name="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
+      <label className="search-label" htmlFor="signup-password">Password (at least 8 characters)</label>
+      <input id="signup-password" type="password" name="password" autoComplete="new-password" minLength={8} required value={password} onChange={e => setPassword(e.target.value)} />
+      <label className="auth-check">
+        <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)} required />
+        <span>I agree to the <a href="terms.html" target="_blank" rel="noopener noreferrer">terms</a> and <a href="privacy.html" target="_blank" rel="noopener noreferrer">privacy policy</a>.</span>
+      </label>
+      <button type="submit" className="search-btn" disabled={busy || !accepted} aria-busy={busy}>
+        {busy && <span className="spinner" aria-hidden="true" />}
+        Start my 7-day free trial
+      </button>
+      {error && <div className="error-msg" role="alert">⚠ {error}</div>}
+    </form>
+  );
+}
+
+function ForgotForm({ onBack }) {
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await fetch(`${API}/password/forgot`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
-      setStatus("done");
-    } catch (err) {
-      setError(err.message);
-      setStatus("failed");
+    } finally {
+      setSent(true);
+      setBusy(false);
     }
   }
 
+  if (sent) {
+    return (
+      <div className="auth-sent" role="status">
+        <p>If an account exists for that address, we've sent a link to reset the password. It works for one hour.</p>
+        <button type="button" className="back-btn" onClick={onBack}>Back to log in</button>
+      </div>
+    );
+  }
   return (
-    <div className="signup">
-      {status === "done" ? (
-        <p className="signup-done" role="status">You're on the list. We'll email you the day it's live.</p>
-      ) : (
-        <form className="search-row" onSubmit={handleSubmit}>
-          <div className="search-input-wrap">
-            <label className="search-label" htmlFor="newsletter-email">Get notified when it's live</label>
-            <input
-              id="newsletter-email"
-              type="email"
-              name="email"
-              placeholder="you@example.com"
-              autoComplete="email"
-              enterKeyHint="send"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
-          </div>
-          <button type="submit" className="search-btn" disabled={status === "sending"} aria-busy={status === "sending"}>
-            {status === "sending" && <span className="spinner" aria-hidden="true" />}
-            Notify me
-          </button>
-        </form>
-      )}
-      {error && <div className="error-msg" role="alert">⚠ {error}</div>}
-    </div>
+    <form className="auth-form" onSubmit={handleSubmit}>
+      <label className="search-label" htmlFor="forgot-email">Email</label>
+      <input id="forgot-email" type="email" name="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
+      <button type="submit" className="search-btn" disabled={busy} aria-busy={busy}>Send reset link</button>
+      <button type="button" className="back-btn" onClick={onBack}>Back to log in</button>
+    </form>
   );
 }
+
+function AuthPanel({ onSignedIn }) {
+  const verified = new URLSearchParams(window.location.search).get("verified") === "1";
+  const [mode, setMode] = useState(verified ? "login" : "signup");
+  return (
+    <section className="auth" aria-label="Create an account or log in">
+      {verified && <div className="msg-ok" role="status">Your email is verified. Log in to start your 7-day free trial.</div>}
+      <div className="auth-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected={mode === "signup"} className="auth-tab" onClick={() => setMode("signup")}>Start free</button>
+        <button type="button" role="tab" aria-selected={mode === "login" || mode === "forgot"} className="auth-tab" onClick={() => setMode("login")}>Log in</button>
+      </div>
+      {mode === "signup" && <SignUpForm onSignedIn={onSignedIn} />}
+      {mode === "login" && (
+        <>
+          <LoginForm onSignedIn={onSignedIn} />
+          <button type="button" className="auth-link" onClick={() => setMode("forgot")}>Forgot your password?</button>
+        </>
+      )}
+      {mode === "forgot" && <ForgotForm onBack={() => setMode("login")} />}
+    </section>
+  );
+}
+
 
 function ToolHeading({ id, eyebrow, title, copy }) {
   return (
@@ -3512,7 +3616,6 @@ function App() {
   const [error, setError] = useState(null);
   const [roleFilter, setRoleFilter] = useState(ROLE_FILTERS.includes(initialRole) ? initialRole : "ALL");
   const [token, setToken] = useState(readToken);
-  const [showLogin, setShowLogin] = useState(false);
   const [deckIndex, setDeckIndex] = useState(0);
   const [apiStatus, setApiStatus] = useState("checking"); // checking | online | offline
 
@@ -3656,14 +3759,12 @@ function App() {
   function handleSignedIn(newToken) {
     storeToken(newToken);
     setToken(newToken);
-    setShowLogin(false);
     setError(null);
   }
 
   function signOut(message = null) {
     storeToken("");
     setToken("");
-    setShowLogin(false);
     setSearchResults(null);
     setSelectedAlbum(null);
     setCredits(null);
@@ -3972,12 +4073,12 @@ function App() {
 
         {!token && <>
           <section className="hero" aria-labelledby="hero-heading">
-            <p className="eyebrow">Launching soon</p>
+            <p className="eyebrow">Free for 7 days</p>
             <h2 id="hero-heading" className="hero-title">Everything you do outside your DAW.</h2>
             <p className="hero-copy">
               You already make the music. Let’s get it to the people who need to hear it.
             </p>
-            <NewsletterForm />
+            <AuthPanel onSignedIn={handleSignedIn} />
           </section>
           <Features />
           <LandingExtras />
@@ -3985,14 +4086,8 @@ function App() {
       </main>
 
       <footer className="site-footer">
-        {!token && showLogin && <LoginForm onSignedIn={handleSignedIn} />}
         <div className="site-footer-row">
-          <span>CreditCrate © 2026 · <a href="pricing.html">Pricing</a> · <a href="privacy.html">Privacy</a></span>
-          {!token && (
-            <button type="button" className="back-btn" aria-expanded={showLogin} onClick={() => setShowLogin(s => !s)}>
-              {showLogin ? "Close" : "Member sign in"}
-            </button>
-          )}
+          <span>CreditCrate © 2026 · <a href="pricing.html">Pricing</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></span>
         </div>
       </footer>
     </div>
