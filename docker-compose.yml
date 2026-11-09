@@ -13,7 +13,6 @@ services:
       - IG_SESSION_USERNAME=${IG_SESSION_USERNAME}
       - AUTH_SECRET=${AUTH_SECRET}
       - CREDENTIAL_KEY=${CREDENTIAL_KEY}   # Fernet key that encrypts Gmail app passwords
-      - MAIL_SENDER_ADDRESS=${MAIL_SENDER_ADDRESS:-}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - MAIL_FROM=${MAIL_FROM:-}
       - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.creditcrate.app/api}

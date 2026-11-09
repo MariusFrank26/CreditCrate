@@ -37,7 +37,6 @@ logger = logging.getLogger(__name__)
 
 bp = Blueprint("mailing", __name__)
 
-MAIL_SENDER_ADDRESS = os.getenv("MAIL_SENDER_ADDRESS")  # postal address, required for live sends
 PUBLIC_API_URL = os.getenv("PUBLIC_API_URL", "https://api.creditcrate.app/api").rstrip("/")
 
 MAX_CSV_BYTES = 10 * 1024 * 1024
@@ -451,8 +450,6 @@ def _render(campaign, contact, pack_url):
     if pack_url:
         text += f"\n\nDownload the pack: {pack_url}"
     text += f"\n\n---\nNot interested? Unsubscribe: {unsubscribe}"
-    if MAIL_SENDER_ADDRESS:
-        text += f"\n{MAIL_SENDER_ADDRESS}"
 
     if not campaign["track"]:
         return text, _html_body(text, None)
