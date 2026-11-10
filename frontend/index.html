@@ -591,7 +591,8 @@
   .quick-copy { font-size: 13px; color: var(--fog); }
 
   /* ── LANDING: features and pipeline (visitors before sign-in) ── */
-  .drift-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .drift-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+  main#main { position: relative; z-index: 0; }
   .drift-orb {
     position: absolute; border-radius: 50%; filter: blur(20px);
     animation-name: orb-drift; animation-timing-function: ease-in-out; animation-iteration-count: infinite;
@@ -5699,7 +5700,7 @@ function App() {
         </AppDeck>
         )}
 
-        {!token && <DriftBackground />}
+        <DriftBackground />
         {!token && page === "features" && <Features />}
         {!token && page === "faq" && <FaqPage />}
         {!token && page === "roadmap" && <RoadmapPage />}
