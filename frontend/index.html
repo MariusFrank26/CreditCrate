@@ -1363,6 +1363,8 @@
     .imsg-file { min-width: 0; }
   }
 
+  .inbox-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+  .inbox-download-all { margin-top: 0; }
   .inbox-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .inbox-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
   .inbox-item {
@@ -3151,6 +3153,10 @@ function InboxTool({ token, onAuthError }) {
   const [message, setMessage] = useState(null);
   const [downloadError, setDownloadError] = useState(null);
   const [busyFile, setBusyFile] = useState(null);
+  const [accountAddress, setAccountAddress] = useState("");
+  const [downloaded, setDownloaded] = useState(new Set());
+  const [batch, setBatch] = useState(null);
+  const stopRef = useRef(false);
   const { busy, error, run } = useToolRunner(onAuthError);
 
   // The scan runs on the server in the background, so a week of mail can take as long as it needs
@@ -3185,6 +3191,7 @@ function InboxTool({ token, onAuthError }) {
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+      markDownloaded(item.uid, item.attachments);
       setMessage(`Downloaded ${item.subject}.zip.`);
     } catch (e) {
       setDownloadError(e.message);
@@ -3195,25 +3202,67 @@ function InboxTool({ token, onAuthError }) {
 
   useEffect(() => { run(load); }, []);
 
+  // Which attachments were already saved on this device, per Gmail account
+  const downloadKey = accountAddress ? `creditcrate-inbox-downloads:${accountAddress}` : null;
+
+  useEffect(() => {
+    callApi("/mail/account", token)
+      .then(a => setAccountAddress((a && a.address) || ""))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!downloadKey) return;
+    try {
+      setDownloaded(new Set(JSON.parse(localStorage.getItem(downloadKey) || "[]")));
+    } catch (e) {
+      setDownloaded(new Set());
+    }
+  }, [downloadKey]);
+
+  function fileKey(uid, file) {
+    return `${uid}|${file.part}|${file.name}`;
+  }
+
+  function markDownloaded(uid, files) {
+    setDownloaded(prev => {
+      const next = new Set(prev);
+      files.forEach(file => next.add(fileKey(uid, file)));
+      if (downloadKey) {
+        try { localStorage.setItem(downloadKey, JSON.stringify([...next])); } catch (e) { /* storage full or blocked */ }
+      }
+      return next;
+    });
+  }
+
+  // Fetches one attachment from Gmail and saves it. Throws if it fails.
+  async function saveAttachment(uid, file) {
+    const res = await fetch(`${API}/inbox/${uid}/attachments/${file.part}`, { headers: authHeaders(token) });
+    if (res.status === 401) {
+      onAuthError();
+      throw new Error("You were signed out.");
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `Server error ${res.status}`);
+    }
+    const url = URL.createObjectURL(await res.blob());
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    markDownloaded(uid, [file]);
+  }
+
   async function download(uid, file) {
     setBusyFile(file.part);
     setDownloadError(null);
     setMessage(null);
     try {
-      const res = await fetch(`${API}/inbox/${uid}/attachments/${file.part}`, { headers: authHeaders(token) });
-      if (res.status === 401) return onAuthError();
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `Server error ${res.status}`);
-      }
-      const url = URL.createObjectURL(await res.blob());
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = file.name;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      await saveAttachment(uid, file);
       setMessage(`Downloaded ${file.name}.`);
     } catch (e) {
       setDownloadError(e.message);
@@ -3221,6 +3270,55 @@ function InboxTool({ token, onAuthError }) {
       setBusyFile(null);
     }
   }
+
+  // Saves every sample from the last 7 days that isn't downloaded yet, one after another
+  async function downloadNew() {
+    const todo = [];
+    for (const item of messages || []) {
+      for (const file of item.attachments) {
+        if (!downloaded.has(fileKey(item.uid, file))) todo.push({ uid: item.uid, file });
+      }
+    }
+    if (todo.length === 0) {
+      setMessage("Everything from the last 7 days is already downloaded.");
+      return;
+    }
+    stopRef.current = false;
+    setDownloadError(null);
+    setMessage(null);
+    setBatch({ done: 0, total: todo.length, current: "" });
+    let failure = null;
+    let stopped = false;
+    for (const { uid, file } of todo) {
+      if (stopRef.current) { stopped = true; break; }
+      setBatch(b => ({ ...b, current: file.name }));
+      try {
+        await saveAttachment(uid, file);
+      } catch (e) {
+        failure = e.message;
+        break;
+      }
+      setBatch(b => ({ ...b, done: b.done + 1 }));
+      await new Promise(r => setTimeout(r, 900));
+    }
+    setBatch(null);
+    if (failure) {
+      setDownloadError(`Stopped: ${failure}`);
+    } else if (stopped) {
+      setMessage("Stopped. The samples you already have stay marked as downloaded.");
+    } else {
+      setMessage(`Downloaded ${todo.length} new ${todo.length === 1 ? "sample" : "samples"}.`);
+    }
+  }
+
+  function stopBatch() {
+    stopRef.current = true;
+  }
+
+  const newCount = (messages || []).reduce(
+    (total, item) => total + item.attachments.filter(file => !downloaded.has(fileKey(item.uid, file))).length,
+    0
+  );
 
   const demo = messages !== null && messages.length === 0;
   const chats = demo ? exampleChats() : groupBySender(messages || []);
@@ -3244,7 +3342,24 @@ function InboxTool({ token, onAuthError }) {
 
       <div className="inbox-head">
         <span className="history-meta">{messages ? `${messages.length} ${messages.length === 1 ? "email" : "emails"} with samples from the last 7 days` : ""}</span>
-        <button type="button" className="back-btn" onClick={() => run(load)} disabled={busy}>Refresh</button>
+        <div className="inbox-actions">
+          {batch ? (
+            <>
+              <span className="history-meta">Downloading {batch.done + 1} of {batch.total}</span>
+              <button type="button" className="back-btn" onClick={stopBatch}>Stop</button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="imsg-action inbox-download-all"
+              onClick={downloadNew}
+              disabled={busy || !messages || messages.length === 0}
+            >
+              {newCount > 0 ? `Download ${newCount} new` : "All downloaded"}
+            </button>
+          )}
+          <button type="button" className="back-btn" onClick={() => run(load)} disabled={busy || !!batch}>Refresh</button>
+        </div>
       </div>
 
       {messages === null ? (
@@ -3289,12 +3404,14 @@ function InboxTool({ token, onAuthError }) {
                             {item.attachments.map(file => (
                               <div key={file.part} className="imsg-bubble imsg-file">
                                 <span className="imsg-file-name">{file.name}</span>
-                                <span className="imsg-file-meta">{formatSize(file.size)}</span>
+                                <span className="imsg-file-meta">
+                                  {formatSize(file.size)}{!demo && downloaded.has(fileKey(item.uid, file)) ? " · Downloaded" : ""}
+                                </span>
                                 <button
                                   type="button"
                                   className="imsg-action"
                                   onClick={() => download(item.uid, file)}
-                                  disabled={demo || busyFile === file.part}
+                                  disabled={demo || busyFile === file.part || !!batch}
                                 >
                                   {busyFile === file.part ? "Downloading…" : "Download"}
                                 </button>
