@@ -689,6 +689,44 @@ def get_history(album_id):
     return jsonify({"id": album_id, "name": name, "artist": artist, "cover_art": cover_art, "credits": json.loads(credits)})
 
 
+# The landing page's preview shows the Iceman cover and producer photos, taken from Genius
+# through the API (the same token and search the Credits app uses). Cached for an hour.
+DEMO_PRODUCERS = [
+    ('Noah "40" Shebib', "Noah 40 Shebib", lambda name: "shebib" in name),
+    ("Boi-1da", "Boi-1da", lambda name: name == "boi-1da"),
+    ("Tay Keith", "Tay Keith", lambda name: name == "tay keith"),
+    ("Cash Cobain", "Cash Cobain", lambda name: name == "cash cobain"),
+    ("Conductor Williams", "Conductor Williams", lambda name: name == "conductor williams"),
+    ("Oz", "Oz", lambda name: name == "oz"),
+]
+_demo_cache = {"at": 0.0, "data": None}
+
+
+@app.route("/api/demo/artwork", methods=["GET"])
+def demo_artwork():
+    if _demo_cache["data"] is not None and time.time() - _demo_cache["at"] < 3600:
+        return jsonify(_demo_cache["data"])
+    data = {"album": None, "producers": []}
+    try:
+        album = next((a for a in find_albums("Iceman Drake") if a.get("name", "").lower() == "iceman"), None)
+        if album:
+            data["album"] = {"name": album["name"], "artist": album.get("artist", ""), "image_url": album.get("cover_art")}
+        for display, query, matches in DEMO_PRODUCERS:
+            resp = requests.get(f"{GENIUS_BASE}/search", headers=HEADERS, params={"q": query, "per_page": 10}, timeout=10)
+            resp.raise_for_status()
+            image = None
+            for hit in resp.json()["response"]["hits"]:
+                primary = hit["result"].get("primary_artist") or {}
+                if matches((primary.get("name") or "").lower()):
+                    image = primary.get("image_url")
+                    break
+            data["producers"].append({"name": display, "image_url": image})
+    except Exception as e:
+        logger.warning(f"Demo artwork could not be loaded: {e}")
+    _demo_cache.update(at=time.time(), data=data)
+    return jsonify(data)
+
+
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"})

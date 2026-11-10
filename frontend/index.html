@@ -1723,6 +1723,9 @@
   .dm-pack span { color: var(--sunshine); }
   .dm-pack b { background: var(--sunshine); color: var(--void); }
   .dm-muted { color: var(--ash); }
+  .dm-cover-sm img.dm-cover-art { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+  .dm-cover-sm { overflow: hidden; }
+  .dm-photo { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex: none; }
   .dm-chevron { color: var(--ash); font-size: 18px; }
   .dm-email { font-size: 12px; font-style: italic; color: var(--ash); flex: none; }
   .dm-email.is-found { font-style: normal; color: var(--paper); background: var(--graphite); border-radius: 6px; padding: 3px 8px; }
@@ -4613,7 +4616,7 @@ const DEMO_PRODUCERS = [
   { name: "Oz", initials: "OZ", tone: "#9fb4f2" },
 ];
 
-function HeroDemo() {
+function HeroDemo({ artwork }) {
   const [tool, setTool] = useState("credits");
   const [picked, setPicked] = useState(new Set(["Boi-1da", "Tay Keith"]));
   const [chatWith, setChatWith] = useState("Jonah");
@@ -4633,15 +4636,24 @@ function HeroDemo() {
       <>
         <div className="dm-search"><span>⌕</span><span className="dm-query">Iceman</span><b>Search</b></div>
         <div className="dm-album">
-          <span className="dm-cover-sm"><img src="logo.svg" alt="" /></span>
+          <span className="dm-cover-sm">
+            {artwork?.album?.image_url ? <img src={artwork.album.image_url} alt="" className="dm-cover-art" /> : <img src="logo.svg" alt="" />}
+          </span>
           <span className="dm-grow">
             <span className="dm-name">Iceman</span>
             <span className="dm-meta">Drake · 2026</span>
           </span>
           <span className="dm-meta">{DEMO_PRODUCERS.length} credits</span>
         </div>
-        {DEMO_PRODUCERS.map((p, i) => (
+        {DEMO_PRODUCERS.map((p, i) => {
+          const photo = artwork?.producers?.find(x => x.name === p.name)?.image_url;
+          return (
           <div key={p.name} className="dm-row">
+            {photo ? (
+              <img src={photo} alt="" className="dm-photo" />
+            ) : (
+              <span className="dm-avatar" style={{ background: p.tone }}>{p.initials}</span>
+            )}
             <span className="dm-grow">
               <span className="dm-name">{p.name}</span>
               <span className="dm-meta">{i % 2 === 0 ? "Instagram" : "–"}</span>
@@ -4649,7 +4661,8 @@ function HeroDemo() {
             <em className="dm-role">Producer</em>
             <span className={`dm-email${i === 0 ? " is-found" : ""}`}>{i === 0 ? "Copy" : "not found"}</span>
           </div>
-        ))}
+          );
+        })}
       </>
     );
   }
@@ -4686,13 +4699,13 @@ function HeroDemo() {
           <span className="dm-latest-cover"><img src="logo.svg" alt="" /></span>
           <span className="dm-latest-text">
             <span className="dm-kicker">Latest pack</span>
-            <span className="dm-name">Iceman stems</span>
+            <span className="dm-name">November Samples</span>
             <span className="dm-meta">dropbox.com · Today</span>
           </span>
         </div>
         <p className="dm-kicker">Examples</p>
         <div className="dm-covers">
-          {["Drum loops", "Vocal chops"].map(n => (
+          {["September Samples", "October Samples"].map(n => (
             <div key={n} className="dm-cover dm-cover-faded"><span className="dm-cover-sm"><img src="logo.svg" alt="" /></span><span>{n}</span></div>
           ))}
         </div>
@@ -4889,6 +4902,15 @@ function App() {
   const [apiStatus, setApiStatus] = useState("checking"); // checking | online | offline
   const [mailAccount, setMailAccount] = useState(null); // the connected Gmail, once signed in
   const [page, setPage] = useState(() => (window.location.hash === "#features" ? "features" : "home"));
+  const [artwork, setArtwork] = useState(null); // Iceman cover and producer photos for the landing preview
+
+  useEffect(() => {
+    if (token) return;
+    fetch(`${API}/demo/artwork`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => setArtwork(data))
+      .catch(() => {});
+  }, [token]);
 
   useEffect(() => {
     function onHash() {
@@ -5384,7 +5406,7 @@ function App() {
               </p>
               <AuthPanel onSignedIn={handleSignedIn} />
             </div>
-            <HeroDemo />
+            <HeroDemo artwork={artwork} />
           </section>
           <LandingExtras />
         </>}
