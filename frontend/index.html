@@ -599,7 +599,7 @@
   }
   @keyframes orb-drift {
     from { transform: translate(0, 0) scale(1); opacity: .8; }
-    to { transform: translate(var(--dx), var(--dy)) scale(1.05); opacity: 1; }
+    to { transform: translate(var(--dx), var(--dy)) scale(1.08); opacity: 1; }
   }
   @media (prefers-reduced-motion: reduce) { .drift-orb { animation: none; } }
   .features { margin-top: 32px; }
@@ -4972,10 +4972,10 @@ function FaqPage() {
 
 // The landing background: soft coloured light that drifts slowly behind the page
 const ORBS = [
-  { color: "rgba(243, 213, 139, .22)", size: 520, top: "-8%", left: "62%", dur: 44, dx: -40, dy: 26 },
-  { color: "rgba(163, 221, 194, .16)", size: 460, top: "45%", left: "-6%", dur: 52, dx: 44, dy: -20 },
-  { color: "rgba(201, 182, 238, .14)", size: 560, top: "58%", left: "70%", dur: 58, dx: -30, dy: -36 },
-  { color: "rgba(169, 216, 239, .10)", size: 420, top: "18%", left: "24%", dur: 64, dx: 36, dy: 30 },
+  { color: "rgba(243, 213, 139, .22)", size: 520, top: "-8%", left: "62%", dur: 44, dx: -72, dy: 48 },
+  { color: "rgba(163, 221, 194, .16)", size: 460, top: "45%", left: "-6%", dur: 52, dx: 84, dy: -36 },
+  { color: "rgba(201, 182, 238, .14)", size: 560, top: "58%", left: "70%", dur: 58, dx: -54, dy: -66 },
+  { color: "rgba(169, 216, 239, .10)", size: 420, top: "18%", left: "24%", dur: 64, dx: 66, dy: 54 },
 ];
 
 function DriftBackground() {
