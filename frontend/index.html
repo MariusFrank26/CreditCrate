@@ -592,6 +592,14 @@
 
   /* ── LANDING: features and pipeline (visitors before sign-in) ── */
   .features { margin-top: 32px; }
+  .faq-page { margin-top: 32px; max-width: 760px; }
+  .faq-list { margin-top: 28px; border-top: 1px solid var(--graphite); }
+  .faq-item { border-bottom: 1px solid var(--graphite); }
+  .faq-item summary { list-style: none; cursor: pointer; padding: 20px 4px; font-size: 16px; font-weight: 500; color: var(--paper); display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary::after { content: "+"; font-size: 22px; color: var(--fog); transition: transform .2s; }
+  .faq-item[open] summary::after { transform: rotate(45deg); }
+  .faq-item p { font-size: 15px; color: var(--fog); padding: 0 4px 20px; line-height: 1.6; }
   .features-back { display: inline-block; margin-bottom: 16px; }
   .features-cta { margin-top: 56px; display: flex; justify-content: center; }
   .header-left { display: flex; align-items: center; gap: 32px; min-width: 0; flex-wrap: wrap; }
@@ -4915,6 +4923,46 @@ function HeroDemo({ artwork }) {
   );
 }
 
+// Landing: the questions people ask most, reached from the top bar
+const FAQ_ITEMS = [
+  ["What is CreditCrate?", "A hub for music producers. Look up who made an album, keep your contacts and packs, see your sample inbox, send campaigns from your own Gmail, and run your split sheets and invoices."],
+  ["How much does it cost?", "Every tool is free for 7 days, with no payment needed. After that, Pro is $5 a month or $50 a year. You can cancel at any time."],
+  ["What happens after the 7 days?", "The tools lock until you choose Pro. Your contacts, packs and campaigns are kept, so nothing is lost."],
+  ["Do I need my own Gmail?", "Yes. Campaigns and the sample inbox use your own Gmail, connected with a Google app password. Campaigns are sent from your address, so they land in your Sent folder."],
+  ["Does CreditCrate store my samples?", "No. Downloads come straight from Gmail to your browser. Dropbox and Google Drive links are stored as links only, never the files."],
+  ["Which emails show up in the sample inbox?", "Emails from the last 7 days that have audio or archive attachments, or Dropbox and Drive links."],
+  ["How do campaigns handle unsubscribes?", "Every campaign email has an unsubscribe link. People who opt out are never emailed again, even if you import their address later."],
+  ["Is there a daily sending limit?", "Yes. Gmail accounts can send up to 500 emails in 24 hours through CreditCrate."],
+  ["Where is my data kept?", "Your account, contacts, packs and campaigns are kept on the CreditCrate server. Deal Desk stays in your browser. The privacy page explains the rest."],
+];
+
+function FaqPage() {
+  return (
+    <section className="faq-page" aria-labelledby="faq-page-heading">
+      <a className="back-btn features-back" href="#home">← Back to home</a>
+      <p className="eyebrow">Questions</p>
+      <h2 id="faq-page-heading" className="features-title">Frequently asked questions</h2>
+      <div className="faq-list">
+        {FAQ_ITEMS.map(([question, answer]) => (
+          <details key={question} className="faq-item">
+            <summary>{question}</summary>
+            <p>{answer}</p>
+          </details>
+        ))}
+      </div>
+      <div className="features-cta">
+        <a className="search-btn" href="#home">Start your free 7-day trial</a>
+      </div>
+    </section>
+  );
+}
+
+function pageForHash(hash) {
+  if (hash === "#features") return "features";
+  if (hash === "#faq") return "faq";
+  return "home";
+}
+
 function App() {
   // Saves the public emails found for an album to the user's contacts, labelled with the album
   async function saveToContacts(albumName, creditList) {
@@ -4960,7 +5008,7 @@ function App() {
   const [deckIndex, setDeckIndex] = useState(0);
   const [apiStatus, setApiStatus] = useState("checking"); // checking | online | offline
   const [mailAccount, setMailAccount] = useState(null); // the connected Gmail, once signed in
-  const [page, setPage] = useState(() => (window.location.hash === "#features" ? "features" : "home"));
+  const [page, setPage] = useState(() => pageForHash(window.location.hash));
   const [artwork, setArtwork] = useState(null); // Iceman cover and producer photos for the landing preview
 
   useEffect(() => {
@@ -4973,7 +5021,7 @@ function App() {
 
   useEffect(() => {
     function onHash() {
-      setPage(window.location.hash === "#features" ? "features" : "home");
+      setPage(pageForHash(window.location.hash));
       window.scrollTo(0, 0);
     }
     window.addEventListener("hashchange", onHash);
@@ -5194,6 +5242,7 @@ function App() {
             <nav className="site-nav site-nav-brand" aria-label="Site">
               <a href="#features" aria-current={page === "features" ? "page" : undefined}>Features</a>
               <a href="pricing.html">Pricing</a>
+              <a href="#faq" aria-current={page === "faq" ? "page" : undefined}>FAQ</a>
             </nav>
           )}
         </div>
@@ -5455,10 +5504,11 @@ function App() {
         )}
 
         {!token && page === "features" && <Features />}
+        {!token && page === "faq" && <FaqPage />}
         {!token && page === "home" && <>
           <section className="hero" aria-labelledby="hero-heading">
             <div className="hero-copy-col">
-              <p className="eyebrow">Free for 7 days · no card needed</p>
+              <p className="eyebrow">Free for 7 days · no payment needed</p>
               <h2 id="hero-heading" className="hero-title">Everything you do outside your DAW.</h2>
               <p className="hero-copy">
                 Find who made the record, send your samples, and keep your inbox sorted. All in one place.
