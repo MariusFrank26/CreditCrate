@@ -19,6 +19,7 @@ import re
 import base64
 import html
 import random
+import signal
 import smtplib
 import threading
 import time
@@ -42,8 +43,12 @@ PUBLIC_API_URL = os.getenv("PUBLIC_API_URL", "https://api.creditcrate.app/api").
 MAX_CSV_BYTES = 10 * 1024 * 1024
 MAX_RECIPIENTS_PER_SEND = 500
 SEND_INTERVAL_SECONDS = (2.0, 4.0)  # a random pause between emails, like a person sending by hand
-_sending = set()  # campaign ids currently being sent
-_sending_lock = threading.Lock()
+# Sends are queued in the database (mail_queue) and a background worker sends them one by one.
+# Because the queue is saved, a restart or redeploy does not lose anything: the worker picks up
+# where it left off when the backend starts again.
+_queue_lock = threading.Lock()  # guards claiming and enqueueing rows
+_stop = threading.Event()  # set when the backend is shutting down
+_worker = None
 
 # Pack links must point at Dropbox or Google Drive
 
@@ -67,6 +72,9 @@ def register(app, db_path):
     app.config["MAX_CONTENT_LENGTH"] = MAX_CSV_BYTES + 64 * 1024
     init_db()
     app.register_blueprint(bp)
+    _start_worker()
+    if threading.current_thread() is threading.main_thread():
+        signal.signal(signal.SIGTERM, _on_shutdown)
 
 
 @contextmanager
@@ -161,11 +169,26 @@ def init_db():
                 created_at REAL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS mail_queue (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                campaign_id INTEGER,
+                owner TEXT,
+                email TEXT,
+                status TEXT DEFAULT 'pending',
+                error TEXT,
+                queued_at REAL
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS mail_queue_status ON mail_queue (status, id)")
         columns = {row[1] for row in conn.execute("PRAGMA table_info(mail_campaigns)")}
         if "track" not in columns:
             conn.execute("ALTER TABLE mail_campaigns ADD COLUMN track INTEGER DEFAULT 1")
         if "owner" not in columns:
             conn.execute("ALTER TABLE mail_campaigns ADD COLUMN owner TEXT")
+        if "waiting" not in columns:
+            # people the last send could not reach yet, because of the daily limit
+            conn.execute("ALTER TABLE mail_campaigns ADD COLUMN waiting INTEGER DEFAULT 0")
         sent_columns = {row[1] for row in conn.execute("PRAGMA table_info(mail_sends)")}
         if "sender" not in sent_columns:
             conn.execute("ALTER TABLE mail_sends ADD COLUMN sender TEXT")
@@ -427,7 +450,7 @@ def list_campaigns():
 
 def _recipients(conn, campaign_id, owner, role, tag, emails=None):
     query = """
-        SELECT email, name FROM mail_contacts
+        SELECT email, name, instagram, roles FROM mail_contacts
         WHERE owner = ? AND unsubscribed_at IS NULL
           AND email NOT IN (SELECT email FROM mail_sends WHERE campaign_id = ? AND status = 'sent')
     """
@@ -694,38 +717,169 @@ def activity():
     return jsonify({"recent": recent, "top": top})
 
 
-def _run_campaign(campaign, batch, pack_url, role, tag, address, app_password, emails=None):
-    """Runs in a background thread. Sends one message per person over one Gmail session."""
-    status = "sent"
-    try:
-        with gmail.Sender(address, app_password) as sender:
-            for contact in batch:
-                text, html_body = _render(campaign, contact, pack_url)
-                try:
-                    sender.send(contact["email"], fill_variables(campaign["subject"], contact, pack_url), text, html_body,
-                                unsubscribe_link(contact["email"], campaign["owner"]))
-                    _log_send(campaign["id"], contact["email"], address, "sent", None)
-                except (smtplib.SMTPRecipientsRefused, smtplib.SMTPSenderRefused, smtplib.SMTPDataError) as e:
-                    logger.warning(f"Send to {contact['email']} refused: {e}")
-                    _log_send(campaign["id"], contact["email"], address, "failed", str(e)[:300])
-                time.sleep(random.uniform(*SEND_INTERVAL_SECONDS))
-    except smtplib.SMTPAuthenticationError:
-        status = "stopped: Google rejected the login"
-    except (smtplib.SMTPException, OSError) as e:
-        status = f"stopped: {str(e)[:120]}"
-    except gmail.CredentialError as e:
-        status = f"stopped: {str(e)[:120]}"
+def _set_queue_row(row_id, status, error=None):
     with _conn() as conn:
-        remaining = len(_recipients(conn, campaign["id"], campaign["owner"], role, tag, emails))
-    if status == "sent" and remaining > 0:
-        status = "partial"  # the daily limit or a stop left people waiting
+        conn.execute("UPDATE mail_queue SET status = ?, error = ? WHERE id = ?", (status, error, row_id))
+
+
+def _stop_campaign(campaign_id, status):
+    """Stops a campaign. Its people stay queued, and sending again picks them up."""
     with _conn() as conn:
+        conn.execute("UPDATE mail_campaigns SET status = ? WHERE id = ?", (status, campaign_id))
+    logger.warning(f"Campaign {campaign_id} stopped: {status}")
+
+
+def _finish_if_done(campaign_id):
+    """Marks a campaign sent (or partial, if people are still waiting) once its queue is empty."""
+    with _conn() as conn:
+        left = conn.execute(
+            "SELECT COUNT(*) FROM mail_queue WHERE campaign_id = ? AND status IN ('pending', 'sending')",
+            (campaign_id,),
+        ).fetchone()[0]
+        if left:
+            return
         conn.execute(
-            "UPDATE mail_campaigns SET status = ?, sent_at = CASE WHEN ? = 'sent' THEN ? ELSE sent_at END WHERE id = ?",
-            (status, status, time.time(), campaign["id"]),
+            "UPDATE mail_campaigns SET status = CASE WHEN COALESCE(waiting, 0) > 0 THEN 'partial' ELSE 'sent' END, "
+            "sent_at = CASE WHEN COALESCE(waiting, 0) > 0 THEN sent_at ELSE ? END "
+            "WHERE id = ? AND status = 'sending'",
+            (time.time(), campaign_id),
         )
-    with _sending_lock:
-        _sending.discard(campaign["id"])
+
+
+def _reconcile():
+    """Finishes campaigns that are still marked sending but have nothing left in the queue."""
+    with _conn() as conn:
+        ids = [r[0] for r in conn.execute(
+            "SELECT c.id FROM mail_campaigns c WHERE c.status = 'sending' AND NOT EXISTS "
+            "(SELECT 1 FROM mail_queue q WHERE q.campaign_id = c.id AND q.status IN ('pending', 'sending'))"
+        )]
+    for campaign_id in ids:
+        _finish_if_done(campaign_id)
+
+
+def _next_queued():
+    """Takes the next waiting email of a campaign that is sending. Returns None when there is none."""
+    with _queue_lock:
+        with _conn() as conn:
+            row = conn.execute(
+                "SELECT q.id, q.campaign_id, q.owner, q.email FROM mail_queue q "
+                "JOIN mail_campaigns c ON c.id = q.campaign_id "
+                "WHERE q.status = 'pending' AND c.status = 'sending' ORDER BY q.id LIMIT 1"
+            ).fetchone()
+            if not row:
+                return None
+            conn.execute("UPDATE mail_queue SET status = 'sending' WHERE id = ?", (row["id"],))
+    return dict(row)
+
+
+def _send_queued(item, senders):
+    """Sends one queued email. senders keeps one open Gmail connection per address."""
+    campaign_id, owner, email = item["campaign_id"], item["owner"], item["email"]
+    with _conn() as conn:
+        campaign = conn.execute("SELECT * FROM mail_campaigns WHERE id = ?", (campaign_id,)).fetchone()
+        contact = conn.execute(
+            "SELECT email, name, instagram, roles, unsubscribed_at FROM mail_contacts WHERE owner = ? AND email = ?",
+            (owner, email),
+        ).fetchone()
+        pack = conn.execute("SELECT url FROM mail_packs WHERE id = ? AND owner = ?", (campaign["pack_id"], owner)).fetchone() \
+            if campaign and campaign["pack_id"] else None
+    if not campaign or campaign["status"] != "sending":
+        _set_queue_row(item["id"], "pending")  # campaign was stopped meanwhile; keep the person queued
+        return
+    if not contact or contact["unsubscribed_at"]:
+        _set_queue_row(item["id"], "skipped", "Unsubscribed or removed")
+        return
+    account = _load_account(owner)
+    if not account:
+        _set_queue_row(item["id"], "pending")
+        _stop_campaign(campaign_id, "stopped: Connect your Gmail account first.")
+        return
+    address, encrypted = account
+    if _sent_today(address) >= gmail.DAILY_LIMIT:
+        _set_queue_row(item["id"], "pending")
+        _stop_campaign(campaign_id, "partial")  # the daily limit: sending again tomorrow picks them up
+        return
+    try:
+        sender = senders.get(address)
+        if sender is None:
+            sender = gmail.Sender(address, gmail.decrypt_password(encrypted))
+            sender.__enter__()
+            senders[address] = sender
+        pack_url = pack["url"] if pack else None
+        text, html_body = _render(dict(campaign), dict(contact), pack_url)
+        sender.send(email, fill_variables(campaign["subject"], dict(contact), pack_url), text, html_body,
+                    unsubscribe_link(email, owner))
+        _log_send(campaign_id, email, address, "sent", None)
+        _set_queue_row(item["id"], "sent")
+    except (smtplib.SMTPRecipientsRefused, smtplib.SMTPSenderRefused, smtplib.SMTPDataError) as e:
+        logger.warning(f"Send to {email} refused: {e}")
+        _log_send(campaign_id, email, address, "failed", str(e)[:300])
+        _set_queue_row(item["id"], "failed", str(e)[:300])
+    except smtplib.SMTPAuthenticationError:
+        _drop_sender(senders, address)
+        _set_queue_row(item["id"], "pending")
+        _stop_campaign(campaign_id, "stopped: Google rejected the login")
+    except gmail.CredentialError as e:
+        _drop_sender(senders, address)
+        _set_queue_row(item["id"], "pending")
+        _stop_campaign(campaign_id, f"stopped: {str(e)[:120]}")
+    except (smtplib.SMTPException, OSError) as e:
+        _drop_sender(senders, address)
+        _set_queue_row(item["id"], "pending")
+        _stop_campaign(campaign_id, f"stopped: {str(e)[:120]}")
+
+
+def _drop_sender(senders, address):
+    sender = senders.pop(address, None)
+    if sender is not None:
+        try:
+            sender.__exit__(None, None, None)
+        except Exception:
+            pass
+
+
+def _close_senders(senders):
+    for address in list(senders):
+        _drop_sender(senders, address)
+
+
+def _worker_loop():
+    """The one background thread that sends queued email, one message at a time."""
+    senders = {}
+    try:
+        while not _stop.is_set():
+            item = _next_queued()
+            if item is None:
+                _close_senders(senders)  # idle: do not hold Gmail connections open
+                _reconcile()
+                _stop.wait(2)
+                continue
+            _send_queued(item, senders)
+            _finish_if_done(item["campaign_id"])
+            # A random pause between emails, like a person sending by hand
+            _stop.wait(random.uniform(*SEND_INTERVAL_SECONDS))
+    except Exception:
+        logger.exception("Campaign sender stopped unexpectedly")
+    finally:
+        _close_senders(senders)
+
+
+def _start_worker():
+    """Starts the sender. Anything that was mid-send when the backend last stopped goes back to waiting."""
+    global _worker
+    with _conn() as conn:
+        conn.execute("UPDATE mail_queue SET status = 'pending' WHERE status = 'sending'")
+    _reconcile()
+    _worker = threading.Thread(target=_worker_loop, name="campaign-sender", daemon=True)
+    _worker.start()
+
+
+def _on_shutdown(signum, frame):
+    """On a redeploy the server gets SIGTERM. Let the current email finish, then exit."""
+    _stop.set()
+    if _worker is not None:
+        _worker.join(timeout=8)
+    raise SystemExit(0)
 
 
 @bp.route("/api/campaigns/<int:campaign_id>/send", methods=["POST"])
@@ -768,33 +922,37 @@ def send_campaign(campaign_id):
         return jsonify({"error": "Connect your Gmail account first."}), 409
     address, encrypted = account
     try:
-        app_password = gmail.decrypt_password(encrypted)
+        gmail.decrypt_password(encrypted)  # fail early if the saved password cannot be read
     except gmail.CredentialError as e:
         return jsonify({"error": str(e)}), 409
 
-    with _sending_lock:
-        if campaign_id in _sending:
-            return jsonify({"error": "This campaign is already sending."}), 409
-        allowance = gmail.DAILY_LIMIT - _sent_today(address)
-        if allowance <= 0:
-            return jsonify({"error": f"You reached the daily limit of {gmail.DAILY_LIMIT} emails. Try again tomorrow."}), 409
-        batch = recipients[:allowance]
-        if not batch:
-            return jsonify({"error": "Nobody left to send to in this campaign."}), 409
-        _sending.add(campaign_id)
+    allowance = gmail.DAILY_LIMIT - _sent_today(address)
+    if allowance <= 0:
+        return jsonify({"error": f"You reached the daily limit of {gmail.DAILY_LIMIT} emails. Try again tomorrow."}), 409
+    batch = recipients[:allowance]
+    if not batch:
+        return jsonify({"error": "Nobody left to send to in this campaign."}), 409
+    waiting = len(recipients) - len(batch)
 
-    with _conn() as conn:
-        conn.execute("UPDATE mail_campaigns SET status = 'sending' WHERE id = ?", (campaign_id,))
-    thread = threading.Thread(
-        target=_run_campaign,
-        args=(dict(campaign), batch, pack_url, role, tag, address, app_password, emails),
-        daemon=True,
-    )
-    thread.start()
+    # Saved in the database, so a restart or redeploy does not lose the queue
+    with _queue_lock:
+        with _conn() as conn:
+            current = conn.execute("SELECT status FROM mail_campaigns WHERE id = ?", (campaign_id,)).fetchone()
+            if current["status"] == "sending":
+                return jsonify({"error": "This campaign is already sending."}), 409
+            conn.execute("DELETE FROM mail_queue WHERE campaign_id = ? AND status = 'pending'", (campaign_id,))
+            now = time.time()
+            conn.executemany(
+                "INSERT INTO mail_queue (campaign_id, owner, email, status, queued_at) VALUES (?, ?, ?, 'pending', ?)",
+                [(campaign_id, owner, r["email"], now) for r in batch],
+            )
+            conn.execute(
+                "UPDATE mail_campaigns SET status = 'sending', waiting = ? WHERE id = ?", (waiting, campaign_id)
+            )
     return jsonify({
         "started": True,
         "queued": len(batch),
-        "waiting": len(recipients) - len(batch),
+        "waiting": waiting,
         "left_today": allowance - len(batch),
     })
 
