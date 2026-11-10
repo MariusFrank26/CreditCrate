@@ -604,6 +604,18 @@
   @media (prefers-reduced-motion: reduce) { .drift-orb { animation: none; } }
   .features { margin-top: 32px; }
   .faq-page { margin-top: 32px; max-width: 760px; }
+  .roadmap-page { margin-top: 32px; max-width: 880px; }
+  .roadmap-lead { margin-top: 12px; font-size: 16px; color: var(--fog); max-width: 60ch; }
+  .roadmap-grid { margin-top: 36px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  .roadmap-card { background: var(--carbon); border: 1px solid var(--graphite); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 12px; }
+  .roadmap-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .roadmap-platform { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); }
+  .roadmap-status { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--sunshine); border: 1px solid rgba(243, 213, 139, .4); border-radius: 999px; padding: 4px 10px; }
+  .roadmap-title { font-size: 22px; font-weight: 600; color: var(--paper); letter-spacing: -0.02em; }
+  .roadmap-copy { font-size: 15px; color: var(--fog); line-height: 1.6; }
+  .roadmap-points { list-style: none; margin-top: 6px; padding-top: 16px; border-top: 1px solid var(--graphite); display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: var(--mist); }
+  .roadmap-points li::before { content: "→  "; color: var(--ash); }
+  @media (max-width: 720px) { .roadmap-grid { grid-template-columns: minmax(0, 1fr); } }
   .faq-list { margin-top: 28px; border-top: 1px solid var(--graphite); }
   .faq-item { border-bottom: 1px solid var(--graphite); }
   .faq-item summary { list-style: none; cursor: pointer; padding: 20px 4px; font-size: 16px; font-weight: 500; color: var(--paper); display: flex; justify-content: space-between; align-items: center; gap: 16px; }
@@ -5001,9 +5013,59 @@ function DriftBackground() {
   );
 }
 
+// Landing: what is planned next. Only the two items we have decided on.
+const ROADMAP_ITEMS = [
+  {
+    id: "desktop",
+    title: "Desktop app",
+    platforms: "Windows and Mac",
+    status: "Planned",
+    copy: "CreditCrate as an app on your computer, starting with the Deal Desk and the sample inbox, so your tools open without a browser tab.",
+    points: ["Windows first, then Mac", "Installs like any other app", "Updates itself"],
+  },
+  {
+    id: "ios",
+    title: "iOS app",
+    platforms: "iPhone and iPad",
+    status: "Planned",
+    copy: "Your contacts, packs and sample inbox in your pocket, so you can check new samples and send to a contact from your phone.",
+    points: ["Samples and packs on the go", "Same account as the website", "Sign in with your email"],
+  },
+];
+
+function RoadmapPage() {
+  return (
+    <section className="roadmap-page" aria-labelledby="roadmap-heading">
+      <a className="back-btn features-back" href="#home">← Back to home</a>
+      <p className="eyebrow">Roadmap</p>
+      <h2 id="roadmap-heading" className="features-title">What's next</h2>
+      <p className="roadmap-lead">Two things we're building next. We'll tell you here when each one is ready to try.</p>
+      <div className="roadmap-grid">
+        {ROADMAP_ITEMS.map(item => (
+          <article key={item.id} className="roadmap-card">
+            <div className="roadmap-top">
+              <span className="roadmap-platform">{item.platforms}</span>
+              <span className="roadmap-status">{item.status}</span>
+            </div>
+            <h3 className="roadmap-title">{item.title}</h3>
+            <p className="roadmap-copy">{item.copy}</p>
+            <ul className="roadmap-points">
+              {item.points.map(point => <li key={point}>{point}</li>)}
+            </ul>
+          </article>
+        ))}
+      </div>
+      <div className="features-cta">
+        <a className="search-btn" href="#home">Start your free 7-day trial</a>
+      </div>
+    </section>
+  );
+}
+
 function pageForHash(hash) {
   if (hash === "#features") return "features";
   if (hash === "#faq") return "faq";
+  if (hash === "#roadmap") return "roadmap";
   return "home";
 }
 
@@ -5287,6 +5349,7 @@ function App() {
               <a href="#features" aria-current={page === "features" ? "page" : undefined}>Features</a>
               <a href="pricing.html">Pricing</a>
               <a href="#faq" aria-current={page === "faq" ? "page" : undefined}>Frequently Asked</a>
+              <a href="#roadmap" aria-current={page === "roadmap" ? "page" : undefined}>Roadmap</a>
             </nav>
           )}
         </div>
@@ -5550,6 +5613,7 @@ function App() {
         {!token && <DriftBackground />}
         {!token && page === "features" && <Features />}
         {!token && page === "faq" && <FaqPage />}
+        {!token && page === "roadmap" && <RoadmapPage />}
         {!token && page === "home" && <>
           <section className="hero" aria-labelledby="hero-heading">
             <div className="hero-copy-col">
