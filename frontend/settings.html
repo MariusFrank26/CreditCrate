@@ -16,70 +16,140 @@
     color-scheme: dark;
     --void: #08090a; --carbon: #0f1011; --obsidian: #161718; --graphite: #23252a; --smoke: #383b3f;
     --ash: #62666d; --fog: #8a8f98; --mist: #d0d6e0; --paper: #ffffff;
-    --sunshine: #f3d58b; --salmon: #f2a79c; --mint: #a3ddc2; --sky: #a9d8ef;
+    --sunshine: #f3d58b; --salmon: #f2a79c; --mint: #a3ddc2; --sky: #a9d8ef; --lilac: #c9b6ee;
+    --blue: #0a84ff;
     --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
-  html, body { min-height: 100%; background: var(--void); color: var(--mist); font-family: var(--sans); font-size: 16px; line-height: 1.6; letter-spacing: -0.011em; }
-  .page { max-width: 760px; margin: 0 auto; padding: 48px 24px 96px; }
+  html, body { min-height: 100%; }
+  body {
+    background:
+      radial-gradient(900px 520px at 12% -12%, rgba(10, 132, 255, .16), transparent 62%),
+      radial-gradient(760px 460px at 96% 4%, rgba(201, 182, 238, .10), transparent 60%),
+      var(--void);
+    background-attachment: fixed;
+    color: var(--mist); font-family: var(--sans); font-size: 16px; line-height: 1.6; letter-spacing: -0.011em;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 780px; margin: 0 auto; padding: 44px 20px 96px; }
   a { color: var(--sky); }
-  .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
-  h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.03em; color: var(--paper); margin-top: 10px; }
-  h2 { font-size: 17px; font-weight: 600; color: var(--paper); }
+
+  /* Header */
+  .top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 30px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--paper); text-decoration: none; font-size: 15px; }
+  .brand img { width: 24px; height: 24px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; color: var(--ash); text-transform: uppercase; letter-spacing: .1em; }
+  h1 { font-size: 40px; font-weight: 600; letter-spacing: -0.035em; color: var(--paper); margin-top: 10px; line-height: 1.1; }
+  h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; color: var(--paper); }
   p { color: var(--fog); margin: 8px 0; font-size: 15px; }
-  .card { background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; padding: 22px; margin-top: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* Cards: each section has an accent edge, like the metric cards on the admin page */
+  .card {
+    position: relative; overflow: hidden;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .025), transparent 70%), var(--carbon);
+    border: 1px solid var(--graphite); border-radius: 18px; padding: 26px 26px 24px 28px;
+    margin-top: 16px; display: flex; flex-direction: column; gap: 16px;
+  }
+  .card::before { content: ""; position: absolute; left: 0; top: 22px; bottom: 22px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent, var(--blue)); }
+  .card[data-accent="plan"] { --accent: var(--blue); }
+  .card[data-accent="mail"] { --accent: var(--mint); }
+  .card[data-accent="password"] { --accent: var(--lilac); }
+  .card[data-accent="session"] { --accent: var(--salmon); }
+  .card-head { display: flex; flex-direction: column; gap: 4px; }
+
   .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  .label { font-size: 13px; color: var(--fog); }
-  .value { font-size: 15px; color: var(--paper); }
-  .pill { font-family: var(--mono); font-size: 12px; border-radius: 999px; padding: 3px 10px; border: 1px solid var(--graphite); color: var(--mist); }
-  .pill.ok { color: var(--mint); border-color: var(--mint); }
-  .pill.warn { color: var(--salmon); border-color: var(--salmon); }
-  label.field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--fog); }
-  input { width: 100%; background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; color: var(--mist); font-family: var(--sans); font-size: 16px; padding: 11px 13px; }
-  input:focus { outline: none; border-color: var(--mist); }
-  button, .button { font-family: var(--sans); font-size: 14px; border-radius: 8px; padding: 10px 16px; cursor: pointer; border: 1px solid var(--graphite); background: none; color: var(--mist); text-decoration: none; display: inline-block; }
-  button:hover, .button:hover { color: var(--paper); border-color: var(--smoke); }
-  button.primary { background: var(--paper); color: var(--void); border-color: var(--paper); }
+  .label { font-family: var(--mono); font-size: 11px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
+  .value { font-size: 17px; color: var(--paper); margin-top: 4px; word-break: break-all; }
+  .plan-text { font-size: 15px; color: var(--fog); }
+
+  /* Plan badge */
+  .pill {
+    font-family: var(--mono); font-size: 12px; border-radius: 999px; padding: 6px 13px;
+    border: 1px solid var(--smoke); color: var(--mist); white-space: nowrap;
+  }
+  .pill.ok { color: var(--mint); border-color: rgba(163, 221, 194, .5); background: rgba(163, 221, 194, .06); }
+  .pill.warn { color: var(--salmon); border-color: rgba(242, 167, 156, .5); background: rgba(242, 167, 156, .06); }
+
+  /* Forms */
+  label.field { display: flex; flex-direction: column; gap: 7px; font-size: 13px; color: var(--fog); }
+  input {
+    width: 100%; background: var(--void); border: 1px solid var(--smoke); border-radius: 10px;
+    color: var(--paper); font-family: var(--sans); font-size: 15px; padding: 11px 14px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(10, 132, 255, .25); }
+
+  /* Buttons: pills, like the rest of the site */
+  button, .button {
+    font-family: var(--sans); font-size: 14px; font-weight: 500; border-radius: 999px; padding: 10px 18px; cursor: pointer;
+    border: 1px solid var(--smoke); background: none; color: var(--mist); text-decoration: none; display: inline-block;
+    transition: background .15s, color .15s, border-color .15s, filter .15s;
+  }
+  button:hover, .button:hover { color: var(--paper); background: var(--graphite); }
+  button.primary, .button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  button.primary:hover, .button.primary:hover { filter: brightness(1.08); background: var(--blue); color: #fff; }
+  button:focus-visible, .button:focus-visible, a:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   button:disabled { opacity: .4; cursor: default; }
-  .msg { font-size: 14px; border-radius: 8px; padding: 10px 12px; }
-  .msg.ok { color: var(--mint); background: rgba(163,221,194,.08); }
-  .msg.bad { color: var(--salmon); background: rgba(242,167,156,.08); }
+  button:disabled:hover { background: none; }
+
+  /* Messages */
+  .msg { font-size: 14px; border-radius: 12px; padding: 11px 14px; border: 1px solid transparent; }
+  .msg.ok { color: var(--mint); background: rgba(163, 221, 194, .08); border-color: rgba(163, 221, 194, .25); }
+  .msg.bad { color: var(--salmon); background: rgba(242, 167, 156, .08); border-color: rgba(242, 167, 156, .25); }
+
   .back { display: inline-block; margin-top: 28px; font-size: 14px; }
-  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .signed-out-card { text-align: left; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  @media (max-width: 560px) {
+    .page { padding: 32px 16px 72px; }
+    h1 { font-size: 32px; }
+    .card { padding: 22px 20px 20px 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
 <main class="page">
   <div class="top">
     <div>
-      <p class="eyebrow">Account</p>
+      <a class="brand" href="index.html"><img src="logo.svg" alt="" />CreditCrate</a>
+      <p class="eyebrow" style="margin-top: 22px">Account</p>
       <h1>Settings</h1>
     </div>
     <a class="button" href="index.html">← Back to CreditCrate</a>
   </div>
 
-  <div id="signed-out" class="card" hidden>
+  <div id="signed-out" class="card signed-out-card" hidden>
     <h2>You are not signed in</h2>
     <p>Sign in on the start page to see your settings.</p>
-    <div><a class="button primary" href="index.html">Go to sign in</a></div>
+    <div class="actions"><a class="button primary" href="index.html">Go to sign in</a></div>
   </div>
 
   <div id="signed-in" hidden>
-    <section class="card" aria-labelledby="plan-heading">
-      <h2 id="plan-heading">Plan</h2>
+    <section class="card" data-accent="plan" aria-labelledby="plan-heading">
+      <div class="row">
+        <div class="card-head">
+          <span class="label">Plan</span>
+          <h2 id="plan-heading">Your plan</h2>
+        </div>
+        <span class="pill" id="plan-pill">…</span>
+      </div>
       <div class="row">
         <div>
           <p class="label">Signed in as</p>
           <p class="value" id="account-email">…</p>
         </div>
-        <span class="pill" id="plan-pill">…</span>
       </div>
-      <p id="plan-text"></p>
-      <div id="plan-actions"></div>
+      <p id="plan-text" class="plan-text"></p>
+      <div id="plan-actions" class="actions"></div>
     </section>
 
-    <section class="card" aria-labelledby="mail-heading">
-      <h2 id="mail-heading">Gmail connection</h2>
+    <section class="card" data-accent="mail" aria-labelledby="mail-heading">
+      <div class="card-head">
+        <span class="label">Campaigns</span>
+        <h2 id="mail-heading">Gmail connection</h2>
+      </div>
       <p>Campaigns send from this Gmail address. Check that the saved app password still works.</p>
       <div class="row">
         <div>
@@ -91,9 +161,12 @@
       <div id="mail-result"></div>
     </section>
 
-    <section class="card" aria-labelledby="password-heading">
-      <h2 id="password-heading">Change password</h2>
-      <form id="password-form" autocomplete="on">
+    <section class="card" data-accent="password" aria-labelledby="password-heading">
+      <div class="card-head">
+        <span class="label">Security</span>
+        <h2 id="password-heading">Change password</h2>
+      </div>
+      <form id="password-form" autocomplete="on" style="display: flex; flex-direction: column; gap: 14px">
         <label class="field">Current password
           <input type="password" id="current" autocomplete="current-password" required />
         </label>
@@ -103,13 +176,16 @@
         <label class="field">Repeat new password
           <input type="password" id="repeat" minlength="8" autocomplete="new-password" required />
         </label>
-        <div style="margin-top: 14px"><button type="submit" class="primary" id="password-save">Change password</button></div>
+        <div><button type="submit" class="primary" id="password-save">Change password</button></div>
       </form>
       <div id="password-result"></div>
     </section>
 
-    <section class="card" aria-labelledby="session-heading">
-      <h2 id="session-heading">Session</h2>
+    <section class="card" data-accent="session" aria-labelledby="session-heading">
+      <div class="card-head">
+        <span class="label">Session</span>
+        <h2 id="session-heading">Sign out</h2>
+      </div>
       <div><button type="button" id="sign-out">Sign out on this device</button></div>
     </section>
   </div>
