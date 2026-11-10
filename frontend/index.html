@@ -1323,6 +1323,28 @@
   }
   .imsg-thread-name { font-size: 16px; font-weight: 600; color: var(--paper); }
   .imsg-thread-addr { font-size: 12px; color: var(--ash); }
+  .imsg-pinned {
+    display: flex; gap: 14px; padding: 14px 14px 12px;
+    border-bottom: 1px solid var(--graphite);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .imsg-pinned::-webkit-scrollbar { display: none; }
+  .imsg-pin-item {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    width: 64px; flex: none; padding: 0; background: none; border: 0;
+    color: inherit; cursor: pointer; font-family: var(--sans);
+  }
+  .imsg-avatar-pin { width: 52px; height: 52px; font-size: 17px; }
+  .imsg-pin-name {
+    max-width: 64px; font-size: 12px; color: var(--mist);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .imsg-fav {
+    margin-top: 6px; background: none; border: 1px solid var(--graphite); border-radius: 999px;
+    color: var(--fog); font-family: var(--sans); font-size: 12px; padding: 4px 12px; cursor: pointer;
+  }
+  .imsg-fav:hover { color: var(--paper); border-color: var(--smoke); }
+  .imsg-fav.is-on { color: var(--sunshine); border-color: var(--sunshine); }
   .imsg-back { display: none; }
   .imsg-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 18px 20px; display: flex; flex-direction: column; gap: 4px; }
   .imsg-day { align-self: center; font-size: 12px; color: var(--ash); margin: 14px 0 8px; }
@@ -3315,6 +3337,30 @@ function InboxTool({ token, onAuthError }) {
     stopRef.current = true;
   }
 
+  const favouritesKey = accountAddress ? `creditcrate-inbox-favourites:${accountAddress}` : null;
+  const [favourites, setFavourites] = useState(new Set());
+
+  useEffect(() => {
+    if (!favouritesKey) return;
+    try {
+      setFavourites(new Set(JSON.parse(localStorage.getItem(favouritesKey) || "[]")));
+    } catch (e) {
+      setFavourites(new Set());
+    }
+  }, [favouritesKey]);
+
+  function toggleFavourite(key) {
+    setFavourites(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      if (favouritesKey) {
+        try { localStorage.setItem(favouritesKey, JSON.stringify([...next])); } catch (e) { /* storage blocked */ }
+      }
+      return next;
+    });
+  }
+
   const newCount = (messages || []).reduce(
     (total, item) => total + item.attachments.filter(file => !downloaded.has(fileKey(item.uid, file))).length,
     0
@@ -3369,6 +3415,16 @@ function InboxTool({ token, onAuthError }) {
           {demo && <EmptyState title="No samples yet" copy="Emails with audio or archive attachments, and Dropbox or Drive links, show up here." />}
           <div className={`imsg${active && chatKey ? " has-chat" : ""}${demo ? " is-example" : ""}`}>
             <aside className="imsg-list" aria-label="Conversations">
+              {!demo && chats.some(c => favourites.has(c.key)) && (
+                <div className="imsg-pinned" aria-label="Favourites">
+                  {chats.filter(c => favourites.has(c.key)).map(c => (
+                    <button key={c.key} type="button" className="imsg-pin-item" onClick={() => setChatKey(c.key)} title={c.name}>
+                      <span className="imsg-avatar imsg-avatar-pin" style={avatarTone(c.name)}>{senderInitials(c.name)}</span>
+                      <span className="imsg-pin-name">{c.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               {chats.map(c => {
                 const last = c.items[c.items.length - 1];
                 return (
@@ -3392,6 +3448,16 @@ function InboxTool({ token, onAuthError }) {
                     <span className="imsg-avatar imsg-avatar-lg" style={avatarTone(active.name)}>{senderInitials(active.name)}</span>
                     <span className="imsg-thread-name">{active.name}</span>
                     {!demo && <span className="imsg-thread-addr">{active.address}</span>}
+                    {!demo && (
+                      <button
+                        type="button"
+                        className={`imsg-fav${favourites.has(active.key) ? " is-on" : ""}`}
+                        onClick={() => toggleFavourite(active.key)}
+                        aria-pressed={favourites.has(active.key)}
+                      >
+                        {favourites.has(active.key) ? "★ Favourite" : "☆ Add to favourites"}
+                      </button>
+                    )}
                   </header>
                   <div className="imsg-scroll" ref={scrollRef}>
                     {active.items.map(item => (
