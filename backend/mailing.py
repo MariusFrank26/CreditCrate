@@ -394,6 +394,23 @@ def create_campaign():
     return jsonify({"id": cur.lastrowid})
 
 
+@bp.route("/api/campaigns/<int:campaign_id>", methods=["DELETE"])
+@accounts.login_required
+def delete_campaign(campaign_id):
+    # Only drafts can be deleted. Sent campaigns keep their history.
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT status FROM mail_campaigns WHERE id = ? AND owner = ?",
+            (campaign_id, accounts.current_email()),
+        ).fetchone()
+        if not row:
+            return jsonify({"error": "Campaign not found."}), 404
+        if row["status"] not in (None, "draft"):
+            return jsonify({"error": "Only drafts can be deleted."}), 409
+        conn.execute("DELETE FROM mail_campaigns WHERE id = ? AND owner = ?", (campaign_id, accounts.current_email()))
+    return jsonify({"ok": True})
+
+
 @bp.route("/api/campaigns", methods=["GET"])
 @accounts.login_required
 def list_campaigns():

@@ -1589,6 +1589,18 @@
   .cmp-item:hover { background: var(--graphite); }
   .cmp-item.is-active { background: var(--graphite); border-color: var(--smoke); }
   .cmp-item.is-example { opacity: .5; pointer-events: none; }
+  .cmp-menu-scrim { position: fixed; inset: 0; z-index: 60; }
+  .cmp-menu {
+    position: fixed; z-index: 61; min-width: 160px; padding: 6px;
+    background: var(--carbon); border: 1px solid var(--smoke); border-radius: 12px;
+    box-shadow: 0 16px 40px -12px rgba(0,0,0,.7);
+  }
+  .cmp-menu-item {
+    display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px;
+    padding: 8px 10px; font: inherit; font-size: 14px; color: var(--paper); cursor: pointer;
+  }
+  .cmp-menu-item:hover, .cmp-menu-item:focus-visible { background: var(--graphite); outline: none; }
+  .cmp-menu-item.is-danger { color: var(--salmon); }
   .cmp-item-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
   .cmp-item-name { font-size: 14px; font-weight: 510; color: var(--paper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .cmp-item-meta { font-size: 12px; color: var(--fog); }
@@ -4186,7 +4198,21 @@ function CampaignsTool({ token, onAuthError }) {
   const [stats, setStats] = useState(null);
   const [message, setMessage] = useState(null);
   const [focusedField, setFocusedField] = useState("body");
+  const [draftMenu, setDraftMenu] = useState(null); // { id, x, y } while the right-click menu is open
   const { busy, error, run } = useToolRunner(onAuthError);
+
+  // Removes a draft after a confirmation. Sent campaigns cannot be removed.
+  function deleteDraft(c) {
+    setDraftMenu(null);
+    if (!window.confirm(`Delete the draft “${c.name || c.subject}”? This cannot be undone.`)) return;
+    run(async () => {
+      await callApi(`/campaigns/${c.id}`, token, { method: "DELETE" });
+      if (String(c.id) === selectedId) setSelectedId("");
+      setPreview(null);
+      setMessage("Draft deleted.");
+      await load();
+    });
+  }
 
   // Puts a variable where the cursor is in the subject or message
   function insertVariable(variable) {
@@ -4376,6 +4402,11 @@ function CampaignsTool({ token, onAuthError }) {
                 type="button"
                 className={`cmp-item${active ? " is-active" : ""}`}
                 onClick={() => { setSelectedId(String(c.id)); setPreview(null); }}
+                onContextMenu={e => {
+                  if (c.status && c.status !== "draft") return;
+                  e.preventDefault();
+                  setDraftMenu({ id: c.id, x: e.clientX, y: e.clientY });
+                }}
                 aria-current={active ? "true" : undefined}
               >
                 <span className="cmp-item-top">
@@ -4391,6 +4422,26 @@ function CampaignsTool({ token, onAuthError }) {
               </button>
             );
           })}
+
+          {draftMenu && (() => {
+            const target = (campaigns || []).find(c => c.id === draftMenu.id);
+            return (
+              <>
+                <div
+                  className="cmp-menu-scrim"
+                  onClick={() => setDraftMenu(null)}
+                  onContextMenu={e => { e.preventDefault(); setDraftMenu(null); }}
+                />
+                {target && (
+                  <div className="cmp-menu" role="menu" style={{ left: draftMenu.x, top: draftMenu.y }}>
+                    <button type="button" role="menuitem" className="cmp-menu-item is-danger" onClick={() => deleteDraft(target)}>
+                      Delete Draft
+                    </button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           {(campaigns || []).length < 3 && pastExamples.map(c => (
             <div key={c.id} className="cmp-item is-example" aria-hidden="true">
