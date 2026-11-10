@@ -1600,73 +1600,72 @@
     padding: 6px 12px; border-radius: 999px; border: 1px solid var(--graphite); background: var(--carbon);
   }
 
-  /* The laptop: lid, screen with a simplified app, and a base */
-  .laptop { width: 100%; max-width: 620px; justify-self: center; }
-  .laptop-lid {
-    background: linear-gradient(180deg, #2a2d33, #16171a);
-    border-radius: 18px 18px 8px 8px; padding: 12px 12px 14px;
-    box-shadow: 0 40px 90px -40px rgba(0, 0, 0, .9), inset 0 0 0 1px rgba(255, 255, 255, .05);
-  }
-  .laptop-screen {
-    aspect-ratio: 16 / 10; background: var(--void); border-radius: 8px; overflow: hidden;
-    display: flex; flex-direction: column; border: 1px solid #000;
-  }
-  .lm-bar {
-    display: flex; align-items: center; gap: 6px; padding: 9px 12px;
-    background: var(--obsidian); border-bottom: 1px solid var(--graphite);
-  }
-  .lm-bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--smoke); }
-  .lm-bar i:nth-child(1) { background: var(--salmon); }
-  .lm-bar i:nth-child(2) { background: var(--sunshine); }
-  .lm-bar i:nth-child(3) { background: var(--mint); }
-  .lm-bar span { margin-left: 8px; font-size: 11px; color: var(--mist); font-weight: 510; }
-  .lm-tabs { display: flex; gap: 5px; padding: 8px 10px; border-bottom: 1px solid var(--graphite); overflow: hidden; }
-  .lm-tabs span { font-size: 10px; color: var(--fog); padding: 3px 8px; border-radius: 999px; border: 1px solid var(--graphite); white-space: nowrap; }
-  .lm-tabs span.is-on { color: var(--void); background: var(--paper); border-color: var(--paper); }
-  .lm-grid {
-    flex: 1; min-height: 0; padding: 10px; display: grid; gap: 8px;
-    grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
-  }
-  .lm-card {
-    background: var(--carbon); border: 1px solid var(--graphite); border-radius: 10px;
-    padding: 9px; display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow: hidden;
-  }
-  .lm-inbox { grid-row: span 2; }
-  .lm-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); }
-  .lm-covers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
-  .lm-covers span {
-    aspect-ratio: 1; border-radius: 6px; display: grid; place-items: center;
-    background: linear-gradient(135deg, var(--graphite), var(--obsidian));
-  }
-  .lm-covers img { width: 58%; height: auto; }
-  .lm-line { height: 5px; border-radius: 3px; background: var(--graphite); }
-  .lm-line.short { width: 60%; }
-  .lm-title { font-size: 12px; font-weight: 510; color: var(--paper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .lm-stats { display: flex; gap: 10px; font-size: 10px; color: var(--fog); }
-  .lm-stats b { color: var(--paper); font-weight: 600; font-size: 13px; }
-  .lm-bar-track { height: 5px; border-radius: 3px; background: var(--graphite); overflow: hidden; margin-top: auto; }
-  .lm-bar-track span { display: block; height: 100%; background: var(--mint); border-radius: 3px; }
-  .lm-chat { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--mist); min-width: 0; }
-  .lm-chat i {
-    width: 22px; height: 22px; border-radius: 50%; flex: none; display: grid; place-items: center;
-    font-style: normal; font-size: 8px; font-weight: 600; color: var(--void);
-  }
-  .lm-chat span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .lm-chat b, .lm-chat em {
-    font-style: normal; font-size: 9px; font-weight: 600; min-width: 16px; height: 16px; border-radius: 999px;
-    display: grid; place-items: center; color: #ffffff; padding: 0 4px;
-  }
-  .lm-chat b { background: #0a84ff; }
-  .lm-chat em { background: var(--sunshine); color: var(--void); }
-  .laptop-base {
-    height: 14px; width: 112%; margin: 0 -6% ; border-radius: 0 0 16px 16px;
-    background: linear-gradient(180deg, #2a2d33, #101113);
-    box-shadow: 0 18px 30px -20px rgba(0, 0, 0, .9);
-  }
   @media (max-width: 900px) {
     .hero { grid-template-columns: minmax(0, 1fr); gap: 36px; }
-    .laptop { max-width: 520px; }
   }
+
+  /* The screen: a title bar to choose a tool, a caption, and a preview */
+  .demo {
+    background: var(--carbon); border: 1px solid var(--graphite); border-radius: 16px;
+    box-shadow: 0 40px 90px -50px rgba(0, 0, 0, .9); overflow: hidden; min-width: 0;
+  }
+  .demo-bar { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--obsidian); border-bottom: 1px solid var(--graphite); }
+  .demo-dots { display: flex; gap: 6px; flex: none; }
+  .demo-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--salmon); }
+  .demo-dots i:nth-child(2) { background: var(--sunshine); }
+  .demo-dots i:nth-child(3) { background: var(--mint); }
+  .demo-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+  .demo-tabs::-webkit-scrollbar { display: none; }
+  .demo-tab {
+    flex: none; font-family: var(--sans); font-size: 12px; padding: 5px 10px; border-radius: 8px;
+    background: none; border: 0; color: var(--fog); cursor: pointer;
+  }
+  .demo-tab:hover { color: var(--paper); }
+  .demo-tab.is-on { background: var(--graphite); color: var(--paper); }
+  .demo-caption { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--graphite); }
+  .demo-caption p { font-size: 13px; color: var(--fog); line-height: 1.5; }
+  .demo-caption a { flex: none; font-size: 13px; color: #0a84ff; text-decoration: none; }
+  .demo-caption a:hover { text-decoration: underline; }
+  .demo-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 8px; min-height: 330px; }
+  .dm-search { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: var(--graphite); border-radius: 10px; color: var(--ash); font-size: 14px; }
+  .dm-query { flex: 1; color: var(--paper); }
+  .dm-search b, .dm-pill { font-size: 12px; font-weight: 600; color: #ffffff; background: #0a84ff; border-radius: 999px; padding: 5px 12px; }
+  .dm-pill { align-self: flex-start; cursor: default; }
+  .dm-pill-wide { align-self: stretch; text-align: center; padding: 10px 12px; font-size: 13px; }
+  .dm-kicker { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); margin-top: 4px; }
+  .dm-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--graphite); }
+  .dm-row:last-child { border-bottom: 0; }
+  .dm-grow { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+  .dm-name { font-size: 14px; font-weight: 510; color: var(--paper); }
+  .dm-roles { display: flex; flex-wrap: wrap; gap: 4px; }
+  .dm-roles em { font-style: normal; font-size: 11px; color: var(--mist); padding: 2px 8px; border-radius: 999px; background: var(--graphite); }
+  .dm-avatar { width: 32px; height: 32px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--void); }
+  .dm-price { font-size: 14px; color: var(--paper); font-variant-numeric: tabular-nums; }
+  .dm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .dm-chip, .dm-check {
+    font-family: var(--sans); font-size: 12px; padding: 5px 11px; border-radius: 999px;
+    border: 1px solid var(--smoke); background: none; color: var(--mist); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .dm-chip.is-on { background: var(--paper); color: var(--void); border-color: var(--paper); }
+  .dm-check span { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--smoke); display: grid; place-items: center; font-size: 9px; color: #ffffff; }
+  .dm-check.is-on { border-color: #0a84ff; background: rgba(10, 132, 255, .15); }
+  .dm-check.is-on span { background: #0a84ff; border-color: #0a84ff; }
+  .dm-field { font-size: 13px; color: var(--paper); padding: 9px 12px; background: var(--graphite); border-radius: 10px; }
+  .dm-field span { display: block; font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); margin-bottom: 3px; }
+  .dm-covers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .dm-cover { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .dm-cover img { width: 100%; aspect-ratio: 1; padding: 22%; box-sizing: border-box; border-radius: 10px; background: linear-gradient(135deg, var(--graphite), var(--obsidian)); }
+  .dm-cover span { font-size: 11px; color: var(--mist); }
+  .dm-thread { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .dm-day { align-self: center; font-size: 11px; color: var(--ash); margin-bottom: 4px; }
+  .dm-bubble { background: var(--graphite); color: var(--paper); padding: 8px 12px; border-radius: 16px; font-size: 13px; max-width: 86%; }
+  .dm-file, .dm-pack { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+  .dm-file b, .dm-pack b { font-size: 11px; color: #ffffff; background: #0a84ff; border-radius: 999px; padding: 4px 10px; flex: none; }
+  .dm-pack { background: rgba(243, 213, 139, .12); border: 1px solid rgba(243, 213, 139, .4); }
+  .dm-pack span { color: var(--sunshine); }
+  .dm-pack b { background: var(--sunshine); color: var(--void); }
+  @media (max-width: 560px) { .demo-body { min-height: 0; } }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
   .hero-title {
     margin-top: 16px;
@@ -2353,7 +2352,7 @@ function FeatureArt({ id }) {
 
 function Features() {
   return (
-    <section className="features" aria-labelledby="features-heading">
+    <section className="features" id="features" aria-labelledby="features-heading">
       <p className="eyebrow">What’s inside</p>
       <h2 id="features-heading" className="features-title">Six tools, one hub.</h2>
       <div className="feature-grid">
@@ -4500,48 +4499,149 @@ function GmailGate({ token, account, onChange, onSignOut }) {
   );
 }
 
-// The eye-catcher: a laptop showing a simplified CreditCrate screen. Drawn in CSS, no image needed.
-function LaptopMock() {
+// The landing page's preview: a screen with a title bar to choose a tool. Each one shows how it works.
+const DEMO_TOOLS = [
+  { id: "credits", label: "Credits", copy: "Search an album and see every producer, engineer and mixer, with the public contact they've shared." },
+  { id: "contacts", label: "Contacts", copy: "Keep everyone in one list. Import a CSV and filter by role or tag." },
+  { id: "packs", label: "Packs", copy: "Save a Dropbox or Drive folder as a pack. CreditCrate stores the link, never the files." },
+  { id: "inbox", label: "Inbox", copy: "Your samples from the last 7 days, grouped by sender. Downloads come straight from Gmail." },
+  { id: "campaigns", label: "Campaigns", copy: "Write once, check who gets it or pick a tag, then preview before anything is sent." },
+  { id: "deal", label: "Deal Desk", copy: "Split sheets, agreements and invoices. It all stays in your browser." },
+];
+
+const DEMO_PEOPLE = [
+  { id: "anna", name: "Anna Moreau", tags: "trap, drill", initials: "AM", tone: "#c9b6ee" },
+  { id: "kira", name: "Kira Lind", tags: "drill", initials: "KL", tone: "#a3ddc2" },
+  { id: "dre", name: "Dre Tamba", tags: "trap", initials: "DT", tone: "#f2a79c" },
+];
+
+function HeroDemo() {
+  const [tool, setTool] = useState("credits");
+  const [picked, setPicked] = useState(new Set(["anna"]));
+  const [filter, setFilter] = useState("All");
+  const current = DEMO_TOOLS.find(t => t.id === tool);
+
+  function togglePerson(id) {
+    setPicked(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function body() {
+    if (tool === "credits") {
+      return (
+        <>
+          <div className="dm-search"><span>⌕</span><span className="dm-query">Iceman</span><b>Search</b></div>
+          <p className="dm-kicker">Iceman · Album · 2023</p>
+          {[
+            ["Anna Moreau", "Producer", "Mixer", "Instagram"],
+            ["Kira Lind", "Engineer", "Email shared"],
+            ["Dre Tamba", "Producer"],
+          ].map(([name, ...roles]) => (
+            <div key={name} className="dm-row">
+              <span className="dm-avatar" style={{ background: "#c9b6ee" }}>{name.split(" ").map(w => w[0]).join("")}</span>
+              <span className="dm-grow">
+                <span className="dm-name">{name}</span>
+                <span className="dm-roles">{roles.map(r => <em key={r}>{r}</em>)}</span>
+              </span>
+            </div>
+          ))}
+        </>
+      );
+    }
+    if (tool === "contacts") {
+      const shown = DEMO_PEOPLE.filter(p => filter === "All" || p.tags.includes(filter.toLowerCase()));
+      return (
+        <>
+          <div className="dm-chips">
+            {["All", "Trap", "Drill"].map(f => (
+              <button key={f} type="button" className={`dm-chip${filter === f ? " is-on" : ""}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>{f}</button>
+            ))}
+          </div>
+          {shown.map(p => (
+            <div key={p.id} className="dm-row">
+              <span className="dm-avatar" style={{ background: p.tone }}>{p.initials}</span>
+              <span className="dm-grow">
+                <span className="dm-name">{p.name}</span>
+                <span className="dm-roles">{p.tags.split(", ").map(t => <em key={t}>{t}</em>)}</span>
+              </span>
+            </div>
+          ))}
+        </>
+      );
+    }
+    if (tool === "packs") {
+      return (
+        <>
+          <div className="dm-covers">
+            {["Summer kit", "Vocal chops", "Drum loops"].map(n => (
+              <div key={n} className="dm-cover"><img src="logo.svg" alt="" /><span>{n}</span></div>
+            ))}
+          </div>
+          <div className="dm-row">
+            <span className="dm-grow"><span className="dm-name">Summer kit</span><span className="dm-roles"><em>dropbox.com</em></span></span>
+            <b className="dm-pill">Open</b>
+          </div>
+        </>
+      );
+    }
+    if (tool === "inbox") {
+      return (
+        <div className="dm-thread">
+          <p className="dm-day">Today</p>
+          <div className="dm-bubble">September samples</div>
+          <div className="dm-bubble dm-file"><span>September_Drums.wav</span><b>Download</b></div>
+          <div className="dm-bubble dm-pack"><span>Dropbox pack</span><b>Open pack ↗</b></div>
+        </div>
+      );
+    }
+    if (tool === "campaigns") {
+      return (
+        <>
+          <div className="dm-field"><span>Subject</span>Fresh samples, {"{{first_name}}"}</div>
+          <div className="dm-chips">
+            {DEMO_PEOPLE.map(p => (
+              <button key={p.id} type="button" className={`dm-check${picked.has(p.id) ? " is-on" : ""}`} aria-pressed={picked.has(p.id)} onClick={() => togglePerson(p.id)}>
+                <span>{picked.has(p.id) ? "✓" : ""}</span>{p.name.split(" ")[0]}
+              </button>
+            ))}
+          </div>
+          <p className="dm-kicker">{picked.size} chosen</p>
+          <b className="dm-pill dm-pill-wide">Preview {picked.size} {picked.size === 1 ? "person" : "people"}</b>
+        </>
+      );
+    }
+    return (
+      <>
+        <div className="dm-row"><span className="dm-grow"><span className="dm-name">Mix session</span><span className="dm-roles"><em>Anna Moreau</em></span></span><span className="dm-price">€300</span></div>
+        <div className="dm-row"><span className="dm-grow"><span className="dm-name">Mastering</span><span className="dm-roles"><em>Dre Tamba</em></span></span><span className="dm-price">€120</span></div>
+        <p className="dm-kicker">Split</p>
+        <div className="dm-split"><span style={{ width: "50%", background: "#c9b6ee" }} /><span style={{ width: "30%", background: "#a3ddc2" }} /><span style={{ width: "20%", background: "#f3d58b" }} /></div>
+        <p className="dm-kicker">Producer 50% · Artist 30% · Writer 20%</p>
+      </>
+    );
+  }
+
   return (
-    <div className="laptop" aria-hidden="true">
-      <div className="laptop-lid">
-        <div className="laptop-screen">
-          <div className="lm-bar">
-            <i /><i /><i />
-            <span>CreditCrate</span>
-          </div>
-          <div className="lm-tabs">
-            {DECK_TABS.map((t, i) => <span key={t} className={i === 2 ? "is-on" : ""}>{t}</span>)}
-          </div>
-          <div className="lm-grid">
-            <div className="lm-card lm-packs">
-              <span className="lm-label">Packs</span>
-              <div className="lm-covers">
-                <span><img src="logo.svg" alt="" /></span>
-                <span><img src="logo.svg" alt="" /></span>
-                <span><img src="logo.svg" alt="" /></span>
-              </div>
-              <span className="lm-line" /><span className="lm-line short" />
-            </div>
-            <div className="lm-card lm-campaign">
-              <span className="lm-label">Campaign</span>
-              <span className="lm-title">November samples</span>
-              <div className="lm-stats">
-                <span><b>42</b> sent</span>
-                <span><b>31</b> opened</span>
-              </div>
-              <div className="lm-bar-track"><span style={{ width: "74%" }} /></div>
-            </div>
-            <div className="lm-card lm-inbox">
-              <span className="lm-label">Inbox</span>
-              <div className="lm-chat"><i style={{ background: "#c9b6ee" }}>AM</i><span>Arjun M.</span><b>2</b></div>
-              <div className="lm-chat"><i style={{ background: "#a3ddc2" }}>KL</i><span>Kira L.</span><em>1</em></div>
-              <div className="lm-chat"><i style={{ background: "#f2a79c" }}>DT</i><span>Dre T.</span></div>
-            </div>
-          </div>
+    <div className="demo" aria-label="Preview of the tools">
+      <div className="demo-bar">
+        <span className="demo-dots" aria-hidden="true"><i /><i /><i /></span>
+        <div className="demo-tabs" role="tablist" aria-label="Choose a tool">
+          {DEMO_TOOLS.map(t => (
+            <button key={t.id} type="button" role="tab" aria-selected={tool === t.id} className={`demo-tab${tool === t.id ? " is-on" : ""}`} onClick={() => setTool(t.id)}>
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
-      <div className="laptop-base" />
+      <div className="demo-caption">
+        <p>{current.copy}</p>
+        <a href="#features">How it works ↓</a>
+      </div>
+      <div className="demo-body" role="tabpanel">{body()}</div>
     </div>
   );
 }
@@ -5066,12 +5166,9 @@ function App() {
               <p className="hero-copy">
                 Find who made the record, send your samples, and keep your inbox sorted. All in one place.
               </p>
-              <div className="hero-tabs" aria-label="What's inside">
-                {DECK_TABS.map(t => <span key={t} className="hero-tab">{t}</span>)}
-              </div>
               <AuthPanel onSignedIn={handleSignedIn} />
             </div>
-            <LaptopMock />
+            <HeroDemo />
           </section>
           <Features />
           <LandingExtras />
