@@ -1767,6 +1767,39 @@
   .dm-paper-copy { font-size: 13px; color: var(--fog); line-height: 1.5; }
   .dm-form .dm-field span { font-size: 9px; }
   .dm-split-2 > * { min-width: 0; }
+  .dd-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .dd-stats { display: flex; gap: 8px; }
+  .dd-stats span { background: var(--carbon); border: 1px solid var(--graphite); border-radius: 10px; padding: 8px 14px; font-size: 11px; color: var(--ash); text-transform: uppercase; letter-spacing: .06em; display: flex; flex-direction: column; align-items: center; }
+  .dd-stats b { font-size: 18px; color: var(--paper); font-weight: 600; letter-spacing: 0; text-transform: none; }
+  .dd-local { font-family: var(--mono); font-size: 11px; color: var(--ash); display: inline-flex; align-items: center; gap: 6px; }
+  .dd-local i { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); }
+  .dd-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--graphite); }
+  .dd-tab { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--fog); font-family: var(--sans); font-size: 12px; padding: 9px 4px; cursor: pointer; }
+  .dd-tab.is-on { color: var(--paper); border-bottom-color: var(--paper); }
+  .dd-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .dd-card, .dd-paper { background: var(--carbon); border: 1px solid var(--graphite); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+  .dd-paper { background: var(--void); }
+  .dd-title { font-size: 15px; font-weight: 600; color: var(--paper); }
+  .dd-field { display: flex; flex-direction: column; gap: 4px; }
+  .dd-field span, .dd-split span { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--ash); }
+  .dd-field input, .dd-contrib input, .dd-contrib select, .dd-split input { background: var(--obsidian); border: 1px solid var(--graphite); border-radius: 8px; color: var(--paper); font-family: var(--sans); font-size: 12px; padding: 7px 9px; min-width: 0; width: 100%; }
+  .dd-contrib { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 6px; align-items: end; }
+  .dd-split { display: flex; flex-direction: column; gap: 3px; grid-column: 1 / -1; }
+  .dd-total { font-size: 12px; color: var(--mint); }
+  .dd-total.is-off { color: var(--salmon); }
+  .dd-kicker { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--ash); }
+  .dd-paper-title { font-size: 12px; color: var(--fog); }
+  .dd-paper-name { font-size: 16px; font-weight: 600; color: var(--paper); }
+  .dd-paper-copy { font-size: 11px; color: var(--fog); line-height: 1.5; }
+  .dd-meta { font-size: 11px; color: var(--ash); }
+  .dd-table { width: 100%; border-collapse: collapse; font-size: 11px; color: var(--mist); }
+  .dd-table th, .dd-table td { text-align: left; padding: 5px 4px; border-bottom: 1px solid var(--graphite); }
+  .dd-table th { font-family: var(--mono); font-size: 9px; color: var(--ash); text-transform: uppercase; font-weight: 500; }
+  .dd-line { display: flex; justify-content: space-between; font-size: 12px; color: var(--mist); padding: 6px 0; border-bottom: 1px solid var(--graphite); }
+  .dd-line-total { font-weight: 600; color: var(--paper); border-bottom: 0; font-size: 16px; }
+  .dd-empty { margin-top: 12px; }
+  @media (max-width: 560px) { .dd-grid { grid-template-columns: minmax(0, 1fr); } }
+
   @media (max-width: 560px) { .demo-body { height: 460px; } .dm-inbox { grid-template-columns: 120px minmax(0, 1fr); } }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
   .hero-title {
@@ -4593,7 +4626,9 @@ const DEMO_PRODUCERS = [
 
 function HeroDemo({ artwork }) {
   const [tool, setTool] = useState("credits");
-  const [picked, setPicked] = useState(new Set(["Hanz (NOR)", "Sem0r"]));
+  const [picked, setPicked] = useState(new Set(["Producer 1", "Producer 2"]));
+  const [dealTab, setDealTab] = useState("split");
+  const [splits, setSplits] = useState([50, 50]);
   const [chatWith, setChatWith] = useState("Jonah");
   const current = DEMO_TOOLS.find(t => t.id === tool);
 
@@ -4657,7 +4692,7 @@ function HeroDemo({ artwork }) {
             <span className="dm-avatar" style={{ background: p.tone }}>{p.initials}</span>
             <span className="dm-grow">
               <span className="dm-name">{p.name}</span>
-              <span className="dm-meta">not found</span>
+              <span className="dm-meta">example@gmail.com</span>
             </span>
             <span className="dm-chevron">›</span>
           </div>
@@ -4756,11 +4791,11 @@ function HeroDemo({ artwork }) {
           <div className="dm-camp is-on"><span className="dm-row-top"><span className="dm-name">Iceman stems</span><span className="dm-status">Sent</span></span><span className="dm-meta">42 sent · 31 opened</span></div>
           <div className="dm-camp"><span className="dm-row-top"><span className="dm-name">New drums</span><span className="dm-status">Draft</span></span><span className="dm-meta">Not sent yet</span></div>
           <p className="dm-kicker">Recently opened</p>
-          <div className="dm-act"><span>Sem0r</span><span className="dm-meta">opened · 2h</span></div>
-          <div className="dm-act"><span>Hanz</span><span className="dm-meta">clicked · 5h</span></div>
+          <div className="dm-act"><span>Producer 1</span><span className="dm-meta">opened · 2h</span></div>
+          <div className="dm-act"><span>Producer 2</span><span className="dm-meta">clicked · 5h</span></div>
           <p className="dm-kicker">Top openers</p>
-          <div className="dm-act"><span>Sem0r</span><b>9</b></div>
-          <div className="dm-act"><span>Hanz</span><b>6</b></div>
+          <div className="dm-act"><span>Producer 1</span><b>9</b></div>
+          <div className="dm-act"><span>Producer 2</span><b>6</b></div>
         </div>
         <div className="dm-compose">
           <p className="dm-kicker">New campaign</p>
@@ -4769,7 +4804,7 @@ function HeroDemo({ artwork }) {
           <div className="dm-chips">
             {DEMO_PRODUCERS.map(p => (
               <button key={p.name} type="button" className={`dm-check${picked.has(p.name) ? " is-on" : ""}`} aria-pressed={picked.has(p.name)} onClick={() => togglePerson(p.name)}>
-                <span>{picked.has(p.name) ? "✓" : ""}</span>{p.name.split(" ")[0]}
+                <span>{picked.has(p.name) ? "✓" : ""}</span>{p.name}
               </button>
             ))}
           </div>
@@ -4780,30 +4815,79 @@ function HeroDemo({ artwork }) {
   }
 
   function deal() {
+    const total = splits.reduce((sum, v) => sum + (Number(v) || 0), 0);
+    const dealTabs = [["split", "Split sheet"], ["agreement", "Producer agreement"], ["invoice", "Invoice"], ["saved", "Saved"]];
     return (
       <>
-        <div className="dm-stats">
-          <span><b>0</b>Saved</span><span><b>0</b>Splits</span><span><b>0</b>Invoices</span>
-        </div>
-        <div className="dm-tabs">
-          <span className="is-on">Split sheet</span><span>Producer agreement</span><span>Invoice</span><span>Saved</span>
-        </div>
-        <div className="dm-split-2">
-          <div className="dm-form">
-            <p className="dm-name">Split sheet</p>
-            <div className="dm-field"><span>Song title</span>Iceman</div>
-            <div className="dm-field"><span>Artist</span>Drake</div>
-            <p className="dm-kicker">Contributors · each column totals 100%</p>
-            <div className="dm-field"><span>Name · Role · PRO · Publishing %</span>Producer 1 · Producer · None · 50%</div>
-            <div className="dm-field"><span>Name · Role · PRO · Publishing %</span>Producer 2 · Producer · None · 50%</div>
+        <div className="dd-head">
+          <div className="dd-stats">
+            <span><b>3</b>Saved</span><span><b>1</b>Splits</span><span><b>1</b>Invoices</span>
           </div>
-          <div className="dm-paper">
-            <p className="dm-name">Split sheet</p>
-            <p className="dm-meta">Untitled · Dated 2026-11-10</p>
-            <p className="dm-paper-copy">The undersigned agree to the ownership splits above for the musical composition (publishing) and the sound recording (master).</p>
-            <p className="dm-meta">Generated with Deal Desk. This is not legal advice.</p>
-          </div>
+          <span className="dd-local"><i /> Local only · nothing uploaded</span>
         </div>
+        <div className="dd-tabs" role="tablist">
+          {dealTabs.map(([id, label]) => (
+            <button key={id} type="button" role="tab" aria-selected={dealTab === id} className={`dd-tab${dealTab === id ? " is-on" : ""}`} onClick={() => setDealTab(id)}>{label}</button>
+          ))}
+        </div>
+        {dealTab === "split" && (
+          <div className="dd-grid">
+            <div className="dd-card">
+              <p className="dd-title">Split sheet</p>
+              <label className="dd-field"><span>Song title</span><input value="Make Them Cry" readOnly /></label>
+              <label className="dd-field"><span>Artist</span><input value="Example Artist" readOnly /></label>
+              <p className="dd-kicker">Contributors · each column totals 100%</p>
+              {["Producer 1", "Producer 2"].map((name, i) => (
+                <div key={name} className="dd-contrib">
+                  <input value={name} readOnly aria-label="Name" />
+                  <select aria-label="Role" defaultValue="Producer"><option>Producer</option><option>Writer</option></select>
+                  <label className="dd-split"><span>Publishing %</span>
+                    <input type="number" min="0" max="100" value={splits[i]} onChange={e => setSplits(prev => prev.map((v, j) => (j === i ? e.target.value : v)))} />
+                  </label>
+                </div>
+              ))}
+              <p className={`dd-total${total === 100 ? "" : " is-off"}`}>Total {total}%</p>
+            </div>
+            <div className="dd-paper">
+              <p className="dd-paper-title">Split sheet</p>
+              <p className="dd-paper-name">Make Them Cry</p>
+              <p className="dd-meta">Dated 2026-11-10</p>
+              <p className="dd-paper-copy">The undersigned agree to the ownership splits above for the musical composition (publishing) and the sound recording (master). Each contributor confirms that their name, role and PRO or IPI details are correct. Any change to these splits needs written consent from all contributors.</p>
+              <table className="dd-table">
+                <thead><tr><th>Name</th><th>Role</th><th>Split</th></tr></thead>
+                <tbody>
+                  <tr><td>Producer 1</td><td>Producer</td><td>{splits[0]}%</td></tr>
+                  <tr><td>Producer 2</td><td>Producer</td><td>{splits[1]}%</td></tr>
+                </tbody>
+              </table>
+              <p className="dd-meta">Generated with Deal Desk. This is not legal advice.</p>
+            </div>
+          </div>
+        )}
+        {dealTab === "invoice" && (
+          <div className="dd-grid">
+            <div className="dd-card">
+              <p className="dd-title">Invoice</p>
+              <label className="dd-field"><span>Client</span><input value="Example Artist" readOnly /></label>
+              <label className="dd-field"><span>Due</span><input value="2026-11-14" readOnly /></label>
+              <p className="dd-kicker">Line items</p>
+              <div className="dd-line"><span>Mix session</span><span>€300</span></div>
+              <div className="dd-line"><span>Mastering</span><span>€120</span></div>
+            </div>
+            <div className="dd-paper">
+              <p className="dd-paper-title">Invoice #0042</p>
+              <p className="dd-meta">Due 14 Nov 2026</p>
+              <div className="dd-line dd-line-total"><span>Total</span><span>€420</span></div>
+              <p className="dd-meta">Generated with Deal Desk. This is not legal advice.</p>
+            </div>
+          </div>
+        )}
+        {(dealTab === "agreement" || dealTab === "saved") && (
+          <div className="dd-card dd-empty">
+            <p className="dd-title">{dealTab === "agreement" ? "Producer agreement" : "Saved"}</p>
+            <p className="dd-meta">{dealTab === "agreement" ? "Same layout as the split sheet, with the agreement terms." : "Everything you save shows up here."}</p>
+          </div>
+        )}
       </>
     );
   }

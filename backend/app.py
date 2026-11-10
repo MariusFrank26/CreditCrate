@@ -750,10 +750,23 @@ def _producer_photo(queries, names):
     return None
 
 
+DEMO_ARTWORK_FILE = os.path.join(DB_DIR, "demo_artwork.json")  # the picture addresses only, not the pictures
+
+
+def _load_demo_artwork():
+    try:
+        with open(DEMO_ARTWORK_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
 @app.route("/api/demo/artwork", methods=["GET"])
 def demo_artwork():
-    if _demo_cache["data"] is not None and time.time() - _demo_cache["at"] < 3600:
-        return jsonify(_demo_cache["data"])
+    # Once a complete answer is saved, it is reused and Genius is not asked again
+    saved = _load_demo_artwork()
+    if saved is not None:
+        return jsonify(saved)
     data = {"album": None, "producers": []}
     problems = []
     try:
@@ -787,7 +800,12 @@ def demo_artwork():
         logger.warning(f"Demo artwork incomplete: {problems}")
         data["problems"] = problems  # visible at /api/demo/artwork to see what Genius did not return
     else:
-        _demo_cache.update(at=time.time(), data=data)  # only a complete answer is kept for an hour
+        try:
+            os.makedirs(DB_DIR, exist_ok=True)
+            with open(DEMO_ARTWORK_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f)  # only a complete answer is kept
+        except OSError as e:
+            logger.warning(f"Demo artwork could not be saved: {e}")
     return jsonify(data)
 
 
