@@ -1451,6 +1451,16 @@
     font-size: 15px; line-height: 1.35; word-break: break-word;
   }
   .imsg-file { display: flex; flex-direction: column; gap: 2px; min-width: 240px; }
+  .imsg-file-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .imsg-file-text { display: flex; flex-direction: column; min-width: 0; }
+  .sp-wrap { flex: none; }
+  .sp-button { position: relative; width: 36px; height: 36px; border: 0; padding: 0; background: none; cursor: pointer; display: block; color: var(--paper); }
+  .sp-ring { position: absolute; inset: 0; width: 36px; height: 36px; transform: rotate(-90deg); }
+  .sp-track { fill: none; stroke: var(--graphite); stroke-width: 2.5; }
+  .sp-progress { fill: none; stroke: #0a84ff; stroke-width: 2.5; stroke-linecap: round; transition: stroke-dashoffset .25s linear; }
+  .sp-button.is-playing .sp-progress { stroke: var(--sunshine); }
+  .sp-icon { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; line-height: 1; padding-left: 2px; }
+  .sp-button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; border-radius: 50%; }
   .imsg-file-name { font-weight: 510; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .imsg-file-meta { font-size: 12px; color: var(--fog); }
   .imsg-action {
@@ -3608,6 +3618,80 @@ function exampleChats() {
   })));
 }
 
+// Audio files a browser can usually play. Other formats keep only the Download button.
+const PLAYABLE_SAMPLE = /\.(mp3|wav|m4a|aac|ogg|aif|aiff|flac)$/i;
+const RING_LENGTH = 2 * Math.PI * 15;
+
+// Play button for a sample. The ring around it fills as the sample plays.
+function SamplePlayer({ uid, file, token, onAuthError }) {
+  const [status, setStatus] = useState("idle"); // idle | loading | playing | paused | error
+  const [progress, setProgress] = useState(0);
+  const audioRef = useRef(null);
+  const urlRef = useRef(null);
+
+  // Let go of the audio when the row goes away
+  useEffect(() => () => {
+    if (audioRef.current) audioRef.current.pause();
+    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+  }, []);
+
+  async function loadAudio() {
+    const res = await fetch(`${API}/inbox/${uid}/attachments/${file.part}`, { headers: authHeaders(token) });
+    if (res.status === 401) {
+      onAuthError();
+      throw new Error("You were signed out.");
+    }
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const audio = new Audio(URL.createObjectURL(await res.blob()));
+    urlRef.current = audio.src;
+    audio.addEventListener("timeupdate", () => {
+      if (audio.duration) setProgress(audio.currentTime / audio.duration);
+    });
+    audio.addEventListener("ended", () => {
+      setStatus("idle");
+      setProgress(0);
+    });
+    audioRef.current = audio;
+    return audio;
+  }
+
+  async function toggle() {
+    if (status === "loading") return;
+    if (status === "playing") {
+      audioRef.current.pause();
+      setStatus("paused");
+      return;
+    }
+    try {
+      const audio = audioRef.current || (setStatus("loading"), await loadAudio());
+      setStatus("playing");
+      await audio.play();
+    } catch (e) {
+      setStatus("error");
+    }
+  }
+
+  const label = status === "playing" ? "Pause" : "Play";
+  return (
+    <span className="sp-wrap">
+      <button type="button" className={`sp-button${status === "playing" ? " is-playing" : ""}`} onClick={toggle} aria-label={`${label} ${file.name}`} title={status === "error" ? "This format can't play in this browser" : label}>
+        <svg className="sp-ring" viewBox="0 0 36 36" aria-hidden="true">
+          <circle className="sp-track" cx="18" cy="18" r="15" />
+          <circle
+            className="sp-progress"
+            cx="18"
+            cy="18"
+            r="15"
+            strokeDasharray={RING_LENGTH}
+            strokeDashoffset={RING_LENGTH * (1 - progress)}
+          />
+        </svg>
+        <span className="sp-icon" aria-hidden="true">{status === "playing" ? "❚❚" : status === "error" ? "!" : "▶"}</span>
+      </button>
+    </span>
+  );
+}
+
 function InboxTool({ token, onAuthError }) {
   const [messages, setMessages] = useState(null);
   const [chatKey, setChatKey] = useState(null);
@@ -3995,9 +4079,16 @@ function InboxTool({ token, onAuthError }) {
                             <div className="imsg-bubble">{item.subject}</div>
                             {item.attachments.map(file => (
                               <div key={file.part} className="imsg-bubble imsg-file">
-                                <span className="imsg-file-name">{file.name}</span>
-                                <span className="imsg-file-meta">
-                                  {formatSize(file.size)}{!demo && downloaded.has(fileKey(item.uid, file)) ? " · Downloaded" : ""}
+                                <span className="imsg-file-row">
+                                  {!demo && PLAYABLE_SAMPLE.test(file.name) && (
+                                    <SamplePlayer uid={item.uid} file={file} token={token} onAuthError={onAuthError} />
+                                  )}
+                                  <span className="imsg-file-text">
+                                    <span className="imsg-file-name">{file.name}</span>
+                                    <span className="imsg-file-meta">
+                                      {formatSize(file.size)}{!demo && downloaded.has(fileKey(item.uid, file)) ? " · Downloaded" : ""}
+                                    </span>
+                                  </span>
                                 </span>
                                 <button
                                   type="button"
