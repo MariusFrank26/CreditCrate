@@ -1688,6 +1688,32 @@
   .dm-pack-cover img { width: 60%; height: auto; }
   .dm-action { font-size: 11px; font-weight: 600; color: var(--void); background: var(--sunshine); border-radius: 999px; padding: 4px 10px; flex: none; }
   .dm-dbx { align-self: stretch; font-family: var(--sans); font-size: 13px; font-weight: 600; color: #ffffff; background: #1a5bc4; border: 0; border-radius: 10px; padding: 10px; cursor: default; }
+  .dm-inbox { display: grid; grid-template-columns: 210px minmax(0, 1fr); border: 1px solid var(--graphite); border-radius: 14px; overflow: hidden; background: var(--void); min-height: 0; }
+  .dm-convs { background: var(--carbon); border-right: 1px solid var(--graphite); display: flex; flex-direction: column; min-width: 0; }
+  .dm-conv { display: flex; align-items: center; gap: 10px; padding: 11px 12px; background: none; border: 0; border-bottom: 1px solid var(--graphite); color: inherit; text-align: left; cursor: pointer; font-family: var(--sans); min-width: 0; }
+  .dm-conv:hover { background: var(--obsidian); }
+  .dm-conv.is-on { background: var(--graphite); }
+  .dm-conv .dm-avatar { width: 36px; height: 36px; font-size: 12px; }
+  .dm-clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .dm-conv-side { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex: none; }
+  .dm-badges { display: flex; gap: 4px; }
+  .dm-count { font-size: 11px; font-weight: 600; color: #ffffff; background: #0a84ff; border-radius: 999px; min-width: 20px; height: 20px; display: grid; place-items: center; padding: 0 6px; }
+  .dm-count-yellow { background: var(--sunshine); color: var(--void); }
+  .dm-thread { display: flex; flex-direction: column; min-width: 0; background: var(--void); }
+  .dm-thread-head { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 12px 14px; border-bottom: 1px solid var(--graphite); }
+  .dm-avatar-xl { width: 60px; height: 60px; font-size: 20px; }
+  .dm-fav { margin-top: 6px; font-size: 12px; color: var(--fog); border: 1px solid var(--graphite); border-radius: 999px; padding: 4px 12px; }
+  .dm-msgs { display: flex; flex-direction: column; gap: 6px; padding: 10px 14px 16px; }
+  .dm-msg { display: flex; align-items: flex-end; gap: 8px; max-width: 92%; }
+  .dm-mini { width: 24px; height: 24px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 9px; font-weight: 600; color: var(--void); }
+  .dm-msg-zip { align-items: center; }
+  .dm-msg .dm-bubble { background: var(--graphite); color: var(--paper); padding: 8px 12px; border-radius: 16px; font-size: 13px; line-height: 1.35; }
+  .dm-msg .dm-file { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 210px; }
+  .dm-msg .dm-file span { display: flex; flex-direction: column; min-width: 0; }
+  .dm-msg .dm-file em { font-style: normal; font-size: 11px; color: var(--fog); margin-top: 2px; }
+  .dm-msg .dm-file b { font-size: 11px; font-weight: 600; color: #ffffff; background: #0a84ff; border-radius: 999px; padding: 5px 10px; flex: none; }
+  .dm-zip { font-size: 12px; font-weight: 600; color: #ffffff; background: #0a84ff; border-radius: 999px; padding: 6px 12px; }
+  .dm-day { align-self: center; font-size: 11px; color: var(--ash); margin: 4px 0 6px; }
   .dm-thread { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
   .dm-day { align-self: center; font-size: 11px; color: var(--ash); margin-bottom: 4px; }
   .dm-bubble { background: var(--graphite); color: var(--paper); padding: 8px 12px; border-radius: 16px; font-size: 13px; max-width: 86%; }
@@ -1714,7 +1740,6 @@
   .dm-conv .dm-avatar { width: 30px; height: 30px; font-size: 10px; }
   .dm-conv-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
   .dm-count { font-size: 10px; font-weight: 600; color: #ffffff; background: #0a84ff; border-radius: 999px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 5px; }
-  .dm-inbox .dm-thread { padding: 10px; background: var(--void); min-height: 0; }
   .dm-zip { align-self: flex-start; font-size: 11px; font-weight: 600; color: #ffffff; background: #0a84ff; border-radius: 999px; padding: 5px 10px; }
   .dm-row-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
   .dm-status { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--smoke); color: var(--fog); }
@@ -4677,30 +4702,59 @@ function HeroDemo() {
 
   function inbox() {
     const threads = [
-      { name: "Jonah Reyes", last: "Fresh idea from today", time: "3:00 PM", count: 2, tone: "#a3ddc2" },
-      { name: "Maya Brooks", last: "Loops from the session", time: "Nov 9", count: 5, tone: "#c9b6ee" },
-      { name: "Sol Ramirez", last: "Starters v2", time: "Nov 8", count: 4, tone: "#a9d8ef" },
+      { key: "Jonah", name: "Jonah Reyes", last: "2 New Ideas From Today's Cook Up", time: "3:00 PM", blue: 2, yellow: 0, tone: "#a3ddc2" },
+      { key: "Maya", name: "Maya Brooks", last: "4 New Loops (Brent Faiyaz)", time: "Nov 9", blue: 9, yellow: 6, tone: "#c9b6ee" },
+      { key: "Sol", name: "Sol Ramirez", last: "Starters v2 (Future, Metro)", time: "Nov 8", blue: 5, yellow: 0, tone: "#a9d8ef" },
+      { key: "Ari", name: "Ari Vance", last: "Loops from the session", time: "Nov 9", blue: 4, yellow: 0, tone: "#f3d58b" },
     ];
+    const active = threads.find(t => t.key === chatWith) || threads[0];
+    const initials = active.name.split(" ").map(w => w[0]).join("");
     return (
       <div className="dm-inbox">
         <div className="dm-convs">
           {threads.map(t => (
-            <button key={t.name} type="button" className={`dm-conv${chatWith === t.name.split(" ")[0] ? " is-on" : ""}`} onClick={() => setChatWith(t.name.split(" ")[0])}>
+            <button key={t.key} type="button" className={`dm-conv${active.key === t.key ? " is-on" : ""}`} onClick={() => setChatWith(t.key)}>
               <span className="dm-avatar" style={{ background: t.tone }}>{t.name.split(" ").map(w => w[0]).join("")}</span>
               <span className="dm-grow">
                 <span className="dm-name">{t.name}</span>
-                <span className="dm-meta">{t.last}</span>
+                <span className="dm-meta dm-clip">{t.last}</span>
               </span>
-              <span className="dm-conv-side"><span className="dm-meta">{t.time}</span><b className="dm-count">{t.count}</b></span>
+              <span className="dm-conv-side">
+                <span className="dm-meta">{t.time}</span>
+                <span className="dm-badges">
+                  {t.blue > 0 && <b className="dm-count">{t.blue}</b>}
+                  {t.yellow > 0 && <b className="dm-count dm-count-yellow">{t.yellow}</b>}
+                </span>
+              </span>
             </button>
           ))}
         </div>
         <div className="dm-thread">
-          <p className="dm-day">Tue, Nov 10</p>
-          <div className="dm-bubble">2 new ideas from today's session</div>
-          <div className="dm-bubble dm-file"><span>Idea - Big 124 BPM.mp3<em>8 MB</em></span><b>Download</b></div>
-          <div className="dm-bubble dm-file"><span>Idea - Back It Up 136 BPM.mp3<em>5 MB</em></span><b>Download</b></div>
-          <b className="dm-zip">Download all 2 as a zip</b>
+          <div className="dm-thread-head">
+            <span className="dm-avatar dm-avatar-xl" style={{ background: active.tone }}>{initials}</span>
+            <span className="dm-name">{active.name}</span>
+            <span className="dm-meta">not found</span>
+            <span className="dm-fav">☆ Add to favourites</span>
+          </div>
+          <div className="dm-msgs">
+            <p className="dm-day">Tue, Nov 10, 2026</p>
+            <div className="dm-msg">
+              <span className="dm-mini" style={{ background: active.tone }}>{initials}</span>
+              <div className="dm-bubble">2 new ideas from today's session</div>
+            </div>
+            <div className="dm-msg">
+              <span className="dm-mini" style={{ background: active.tone }}>{initials}</span>
+              <div className="dm-bubble dm-file"><span>Idea - Big 124 BPM CC.mp3<em>8 MB</em></span><b>Download</b></div>
+            </div>
+            <div className="dm-msg">
+              <span className="dm-mini" style={{ background: active.tone }}>{initials}</span>
+              <div className="dm-bubble dm-file"><span>Idea - Back It Up 136 BPM CC.mp3<em>5 MB</em></span><b>Download</b></div>
+            </div>
+            <div className="dm-msg dm-msg-zip">
+              <span className="dm-mini" style={{ background: active.tone }}>{initials}</span>
+              <b className="dm-zip">Download all 2 as a zip</b>
+            </div>
+          </div>
         </div>
       </div>
     );
