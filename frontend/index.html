@@ -4450,6 +4450,26 @@ function CampaignsTool({ token, onAuthError }) {
     });
   }
 
+  // The right-click menu is drawn on the page itself, so it is never clipped by the list or window around it
+  const draftTarget = draftMenu ? (campaigns || []).find(c => c.id === draftMenu.id) : null;
+  const draftMenuView = draftMenu && ReactDOM.createPortal(
+    <>
+      <div
+        className="cmp-menu-scrim"
+        onClick={() => setDraftMenu(null)}
+        onContextMenu={e => { e.preventDefault(); setDraftMenu(null); }}
+      />
+      {draftTarget && (
+        <div className="cmp-menu" role="menu" style={{ left: draftMenu.x, top: draftMenu.y }}>
+          <button type="button" role="menuitem" className="cmp-menu-item is-danger" onClick={() => deleteDraft(draftTarget)}>
+            Delete Draft
+          </button>
+        </div>
+      )}
+    </>,
+    document.body
+  );
+
   function sendTest() {
     run(async () => {
       const result = await callApi("/mail/test", token, { method: "POST", body: { campaign_id: Number(selectedId) } });
@@ -4507,6 +4527,7 @@ function CampaignsTool({ token, onAuthError }) {
 
   return (
     <section className="tool-section" aria-labelledby="campaigns-heading">
+      {draftMenuView}
       <div className="tool-heading">
         <p className="tool-eyebrow">Outreach</p>
         <h2 id="campaigns-heading" className="tool-title">Campaigns</h2>
@@ -4565,25 +4586,6 @@ function CampaignsTool({ token, onAuthError }) {
             );
           })}
 
-          {draftMenu && (() => {
-            const target = (campaigns || []).find(c => c.id === draftMenu.id);
-            return (
-              <>
-                <div
-                  className="cmp-menu-scrim"
-                  onClick={() => setDraftMenu(null)}
-                  onContextMenu={e => { e.preventDefault(); setDraftMenu(null); }}
-                />
-                {target && (
-                  <div className="cmp-menu" role="menu" style={{ left: draftMenu.x, top: draftMenu.y }}>
-                    <button type="button" role="menuitem" className="cmp-menu-item is-danger" onClick={() => deleteDraft(target)}>
-                      Delete Draft
-                    </button>
-                  </div>
-                )}
-              </>
-            );
-          })()}
 
           {(campaigns || []).length < 3 && pastExamples.map(c => (
             <div key={c.id} className="cmp-item is-example" aria-hidden="true">
