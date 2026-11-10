@@ -1388,6 +1388,8 @@
 
   .inbox-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
   .inbox-download-all { margin-top: 0; align-self: center; }
+  .imsg-action.inbox-packs-button,
+  .imsg-action.inbox-packs-button:hover:not(:disabled) { background: var(--sunshine); color: var(--void); }
   .inbox-menu { position: relative; }
   .inbox-dropdown {
     width: 100%; max-height: 260px; overflow-y: auto;
@@ -3475,7 +3477,7 @@ function InboxTool({ token, onAuthError }) {
         <div className="inbox-actions">
           {!demo && (
             <div className="inbox-menu">
-              <button type="button" className="imsg-action inbox-download-all" onClick={() => setPackMenuOpen(o => !o)} aria-expanded={packMenuOpen}>
+              <button type="button" className="imsg-action inbox-download-all inbox-packs-button" onClick={() => setPackMenuOpen(o => !o)} aria-expanded={packMenuOpen}>
                 Unopened packs ({unopenedPacks.length}) ▾
               </button>
             </div>
