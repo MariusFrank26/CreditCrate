@@ -1572,7 +1572,7 @@
   .var-help { font-size: 12px; color: var(--ash); line-height: 1.5; margin: 2px 0 0; }
 
   /* ── AUTH: sign up and log in on the landing page ── */
-  .auth { margin-top: 36px; max-width: 460px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 16px; padding: 22px; }
+  .auth { margin-top: 20px; max-width: 460px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 16px; padding: 18px; }
   .auth-tabs { display: flex; gap: 6px; margin-bottom: 18px; }
   .auth-tab { font-family: var(--sans); font-size: 14px; background: none; border: 1px solid var(--graphite); border-radius: 999px; color: var(--fog); padding: 7px 14px; cursor: pointer; }
   .auth-tab[aria-selected="true"] { background: var(--paper); border-color: var(--paper); color: var(--void); }
@@ -1588,18 +1588,96 @@
   .msg-ok { font-size: 14px; color: var(--mint); background: rgba(163,221,194,.08); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
 
   /* ── HERO + SIGN-UP ── */
-  .hero { padding: 40px 0 0; max-width: 760px; }
+  .hero {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: 56px; align-items: center;
+    padding: 4px 0 0; max-width: none;
+  }
+  .hero-copy-col { min-width: 0; }
+  .hero-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .hero-tab {
+    font-family: var(--sans); font-size: 13px; color: var(--mist);
+    padding: 6px 12px; border-radius: 999px; border: 1px solid var(--graphite); background: var(--carbon);
+  }
+
+  /* The laptop: lid, screen with a simplified app, and a base */
+  .laptop { width: 100%; max-width: 620px; justify-self: center; }
+  .laptop-lid {
+    background: linear-gradient(180deg, #2a2d33, #16171a);
+    border-radius: 18px 18px 8px 8px; padding: 12px 12px 14px;
+    box-shadow: 0 40px 90px -40px rgba(0, 0, 0, .9), inset 0 0 0 1px rgba(255, 255, 255, .05);
+  }
+  .laptop-screen {
+    aspect-ratio: 16 / 10; background: var(--void); border-radius: 8px; overflow: hidden;
+    display: flex; flex-direction: column; border: 1px solid #000;
+  }
+  .lm-bar {
+    display: flex; align-items: center; gap: 6px; padding: 9px 12px;
+    background: var(--obsidian); border-bottom: 1px solid var(--graphite);
+  }
+  .lm-bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--smoke); }
+  .lm-bar i:nth-child(1) { background: var(--salmon); }
+  .lm-bar i:nth-child(2) { background: var(--sunshine); }
+  .lm-bar i:nth-child(3) { background: var(--mint); }
+  .lm-bar span { margin-left: 8px; font-size: 11px; color: var(--mist); font-weight: 510; }
+  .lm-tabs { display: flex; gap: 5px; padding: 8px 10px; border-bottom: 1px solid var(--graphite); overflow: hidden; }
+  .lm-tabs span { font-size: 10px; color: var(--fog); padding: 3px 8px; border-radius: 999px; border: 1px solid var(--graphite); white-space: nowrap; }
+  .lm-tabs span.is-on { color: var(--void); background: var(--paper); border-color: var(--paper); }
+  .lm-grid {
+    flex: 1; min-height: 0; padding: 10px; display: grid; gap: 8px;
+    grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+  }
+  .lm-card {
+    background: var(--carbon); border: 1px solid var(--graphite); border-radius: 10px;
+    padding: 9px; display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow: hidden;
+  }
+  .lm-inbox { grid-row: span 2; }
+  .lm-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); }
+  .lm-covers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .lm-covers span {
+    aspect-ratio: 1; border-radius: 6px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--graphite), var(--obsidian));
+  }
+  .lm-covers img { width: 58%; height: auto; }
+  .lm-line { height: 5px; border-radius: 3px; background: var(--graphite); }
+  .lm-line.short { width: 60%; }
+  .lm-title { font-size: 12px; font-weight: 510; color: var(--paper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lm-stats { display: flex; gap: 10px; font-size: 10px; color: var(--fog); }
+  .lm-stats b { color: var(--paper); font-weight: 600; font-size: 13px; }
+  .lm-bar-track { height: 5px; border-radius: 3px; background: var(--graphite); overflow: hidden; margin-top: auto; }
+  .lm-bar-track span { display: block; height: 100%; background: var(--mint); border-radius: 3px; }
+  .lm-chat { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--mist); min-width: 0; }
+  .lm-chat i {
+    width: 22px; height: 22px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    font-style: normal; font-size: 8px; font-weight: 600; color: var(--void);
+  }
+  .lm-chat span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lm-chat b, .lm-chat em {
+    font-style: normal; font-size: 9px; font-weight: 600; min-width: 16px; height: 16px; border-radius: 999px;
+    display: grid; place-items: center; color: #ffffff; padding: 0 4px;
+  }
+  .lm-chat b { background: #0a84ff; }
+  .lm-chat em { background: var(--sunshine); color: var(--void); }
+  .laptop-base {
+    height: 14px; width: 112%; margin: 0 -6% ; border-radius: 0 0 16px 16px;
+    background: linear-gradient(180deg, #2a2d33, #101113);
+    box-shadow: 0 18px 30px -20px rgba(0, 0, 0, .9);
+  }
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+    .laptop { max-width: 520px; }
+  }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
   .hero-title {
     margin-top: 16px;
-    font-size: clamp(36px, 5.5vw, 60px);
+    font-size: clamp(36px, 4.6vw, 54px);
     font-weight: 510;
     letter-spacing: -0.03em;
     line-height: 1.05;
     color: var(--paper);
     text-wrap: balance;
   }
-  .hero-copy { margin-top: 20px; font-size: 18px; color: var(--fog); max-width: 56ch; }
+  .hero-copy { margin-top: 16px; font-size: 18px; color: var(--fog); max-width: 56ch; }
   .signup { margin-top: 32px; max-width: 560px; }
   .signup-done { font-size: 15px; color: var(--mist); }
 
@@ -4422,6 +4500,52 @@ function GmailGate({ token, account, onChange, onSignOut }) {
   );
 }
 
+// The eye-catcher: a laptop showing a simplified CreditCrate screen. Drawn in CSS, no image needed.
+function LaptopMock() {
+  return (
+    <div className="laptop" aria-hidden="true">
+      <div className="laptop-lid">
+        <div className="laptop-screen">
+          <div className="lm-bar">
+            <i /><i /><i />
+            <span>CreditCrate</span>
+          </div>
+          <div className="lm-tabs">
+            {DECK_TABS.map((t, i) => <span key={t} className={i === 2 ? "is-on" : ""}>{t}</span>)}
+          </div>
+          <div className="lm-grid">
+            <div className="lm-card lm-packs">
+              <span className="lm-label">Packs</span>
+              <div className="lm-covers">
+                <span><img src="logo.svg" alt="" /></span>
+                <span><img src="logo.svg" alt="" /></span>
+                <span><img src="logo.svg" alt="" /></span>
+              </div>
+              <span className="lm-line" /><span className="lm-line short" />
+            </div>
+            <div className="lm-card lm-campaign">
+              <span className="lm-label">Campaign</span>
+              <span className="lm-title">November samples</span>
+              <div className="lm-stats">
+                <span><b>42</b> sent</span>
+                <span><b>31</b> opened</span>
+              </div>
+              <div className="lm-bar-track"><span style={{ width: "74%" }} /></div>
+            </div>
+            <div className="lm-card lm-inbox">
+              <span className="lm-label">Inbox</span>
+              <div className="lm-chat"><i style={{ background: "#c9b6ee" }}>AM</i><span>Arjun M.</span><b>2</b></div>
+              <div className="lm-chat"><i style={{ background: "#a3ddc2" }}>KL</i><span>Kira L.</span><em>1</em></div>
+              <div className="lm-chat"><i style={{ background: "#f2a79c" }}>DT</i><span>Dre T.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="laptop-base" />
+    </div>
+  );
+}
+
 function App() {
   // Saves the public emails found for an album to the user's contacts, labelled with the album
   async function saveToContacts(albumName, creditList) {
@@ -4936,12 +5060,18 @@ function App() {
 
         {!token && <>
           <section className="hero" aria-labelledby="hero-heading">
-            <p className="eyebrow">Free for 7 days</p>
-            <h2 id="hero-heading" className="hero-title">Everything you do outside your DAW.</h2>
-            <p className="hero-copy">
-              You already make the music. Let’s get it to the people who need to hear it.
-            </p>
-            <AuthPanel onSignedIn={handleSignedIn} />
+            <div className="hero-copy-col">
+              <p className="eyebrow">Free for 7 days · no card needed</p>
+              <h2 id="hero-heading" className="hero-title">Everything you do outside your DAW.</h2>
+              <p className="hero-copy">
+                Find who made the record, send your samples, and keep your inbox sorted. All in one place.
+              </p>
+              <div className="hero-tabs" aria-label="What's inside">
+                {DECK_TABS.map(t => <span key={t} className="hero-tab">{t}</span>)}
+              </div>
+              <AuthPanel onSignedIn={handleSignedIn} />
+            </div>
+            <LaptopMock />
           </section>
           <Features />
           <LandingExtras />
