@@ -1230,7 +1230,28 @@
   .pk-examples .pk-card .pk-name { flex: 1; min-width: 0; }
 
   /* ── CAMPAIGNS: Gmail connection, activity and send progress ── */
+  .gate { max-width: 600px; margin: 48px auto 0; display: flex; flex-direction: column; gap: 18px; }
+  .gate-signout { align-self: flex-start; }
   .gmail-card { gap: 14px; }
+  .gmail-head { display: flex; flex-direction: column; gap: 4px; }
+  .gmail-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; counter-reset: gmail; }
+  .gmail-steps li {
+    counter-increment: gmail; position: relative; padding-left: 36px;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+    font-size: 14px; color: var(--mist); line-height: 1.5;
+  }
+  .gmail-steps li::before {
+    content: counter(gmail); position: absolute; left: 0; top: 0;
+    width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--graphite); color: var(--paper); font-family: var(--mono); font-size: 12px;
+  }
+  .gmail-steps strong { color: var(--paper); font-weight: 510; }
+  .gmail-link { font-size: 13px; color: #0a84ff; text-decoration: none; }
+  .gmail-link:hover { text-decoration: underline; }
+  .gmail-optional { font-size: 13px; color: var(--fog); line-height: 1.5; }
+  .gmail-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .gmail-fields { grid-template-columns: minmax(0, 1fr); } }
   .gmail-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .gmail-title { font-size: 15px; font-weight: 510; color: var(--paper); }
   .activity-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
@@ -3120,13 +3141,40 @@ function GmailConnect({ token, onAuthError, account, onChange }) {
 
   return (
     <form className="tool-card gmail-card" onSubmit={connect}>
-      <h3 className="tool-card-title">Connect your Gmail</h3>
-      <p className="panel-copy">
-        Campaigns send from your own address, so they land in your Sent folder. Turn on 2-Step Verification in your
-        Google account, create an app password under App passwords, and paste it here. It is stored encrypted.
+      <div className="gmail-head">
+        <h3 className="tool-card-title">Connect your Gmail</h3>
+        <p className="panel-copy">Takes about two minutes, once. Campaigns then send from your own address.</p>
+      </div>
+
+      <ol className="gmail-steps">
+        <li>
+          <span className="gmail-step-text">
+            Turn on <strong>2-Step Verification</strong> for your Google account.
+          </span>
+          <a className="gmail-link" href="https://myaccount.google.com/signinoptions/twosv" target="_blank" rel="noopener noreferrer">Open security settings ↗</a>
+        </li>
+        <li>
+          <span className="gmail-step-text">
+            Create an app password. Name it <strong>CreditCrate</strong> and copy the 16-character code.
+          </span>
+          <a className="gmail-link" href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer">Create an app password ↗</a>
+        </li>
+        <li>
+          <span className="gmail-step-text">
+            Paste your address and the code below. Spaces in the code don't matter.
+          </span>
+        </li>
+      </ol>
+
+      <p className="gmail-optional">
+        For the sample inbox, also turn on IMAP in Gmail settings (Forwarding and POP/IMAP).{" "}
+        <a className="gmail-link" href="https://mail.google.com/mail/u/0/#settings/fwdandpop" target="_blank" rel="noopener noreferrer">Open Gmail settings ↗</a>
       </p>
-      <Field label="Gmail address" id="gmail-address" type="email" value={address} onChange={setAddress} required />
-      <Field label="App password" id="gmail-app-password" type="password" value={appPassword} onChange={setAppPassword} required />
+
+      <div className="gmail-fields">
+        <Field label="Gmail address" id="gmail-address" type="email" value={address} onChange={setAddress} required />
+        <Field label="App password" id="gmail-app-password" type="password" value={appPassword} onChange={setAppPassword} required />
+      </div>
       <button type="submit" className="search-btn" disabled={busy || !address.trim() || !appPassword.trim()}>Connect Gmail</button>
       <ToolMessages error={error} />
     </form>
@@ -4359,6 +4407,21 @@ function AppDeck({ children, index, onIndexChange }) {
   );
 }
 
+// Shown after sign-in until Gmail is connected. Most tools need it, so it comes first.
+function GmailGate({ token, account, onChange, onSignOut }) {
+  return (
+    <section className="gate" aria-labelledby="gate-heading">
+      <p className="tool-eyebrow">One step first</p>
+      <h2 id="gate-heading" className="tool-title">Connect your Gmail to start</h2>
+      <p className="tool-copy">
+        CreditCrate sends campaigns and reads your sample inbox through your own Gmail, so most tools stay locked until it's connected.
+      </p>
+      <GmailConnect token={token} onAuthError={onSignOut} account={account} onChange={onChange} />
+      <button type="button" className="back-btn gate-signout" onClick={onSignOut}>Sign out</button>
+    </section>
+  );
+}
+
 function App() {
   // Saves the public emails found for an album to the user's contacts, labelled with the album
   async function saveToContacts(albumName, creditList) {
@@ -4403,6 +4466,20 @@ function App() {
   const [token, setToken] = useState(readToken);
   const [deckIndex, setDeckIndex] = useState(0);
   const [apiStatus, setApiStatus] = useState("checking"); // checking | online | offline
+  const [mailAccount, setMailAccount] = useState(null); // the connected Gmail, once signed in
+
+  useEffect(() => {
+    if (!token) {
+      setMailAccount(null);
+      return;
+    }
+    callApi("/mail/account", token)
+      .then(setMailAccount)
+      .catch(() => setMailAccount(null));
+  }, [token]);
+
+  // Until Gmail is connected, nothing else is shown
+  const gated = Boolean(token && mailAccount && !mailAccount.connected);
 
   // 1=search, 2=pick album, 3=credits
   const step = selectedAlbum ? 3 : (searchResults || loading) ? 2 : 1;
@@ -4616,8 +4693,9 @@ function App() {
       <main id="main" className={token ? "app-main" : undefined}>
         {error && <div className="error-msg" role="alert">⚠ {error}</div>}
 
-        {token && <OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} />}
-        {token && (
+        {gated && <GmailGate token={token} account={mailAccount} onChange={setMailAccount} onSignOut={() => signOut()} />}
+        {token && !gated && <OverviewTool token={token} onAuthError={() => signOut(SESSION_EXPIRED)} />}
+        {token && !gated && (
         <AppDeck index={deckIndex} onIndexChange={setDeckIndex}>
         <AppWindow name="Credits"><>
         <CreditsHeader />
