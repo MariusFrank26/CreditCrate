@@ -1405,6 +1405,21 @@
 
   .inbox-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
   .inbox-download-all { margin-top: 0; }
+  .inbox-menu { position: relative; }
+  .inbox-dropdown {
+    position: absolute; right: 0; top: calc(100% + 8px); z-index: 30;
+    width: min(380px, 90vw); max-height: 320px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 2px; padding: 6px;
+    background: var(--obsidian); border: 1px solid var(--graphite); border-radius: 12px;
+    box-shadow: 0 20px 50px -20px rgba(0, 0, 0, .8);
+  }
+  .inbox-dropdown > p { padding: 10px 12px; }
+  .inbox-dropdown-item {
+    display: flex; flex-direction: column; gap: 2px; padding: 10px 12px;
+    border-radius: 8px; text-decoration: none; color: var(--paper);
+  }
+  .inbox-dropdown-item:hover { background: var(--graphite); }
+  .inbox-dropdown-name { font-size: 14px; font-weight: 510; color: var(--sunshine); }
   .inbox-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .inbox-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
   .inbox-item {
@@ -3136,11 +3151,23 @@ function avatarTone(name) {
   return { background: bg, color: ink };
 }
 
+// The same pack can arrive with different per-email parameters, so compare only the folder or file
+function packId(link) {
+  try {
+    const url = new URL(link);
+    const rlkey = url.searchParams.get("rlkey");
+    return `${url.hostname}${url.pathname}${rlkey ? `?rlkey=${rlkey}` : ""}`;
+  } catch (e) {
+    return link;
+  }
+}
+
 // Each pack is shown once per chat, under the first message that carries it
 function firstPackOwners(chat) {
   const owners = new Map();
   chat.items.forEach(item => item.links.forEach(link => {
-    if (!owners.has(link)) owners.set(link, item.uid);
+    const id = packId(link);
+    if (!owners.has(id)) owners.set(id, item.uid);
   }));
   return owners;
 }
@@ -3203,6 +3230,7 @@ function exampleChats() {
 function InboxTool({ token, onAuthError }) {
   const [messages, setMessages] = useState(null);
   const [chatKey, setChatKey] = useState(null);
+  const [packMenuOpen, setPackMenuOpen] = useState(false);
   const scrollRef = useRef(null);
   const [message, setMessage] = useState(null);
   const [downloadError, setDownloadError] = useState(null);
@@ -3379,14 +3407,14 @@ function InboxTool({ token, onAuthError }) {
 
   // Packs (Dropbox or Drive links) that haven't been opened yet, per sender
   function packKey(link) {
-    return `pack|${link}`;
+    return `pack|${packId(link)}`;
   }
 
   // Unique packs in a chat that haven't been opened yet
   function newPacksIn(chat) {
-    const links = new Set();
-    chat.items.forEach(item => item.links.forEach(link => links.add(link)));
-    return [...links].filter(link => !downloaded.has(packKey(link))).length;
+    const ids = new Set();
+    chat.items.forEach(item => item.links.forEach(link => ids.add(packId(link))));
+    return [...ids].filter(id => !downloaded.has(`pack|${id}`)).length;
   }
 
   function openPack(link) {
@@ -3424,6 +3452,20 @@ function InboxTool({ token, onAuthError }) {
     });
   }
 
+  const unopenedPacks = (() => {
+    const seen = new Map();
+    (messages || []).forEach(item => {
+      const { name } = parseSender(item.from);
+      item.links.forEach(link => {
+        const id = packId(link);
+        if (!seen.has(id) && !downloaded.has(packKey(link))) {
+          seen.set(id, { id, link, name, subject: item.subject });
+        }
+      });
+    });
+    return [...seen.values()];
+  })();
+
   const newCount = (messages || []).reduce(
     (total, item) => total + item.attachments.filter(file => !downloaded.has(fileKey(item.uid, file))).length,
     0
@@ -3453,6 +3495,33 @@ function InboxTool({ token, onAuthError }) {
       <div className="inbox-head">
         <span className="history-meta">{messages ? `${messages.length} ${messages.length === 1 ? "email" : "emails"} with samples from the last 7 days` : ""}</span>
         <div className="inbox-actions">
+          {!demo && (
+            <div className="inbox-menu">
+              <button type="button" className="back-btn" onClick={() => setPackMenuOpen(o => !o)} aria-expanded={packMenuOpen}>
+                Unopened packs ({unopenedPacks.length}) ▾
+              </button>
+              {packMenuOpen && (
+                <div className="inbox-dropdown" role="menu">
+                  {unopenedPacks.length === 0 ? (
+                    <p className="history-meta">All packs are opened.</p>
+                  ) : unopenedPacks.map(pack => (
+                    <a
+                      key={pack.id}
+                      className="inbox-dropdown-item"
+                      href={pack.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      role="menuitem"
+                      onClick={() => { openPack(pack.link); setPackMenuOpen(false); }}
+                    >
+                      <span className="inbox-dropdown-name">{packSourceName(pack.link)} · {pack.name}</span>
+                      <span className="history-meta">{pack.subject}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {batch ? (
             <>
               <span className="history-meta">Downloading {batch.done + 1} of {batch.total}</span>
@@ -3569,7 +3638,7 @@ function InboxTool({ token, onAuthError }) {
                                 {busyFile === `zip-${item.uid}` ? "Preparing zip…" : `Download all ${item.attachments.length} as a zip`}
                               </button>
                             )}
-                            {item.links.filter(link => packOwner.get(link) === item.uid).map(link => (
+                            {item.links.filter(link => packOwner.get(packId(link)) === item.uid).map(link => (
                               <div key={link} className="imsg-bubble imsg-file imsg-pack">
                                 <span className="imsg-file-name">{packSourceName(link)} pack</span>
                                 <span className="imsg-file-meta">{item.subject}</span>
