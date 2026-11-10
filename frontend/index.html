@@ -457,6 +457,17 @@
   .panel-title { font-size: 20px; font-weight: 510; letter-spacing: -0.016em; color: var(--paper); }
   .panel-copy { margin-top: 8px; font-size: 14px; color: var(--fog); }
   .send-progress { margin-top: 12px; font-size: 18px; color: var(--paper); }
+  .opens-chart { display: flex; flex-direction: column; gap: 6px; }
+  .opens-bars { display: flex; align-items: flex-end; gap: 2px; height: 96px; border-bottom: 1px solid var(--graphite); }
+  .opens-bar { flex: 1; min-width: 2px; background: #0a84ff; border-radius: 2px 2px 0 0; }
+  .opens-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--ash); }
+  .people { display: flex; flex-direction: column; gap: 12px; }
+  .people-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+  .people-filters button { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--smoke); background: none; color: var(--mist); cursor: pointer; }
+  .people-filters button[aria-pressed="true"] { background: var(--paper); color: var(--void); border-color: var(--paper); }
+  .people-name { display: block; color: var(--paper); }
+  .people-email { display: block; font-size: 12px; color: var(--ash); }
+  .people-link { display: inline-block; margin: 0 6px 4px 0; font-size: 12px; color: var(--mist); border: 1px solid var(--graphite); border-radius: 6px; padding: 2px 6px; }
   .panel-form { margin-top: 20px; }
 
   /* ── TOOLS (title bar and tool screens) ── */
@@ -4206,6 +4217,7 @@ function CampaignsTool({ token, onAuthError }) {
   const [audienceQuery, setAudienceQuery] = useState("");
   const [preview, setPreview] = useState(null);
   const [stats, setStats] = useState(null);
+  const [people, setPeople] = useState(null);
   const [message, setMessage] = useState(null);
   const [focusedField, setFocusedField] = useState("body");
   const [draftMenu, setDraftMenu] = useState(null); // { id, x, y } while the right-click menu is open
@@ -4258,6 +4270,11 @@ function CampaignsTool({ token, onAuthError }) {
     setStats(await callApi(`/campaigns/${id}/stats`, token));
   }
 
+  async function loadPeople(id) {
+    const data = await callApi(`/campaigns/${id}/people`, token);
+    setPeople(data.people);
+  }
+
   useEffect(() => { run(load); }, []);
 
   // A pack added or removed in the Packs window shows up here straight away
@@ -4284,16 +4301,24 @@ function CampaignsTool({ token, onAuthError }) {
   useEffect(() => {
     setChosen(new Set());
     setAudienceQuery("");
-    if (selectedId) run(() => loadStats(selectedId));
-    else setStats(null);
+    if (selectedId) {
+      run(() => loadStats(selectedId));
+      loadPeople(selectedId).catch(() => {});
+    } else {
+      setStats(null);
+      setPeople(null);
+    }
   }, [selectedId]);
 
-  // While a campaign is sending or partly sent, keep the progress and times up to date
+  // Progress, opens and clicks keep changing: refresh while sending (every 5 seconds) and
+  // after sending (every 30 seconds, since opens keep arriving for days)
   useEffect(() => {
-    if (!["sending", "partial"].includes(stats?.status) || !selectedId) return undefined;
+    if (!selectedId || !stats || stats.status === "draft") return undefined;
+    const every = stats.status === "sending" ? 5000 : 30000;
     const id = setInterval(() => {
       loadStats(selectedId).catch(() => {});
-    }, 5000);
+      loadPeople(selectedId).catch(() => {});
+    }, every);
     return () => clearInterval(id);
   }, [stats?.status, selectedId]);
 
@@ -4611,19 +4636,9 @@ function CampaignsTool({ token, onAuthError }) {
                 ) : null}
                 {stats.tracking ? (
                   <>
-                    <div className="stat-grid stat-grid-compact">
-                      <StatTile label="Sent" value={stats.sent} hint="Accepted by Gmail" />
-                      <StatTile
-                        label="Opened"
-                        value={stats.opened}
-                        hint={stats.sent ? `${Math.round(100 * stats.opened / stats.sent)}% of recipients (estimate)` : "No sends yet"}
-                      />
-                      <StatTile
-                        label="Clicked"
-                        value={stats.clicked}
-                        hint={stats.sent ? `${Math.round(100 * stats.clicked / stats.sent)}% of recipients` : "No sends yet"}
-                      />
-                    </div>
+                    <CampaignAnalytics stats={stats} />
+                    <span className="cmp-section-title">Opens over time</span>
+                    <OpensChart hours={stats.opens_by_hour} later={stats.opens_later} />
                     {stats.links.length > 0 && (
                       <div className="table-wrap">
                         <table className="data-table">
@@ -4647,6 +4662,8 @@ function CampaignsTool({ token, onAuthError }) {
                         </table>
                       </div>
                     )}
+                    <span className="cmp-section-title">People</span>
+                    <CampaignPeople people={people} />
                     <p className="panel-copy">
                       Opens are estimates. Some mail apps load images automatically, so they can count opens nobody read.
                     </p>
@@ -4715,6 +4732,138 @@ function AppWindow({ name, children }) {
       <div className="app-window-body">{children}</div>
     </div>
   );
+}
+
+// The numbers that show how a campaign did
+function CampaignAnalytics({ stats }) {
+  const sent = stats.sent || 0;
+  const share = (part, whole) => (whole ? `${Math.round((100 * part) / whole)}%` : "—");
+  const median = stats.median_open_hours;
+  const medianText = median == null ? "—" : median >= 48 ? `${(median / 24).toFixed(1)} days` : `${median} h`;
+  return (
+    <div className="stat-grid stat-grid-compact">
+      <StatTile label="Open rate" value={share(stats.opened, sent)} hint={`${stats.opened} of ${sent} opened it`} />
+      <StatTile label="Click rate" value={share(stats.clicked, sent)} hint={`${stats.clicked} of ${sent} clicked a link`} />
+      <StatTile label="Click to open" value={share(stats.clicked, stats.opened)} hint="Of those who opened, how many clicked" />
+      <StatTile label="Time to open" value={medianText} hint="Median, from the send to the first open" />
+      <StatTile label="Not opened" value={Math.max(0, sent - stats.opened)} hint="Sent, no open seen yet" />
+      <StatTile label="Unsubscribed" value={stats.unsubscribed} hint={`${stats.failed} could not be sent`} />
+    </div>
+  );
+}
+
+// Opens per hour for the first two days after the first send
+function OpensChart({ hours, later }) {
+  const list = hours || [];
+  const total = list.reduce((a, b) => a + b, 0) + (later || 0);
+  if (!total) return <p className="panel-copy">No opens yet.</p>;
+  const max = Math.max(...list);
+  return (
+    <div className="opens-chart">
+      <div className="opens-bars" role="img" aria-label={`${total} opens. The busiest hour had ${max}.`}>
+        {list.map((n, i) => (
+          <span
+            key={i}
+            className="opens-bar"
+            title={`Hour ${i}: ${n} open${n === 1 ? "" : "s"}`}
+            style={{ height: n ? `${Math.max(6, Math.round((100 * n) / max))}%` : "0%" }}
+          />
+        ))}
+      </div>
+      <div className="opens-axis"><span>Hour 0</span><span>Hour 24</span><span>Hour 48</span></div>
+      {later > 0 && <p className="panel-copy">{later} more {later === 1 ? "open" : "opens"} after the first 48 hours.</p>}
+    </div>
+  );
+}
+
+const PEOPLE_FILTERS = [
+  { id: "all", label: "Everyone", test: () => true },
+  { id: "clicked", label: "Clicked", test: p => p.clicks > 0 },
+  { id: "opened", label: "Opened", test: p => p.opens > 0 },
+  { id: "unopened", label: "Not opened", test: p => p.status === "sent" && p.opens === 0 },
+  { id: "failed", label: "Failed", test: p => p.status === "failed" },
+  { id: "unsubscribed", label: "Unsubscribed", test: p => p.unsubscribed },
+];
+const PEOPLE_PAGE = 50;
+
+// Who opened, who clicked and which links, with filters for who to follow up with
+function CampaignPeople({ people }) {
+  const [filter, setFilter] = useState("all");
+  const [shown, setShown] = useState(PEOPLE_PAGE);
+  if (people === null) return <p className="panel-copy">Loading people…</p>;
+  const current = PEOPLE_FILTERS.find(f => f.id === filter);
+  const matching = people.filter(current.test);
+  const rows = matching.slice(0, shown);
+  return (
+    <div className="people">
+      <div className="people-filters" role="group" aria-label="Show people">
+        {PEOPLE_FILTERS.map(f => (
+          <button
+            key={f.id}
+            type="button"
+            aria-pressed={filter === f.id}
+            onClick={() => { setFilter(f.id); setShown(PEOPLE_PAGE); }}
+          >
+            {f.label} ({people.filter(f.test).length})
+          </button>
+        ))}
+      </div>
+      {matching.length === 0 ? (
+        <p className="panel-copy">Nobody here yet.</p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data-table">
+            <caption className="sr-only">People in this campaign</caption>
+            <thead>
+              <tr>
+                <th scope="col">Person</th>
+                <th scope="col">Status</th>
+                <th scope="col">Opened</th>
+                <th scope="col">Clicked</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(p => (
+                <tr key={p.email}>
+                  <td>
+                    <span className="people-name">{p.name}</span>
+                    {p.name !== p.email && <span className="people-email">{p.email}</span>}
+                  </td>
+                  <td>
+                    {p.status === "failed" ? "Failed" : "Sent"}
+                    {p.unsubscribed && " · Unsubscribed"}
+                  </td>
+                  <td>{p.opens ? `${p.opens}× · ${whenText(p.first_open)}` : "—"}</td>
+                  <td>
+                    {p.clicks
+                      ? p.links.map(l => (
+                          <span key={l.url} className="people-link" title={l.url}>
+                            {hostOf(l.url)} ({l.clicks})
+                          </span>
+                        ))
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {matching.length > shown && (
+        <button type="button" className="back-btn" onClick={() => setShown(s => s + PEOPLE_PAGE)}>
+          Show {Math.min(PEOPLE_PAGE, matching.length - shown)} more
+        </button>
+      )}
+    </div>
+  );
+}
+
+function hostOf(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }
 
 function StatTile({ label, value, hint, accent }) {

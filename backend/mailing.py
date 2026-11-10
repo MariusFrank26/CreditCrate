@@ -21,6 +21,7 @@ import html
 import json
 import random
 import signal
+import statistics
 import smtplib
 import threading
 import time
@@ -500,6 +501,7 @@ def _window_state(address, now=None):
 
 
 AVERAGE_SEND_SECONDS = sum(SEND_INTERVAL_SECONDS) / 2
+OPENS_CHART_HOURS = 48  # the opens chart shows the first two days after the first send
 
 
 def _done_estimate(address, remaining, now=None):
@@ -772,6 +774,39 @@ def campaign_stats(campaign_id):
             "WHERE campaign_id = ? AND kind = 'click' GROUP BY url ORDER BY clicks DESC LIMIT 20",
             (campaign_id,),
         )]
+        failed = conn.execute(
+            "SELECT COUNT(*) FROM mail_sends WHERE campaign_id = ? AND status = 'failed'", (campaign_id,)
+        ).fetchone()[0]
+        unsubscribed = conn.execute(
+            "SELECT COUNT(*) FROM mail_sends s JOIN mail_contacts m ON m.owner = ? AND m.email = s.email "
+            "WHERE s.campaign_id = ? AND s.status = 'sent' AND m.unsubscribed_at IS NOT NULL",
+            (accounts.current_email(), campaign_id),
+        ).fetchone()[0]
+        first_sent = conn.execute(
+            "SELECT MIN(sent_at) FROM mail_sends WHERE campaign_id = ? AND status = 'sent'", (campaign_id,)
+        ).fetchone()[0]
+        open_times = [r[0] for r in conn.execute(
+            "SELECT created_at FROM mail_events WHERE campaign_id = ? AND kind = 'open'", (campaign_id,)
+        )]
+        # for each person: when they were sent to, and when they first opened
+        first_opens = conn.execute(
+            "SELECT s.sent_at, MIN(e.created_at) FROM mail_sends s "
+            "JOIN mail_events e ON e.campaign_id = s.campaign_id AND e.email = s.email AND e.kind = 'open' "
+            "WHERE s.campaign_id = ? AND s.status = 'sent' GROUP BY s.email",
+            (campaign_id,),
+        ).fetchall()
+
+    by_hour = [0] * OPENS_CHART_HOURS
+    later = 0
+    if first_sent:
+        for t in open_times:
+            hour = max(0, int((t - first_sent) // 3600))
+            if hour < OPENS_CHART_HOURS:
+                by_hour[hour] += 1
+            else:
+                later += 1
+    gaps = [max(0, first - sent) / 3600 for sent, first in first_opens]
+    median_open_hours = round(statistics.median(gaps), 1) if gaps else None
     account = _load_account(accounts.current_email())
     done_at = _done_estimate(account[0] if account else None, remaining) if remaining > 0 else None
     return jsonify({
@@ -787,7 +822,43 @@ def campaign_stats(campaign_id):
         "clicked": clicks["people"],
         "click_events": clicks["events"],
         "links": links,
+        "failed": failed,
+        "unsubscribed": unsubscribed,
+        "median_open_hours": median_open_hours,
+        "opens_by_hour": by_hour,  # opens in each hour after the first send, for the chart
+        "opens_later": later,
     })
+
+
+@bp.route("/api/campaigns/<int:campaign_id>/people", methods=["GET"])
+@accounts.login_required
+def campaign_people(campaign_id):
+    owner = accounts.current_email()
+    with _conn() as conn:
+        if not conn.execute("SELECT 1 FROM mail_campaigns WHERE id = ? AND owner = ?", (campaign_id, owner)).fetchone():
+            return jsonify({"error": "Campaign not found."}), 404
+        people = [dict(r) for r in conn.execute(
+            "SELECT s.email, s.status, s.error, s.sent_at, COALESCE(NULLIF(m.name, ''), s.email) AS name, "
+            "m.unsubscribed_at IS NOT NULL AS unsubscribed, "
+            "(SELECT COUNT(*) FROM mail_events e WHERE e.campaign_id = s.campaign_id AND e.email = s.email AND e.kind = 'open') AS opens, "
+            "(SELECT MIN(e.created_at) FROM mail_events e WHERE e.campaign_id = s.campaign_id AND e.email = s.email AND e.kind = 'open') AS first_open, "
+            "(SELECT COUNT(*) FROM mail_events e WHERE e.campaign_id = s.campaign_id AND e.email = s.email AND e.kind = 'click') AS clicks "
+            "FROM mail_sends s LEFT JOIN mail_contacts m ON m.owner = ? AND m.email = s.email "
+            "WHERE s.campaign_id = ? ORDER BY clicks DESC, opens DESC, name",
+            (owner, campaign_id),
+        )]
+        link_rows = conn.execute(
+            "SELECT email, url, COUNT(*) AS clicks FROM mail_events WHERE campaign_id = ? AND kind = 'click' "
+            "GROUP BY email, url ORDER BY clicks DESC",
+            (campaign_id,),
+        ).fetchall()
+    links = {}
+    for row in link_rows:
+        links.setdefault(row["email"], []).append({"url": row["url"], "clicks": row["clicks"]})
+    for person in people:
+        person["unsubscribed"] = bool(person["unsubscribed"])
+        person["links"] = links.get(person["email"], [])
+    return jsonify({"people": people})
 
 
 @bp.route("/api/activity", methods=["GET"])
