@@ -1725,6 +1725,10 @@
   .dm-pack span { color: var(--sunshine); }
   .dm-pack b { background: var(--sunshine); color: var(--void); }
   .dm-muted { color: var(--ash); }
+  .dm-credit { align-items: center; }
+  .dm-credit-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dm-credit-role { width: 96px; text-align: center; flex: none; }
+  .dm-credit-mail { width: 210px; justify-content: flex-end; flex: none; }
   .dm-mail { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .dm-copy { flex: none; font-size: 11px; font-weight: 600; color: var(--paper); background: var(--graphite); border-radius: 999px; padding: 3px 9px; }
   .dm-cover-sm img.dm-cover-art { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
@@ -2471,36 +2475,6 @@ function Features() {
   );
 }
 
-// Landing: a short pricing teaser and a trust strip
-function LandingExtras() {
-  const points = [
-    ["Your own Gmail", "Campaigns go out from your address, so they land in your Sent folder."],
-    ["Nothing stored", "Your samples stay in your inbox, Dropbox and Drive. We never keep the files."],
-    ["Unsubscribe built in", "Every campaign email has an unsubscribe link, and people who opt out are never emailed again."],
-  ];
-  return (
-    <>
-      <section className="trust" aria-label="How CreditCrate works with your mail">
-        <ul className="trust-list">
-          {points.map(([title, copy]) => (
-            <li key={title} className="trust-item">
-              <span className="trust-name">{title}</span>
-              <span className="trust-copy">{copy}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-      <section className="price-teaser" aria-labelledby="price-heading">
-        <div>
-          <p className="eyebrow">Pricing</p>
-          <h2 id="price-heading" className="price-title">Free for 7 days. Then $5 a month, or $50 a year.</h2>
-          <p className="price-copy">Every tool is included from the first day. Pro keeps it all running after the trial.</p>
-        </div>
-        <a className="price-link" href="pricing.html">See the plans</a>
-      </section>
-    </>
-  );
-}
 
 // ── Landing: newsletter sign-up until CreditCrate is released ───────────────
 
@@ -4612,9 +4586,9 @@ const DEMO_TOOLS = [
 
 // Producers from the Iceman credits. Only names and roles are shown; no contact details are invented.
 const DEMO_PRODUCERS = [
-  { name: "Hanz (NOR)", initials: "HN", tone: "#c9b6ee" },
-  { name: "Sem0r", initials: "SE", tone: "#a9d8ef" },
-  { name: "Gordo", initials: "GO", tone: "#a3ddc2" },
+  { name: "Producer 1", initials: "P1", tone: "#c9b6ee" },
+  { name: "Producer 2", initials: "P2", tone: "#a9d8ef" },
+  { name: "Producer 3", initials: "P3", tone: "#a3ddc2" },
 ];
 
 function HeroDemo({ artwork }) {
@@ -4647,22 +4621,20 @@ function HeroDemo({ artwork }) {
           <span className="dm-meta">{DEMO_PRODUCERS.length} credits</span>
         </div>
         {DEMO_PRODUCERS.map((p, i) => {
-          const photo = artwork?.producers?.find(x => x.name === p.name)?.image_url;
+          const photo = artwork?.producers?.[i]?.image_url;
           return (
-          <div key={p.name} className="dm-row">
+          <div key={p.name} className="dm-row dm-credit">
             {photo ? (
               <img src={photo} alt="" className="dm-photo" />
             ) : (
               <span className="dm-avatar" style={{ background: p.tone }}>{p.initials}</span>
             )}
-            <span className="dm-grow">
-              <span className="dm-name">{p.name}</span>
-              <span className="dm-mail">
-                <span className="dm-meta">example@gmail.com</span>
-                <b className="dm-copy">Copy</b>
-              </span>
+            <span className="dm-name dm-credit-name">{p.name}</span>
+            <em className="dm-role dm-credit-role">Producer</em>
+            <span className="dm-mail dm-credit-mail">
+              <span className="dm-meta">example@gmail.com</span>
+              <b className="dm-copy">Copy</b>
             </span>
-            <em className="dm-role">Producer</em>
           </div>
           );
         })}
@@ -5411,7 +5383,6 @@ function App() {
             </div>
             <HeroDemo artwork={artwork} />
           </section>
-          <LandingExtras />
         </>}
       </main>
 
