@@ -14,6 +14,7 @@ services:
       - AUTH_SECRET=${AUTH_SECRET}
       - CREDENTIAL_KEY=${CREDENTIAL_KEY}   # Fernet key that encrypts Gmail app passwords
       - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - ADMIN_EMAILS=${ADMIN_EMAILS:-}   # owner accounts that can open the admin page
       - MAIL_FROM=${MAIL_FROM:-}
       - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.creditcrate.app/api}
       - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:-https://creditcrate.app}
