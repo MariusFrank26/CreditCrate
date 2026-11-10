@@ -132,8 +132,12 @@ def access_status(email):
         row = conn.execute("SELECT plan, trial_ends_at, plan_expires_at FROM users WHERE email = ?", (email,)).fetchone()
     if not row:
         return {"plan": "none", "active": False, "expires_at": None}
-    plan, trial_ends_at, plan_expires_at = row
-    now = time.time()
+    return plan_for(*row)
+
+
+def plan_for(plan, trial_ends_at, plan_expires_at, now=None):
+    """The plan an account is on right now, from its stored plan and dates."""
+    now = now or time.time()
     if plan == "lifetime":  # granted by the owner only, never expires
         return {"plan": "lifetime", "active": True, "expires_at": None}
     if plan == "pro" and plan_expires_at and plan_expires_at > now:

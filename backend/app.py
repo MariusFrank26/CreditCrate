@@ -34,6 +34,7 @@ from instaloader.exceptions import (
 import contacts
 import accounts
 import mailing
+import admin
 import billing
 
 logging.basicConfig(level=logging.INFO)
@@ -302,6 +303,7 @@ def init_album_cache_db():
 
 init_album_cache_db()
 mailing.register(app, DB_PATH)
+admin.register(app)
 billing.register(app, DB_PATH)
 import auth_flow
 auth_flow.register(app)

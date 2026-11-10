@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Admin · CreditCrate</title>
+<link rel="icon" href="logo.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --void: #08090a; --carbon: #0f1011; --obsidian: #161718; --graphite: #23252a; --smoke: #383b3f;
+    --ash: #62666d; --fog: #8a8f98; --mist: #d0d6e0; --paper: #ffffff;
+    --sunshine: #f3d58b; --mint: #a3ddc2; --sky: #a9d8ef; --salmon: #f2a79c; --lilac: #c9b6ee;
+    --blue: #0a84ff;
+    --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) { --void: #f7f7f8; --carbon: #ffffff; --obsidian: #f0f1f3; --graphite: #e4e6ea; --smoke: #d2d5db; --ash: #8a8f98; --fog: #5b6068; --mist: #2d3036; --paper: #111214; }
+  }
+  :root[data-theme="light"] { --void: #f7f7f8; --carbon: #ffffff; --obsidian: #f0f1f3; --graphite: #e4e6ea; --smoke: #d2d5db; --ash: #8a8f98; --fog: #5b6068; --mist: #2d3036; --paper: #111214; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--void); color: var(--mist); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 16px 64px; }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--paper); text-decoration: none; font-size: 17px; }
+  .brand img { width: 26px; height: 26px; }
+  .badge { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--sunshine); border: 1px solid rgba(243, 213, 139, .4); border-radius: 999px; padding: 4px 10px; }
+  .actions { display: flex; gap: 10px; align-items: center; }
+  .btn { font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--smoke); background: none; color: var(--mist); cursor: pointer; text-decoration: none; }
+  .btn:hover { background: var(--graphite); }
+  h1 { font-size: 28px; color: var(--paper); letter-spacing: -0.02em; margin: 0 0 6px; }
+  .lead { color: var(--fog); font-size: 14px; margin: 0 0 28px; }
+  .card { background: var(--carbon); border: 1px solid var(--graphite); border-radius: 16px; padding: 20px; }
+  .label { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); }
+  .grid { display: grid; gap: 14px; }
+  .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .kpi { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
+  .kpi::before { content: ""; position: absolute; left: 0; top: 16px; bottom: 16px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent, var(--blue)); }
+  .kpi-value { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; color: var(--paper); line-height: 1.05; }
+  .kpi-hint { font-size: 13px; color: var(--fog); }
+  .row2 { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); margin-top: 14px; }
+  .section-title { font-size: 15px; font-weight: 600; color: var(--paper); margin: 0 0 14px; }
+  .chart { display: flex; align-items: flex-end; gap: 3px; height: 150px; padding-top: 6px; border-bottom: 1px solid var(--smoke); background: repeating-linear-gradient(to top, transparent 0 37px, var(--graphite) 37px 38px); }
+  .bar { flex: 1; min-width: 4px; border-radius: 4px 4px 0 0; background: linear-gradient(to top, var(--blue), #7fc4ff); position: relative; }
+  .bar.is-empty { background: var(--graphite); }
+  .bar:hover { opacity: .8; }
+  .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--ash); margin-top: 8px; font-family: var(--mono); }
+  .plan-bar { display: flex; height: 16px; border-radius: 999px; overflow: hidden; background: var(--graphite); }
+  .plan-bar > span { display: block; height: 100%; }
+  .legend { display: grid; gap: 10px; margin-top: 16px; }
+  .legend-row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .legend-row b { margin-left: auto; font-family: var(--mono); font-weight: 500; color: var(--paper); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ash); font-weight: 500; padding: 0 8px 10px; }
+  td { padding: 11px 8px; border-top: 1px solid var(--graphite); color: var(--mist); }
+  td.email { color: var(--paper); word-break: break-all; }
+  .pill { font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--smoke); color: var(--fog); white-space: nowrap; }
+  .pill.ok { color: var(--mint); border-color: rgba(163, 221, 194, .45); }
+  .pill.warn { color: var(--salmon); border-color: rgba(242, 167, 156, .45); }
+  .state { padding: 40px 20px; text-align: center; color: var(--fog); }
+  .state a { color: var(--sunshine); }
+  .table-wrap { overflow-x: auto; }
+  @media (max-width: 860px) {
+    .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .row2 { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .kpi-value { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="index.html"><img src="logo.svg" alt="" />CreditCrate</a>
+    <div class="actions">
+      <span class="badge">Owner only</span>
+      <button class="btn" id="refresh" type="button">Refresh</button>
+      <a class="btn" href="index.html">Back to CreditCrate</a>
+    </div>
+  </header>
+
+  <h1>Overview</h1>
+  <p class="lead" id="updated">Loading…</p>
+
+  <div id="content">
+    <div class="card state" id="state">Loading the numbers…</div>
+  </div>
+</div>
+
+<script>
+const API = "https://api.creditcrate.app/api";
+const TOKEN_KEY = "creditcrate-token";
+
+function token() {
+  try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
+}
+
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function when(epochSeconds) {
+  if (!epochSeconds) return "—";
+  return new Date(epochSeconds * 1000).toLocaleString([], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function dayLabel(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString([], { day: "numeric", month: "short", timeZone: "UTC" });
+}
+
+function showState(html) {
+  document.getElementById("content").innerHTML = `<div class="card state">${html}</div>`;
+}
+
+const PLAN_COLORS = { trial: "#a9d8ef", pro: "#0a84ff", lifetime: "#f3d58b", expired: "#62666d" };
+const PLAN_NAMES = { trial: "Free trial", pro: "Pro", lifetime: "Lifetime", expired: "Trial ended" };
+
+function render(data) {
+  const t = data.totals, s = data.signups, p = data.plans;
+  const verifiedShare = t.accounts ? Math.round((100 * t.verified) / t.accounts) : 0;
+  const maxDay = Math.max(1, ...data.daily.map(d => d.signups));
+  const planTotal = Object.values(p).reduce((a, b) => a + b, 0);
+
+  const bars = data.daily.map(d => {
+    const h = d.signups ? Math.max(6, Math.round((100 * d.signups) / maxDay)) : 0;
+    const label = `${dayLabel(d.day)}: ${d.signups} sign-up${d.signups === 1 ? "" : "s"}, ${d.verified} verified`;
+    return `<span class="bar${d.signups ? "" : " is-empty"}" title="${esc(label)}" style="height:${h}%"></span>`;
+  }).join("");
+
+  const planBar = Object.keys(PLAN_NAMES).map(k => {
+    const w = planTotal ? (100 * p[k]) / planTotal : 0;
+    return w ? `<span style="width:${w}%;background:${PLAN_COLORS[k]}"></span>` : "";
+  }).join("");
+
+  const legend = Object.keys(PLAN_NAMES).map(k => `
+    <div class="legend-row">
+      <span class="dot" style="background:${PLAN_COLORS[k]}"></span>
+      <span>${PLAN_NAMES[k]}</span>
+      <b>${p[k]}</b>
+    </div>`).join("");
+
+  const rows = data.recent.length
+    ? data.recent.map(u => `
+      <tr>
+        <td class="email">${esc(u.email)}</td>
+        <td>${when(u.created_at)}</td>
+        <td><span class="pill ${u.verified ? "ok" : "warn"}">${u.verified ? "Verified" : "Not verified"}</span></td>
+        <td>${esc(PLAN_NAMES[u.plan] || u.plan)}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="4">No sign-ups yet.</td></tr>`;
+
+  document.getElementById("content").innerHTML = `
+    <div class="grid kpis">
+      <div class="card kpi" style="--accent:#0a84ff">
+        <span class="label">Accounts</span>
+        <span class="kpi-value">${t.accounts}</span>
+        <span class="kpi-hint">${t.unverified} not verified yet</span>
+      </div>
+      <div class="card kpi" style="--accent:#a3ddc2">
+        <span class="label">Signed up</span>
+        <span class="kpi-value">${s.day}</span>
+        <span class="kpi-hint">last 24 hours · ${s.week} in 7 days · ${s.month} in 30</span>
+      </div>
+      <div class="card kpi" style="--accent:#f3d58b">
+        <span class="label">Verified</span>
+        <span class="kpi-value">${verifiedShare}%</span>
+        <span class="kpi-hint">${t.verified} of ${t.accounts} confirmed their email</span>
+      </div>
+      <div class="card kpi" style="--accent:#c9b6ee">
+        <span class="label">Newsletter</span>
+        <span class="kpi-value">${t.newsletter}</span>
+        <span class="kpi-hint">people on the newsletter list</span>
+      </div>
+    </div>
+
+    <div class="grid row2">
+      <div class="card">
+        <h2 class="section-title">Sign-ups, last 30 days</h2>
+        <div class="chart" role="img" aria-label="Sign-ups per day">${bars}</div>
+        <div class="axis"><span>${dayLabel(data.daily[0].day)}</span><span>${dayLabel(data.daily[data.daily.length - 1].day)}</span></div>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Plans</h2>
+        <div class="plan-bar" role="img" aria-label="Accounts by plan">${planBar}</div>
+        <div class="legend">${legend}</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h2 class="section-title">Latest sign-ups</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Email</th><th>Signed up</th><th>Email check</th><th>Plan</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  document.getElementById("updated").textContent =
+    `Updated ${new Date(data.generated_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Daily counts use UTC`;
+}
+
+async function load() {
+  const key = token();
+  if (!key) {
+    document.getElementById("updated").textContent = "";
+    showState(`You are not signed in. <a href="index.html">Sign in to CreditCrate</a>, then come back here.`);
+    return;
+  }
+  try {
+    const res = await fetch(`${API}/admin/stats`, { headers: { Authorization: `Bearer ${key}` } });
+    if (res.status === 401) {
+      document.getElementById("updated").textContent = "";
+      showState(`Your sign-in has expired. <a href="index.html">Sign in again</a>.`);
+      return;
+    }
+    if (res.status === 403) {
+      document.getElementById("updated").textContent = "";
+      showState("This page is only for the CreditCrate owner account.");
+      return;
+    }
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    render(await res.json());
+  } catch (e) {
+    showState(`Could not load the numbers. ${esc(e.message)}`);
+  }
+}
+
+document.getElementById("refresh").addEventListener("click", load);
+load();
+</script>
+</body>
+</html>
