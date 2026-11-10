@@ -1036,7 +1036,7 @@
     gap: 6%; padding: 9%; overflow: hidden;
   }
   /* Every pack cover: the CreditCrate mark, with the letter disc beneath it. Sizes scale with the cover. */
-  .pk-art-logo { display: block; width: 26%; height: auto; flex: none; color: var(--mist); }
+  .pk-art-logo { display: block; width: 26%; height: auto; flex: none; }
   .pk-art .pk-disc { width: 52%; height: auto; aspect-ratio: 1; flex: none; }
   .pk-art-large { width: 124px; height: 124px; border-radius: 16px; }
   .pk-disc {
@@ -2587,10 +2587,7 @@ function packDate(timestamp) {
 function PackDisc({ name, large = false }) {
   return (
     <div className={`pk-art${large ? " pk-art-large" : ""}`} aria-hidden="true">
-      <svg className="pk-art-logo" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" aria-hidden="true">
-        <path d="M24 5 41 14v20L24 43 7 34V14z" />
-        <path d="M7 14l17 9 17-9M24 23v20" />
-      </svg>
+      <img className="pk-art-logo" src="logo.svg" alt="" />
       <div className="pk-disc">
         <span className="pk-label">{name.charAt(0).toUpperCase()}</span>
       </div>
