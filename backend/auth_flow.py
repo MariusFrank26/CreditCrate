@@ -96,9 +96,10 @@ def _send_reset(email, password_hash):
     send_platform_mail(
         email,
         "Reset your CreditCrate password",
-        "Someone asked to reset the password for this CreditCrate account. Open this link to choose a new one:\n\n"
-        f"{link}\n\nThe link works for one hour and stops working once the password has changed. "
-        "If you didn't ask for this, you can ignore this email.",
+        "Someone asked to reset the password for this CreditCrate account.\n\n"
+        "If you did this, click the link to choose a new password. "
+        "If you didn't do this, your password might have been leaked. Click the link to change it right away.\n\n"
+        f"{link}\n\nThe link works for one hour and stops working once the password has changed.",
     )
 
 
@@ -119,7 +120,9 @@ def signup():
         return jsonify({"error": "Too many sign-ups from this connection. Try again later."}), 429
 
     if _account_exists(email):
-        # Same answer as a new sign-up, so the form does not reveal who has an account
+        if accounts.is_verified(email):
+            return jsonify({"error": "You already have an account. Sign in instead."}), 409
+        # Not verified yet: same answer as a new sign-up, and the sign-in page can send a new link
         return jsonify({"sent": True})
 
     accounts.create_user(email, password)  # unverified until the link is opened
