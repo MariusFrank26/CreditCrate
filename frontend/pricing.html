@@ -45,6 +45,7 @@
   .cycle { display: inline-flex; margin-top: 34px; padding: 4px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 999px; }
   .cycle button { font-family: var(--sans); font-size: 14px; color: var(--fog); background: none; border: 0; padding: 9px 18px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
   .cycle button[aria-pressed="true"] { background: var(--paper); color: var(--void); }
+  .cycle button.is-recommended:not([aria-pressed="true"]) { color: var(--mist); box-shadow: inset 0 0 0 1px rgba(163, 221, 194, .55); }
   .save { font-size: 12px; font-weight: 600; color: #0c2a1d; background: var(--mint); border-radius: 999px; padding: 2px 8px; }
 
   /* Plans */
@@ -128,8 +129,8 @@
     <h1>Simple pricing for producers</h1>
     <p class="lead">Start with a free 7-day trial, with every tool included. Choose Pro when you're ready to keep going.</p>
     <div class="cycle" role="group" aria-label="Billing period">
-      <button type="button" aria-pressed="true" data-cycle="month">Monthly</button>
-      <button type="button" aria-pressed="false" data-cycle="year">Yearly <span class="save">Save 17%</span></button>
+      <button type="button" aria-pressed="false" data-cycle="month">Monthly</button>
+      <button type="button" aria-pressed="true" data-cycle="year" class="is-recommended">Yearly <span class="save">Best value · Save 54%</span></button>
     </div>
   </section>
 
@@ -152,9 +153,9 @@
       <span class="badge">Most popular</span>
       <p class="plan-name" id="pro-name">Pro</p>
       <p class="plan-copy">Everything in the trial, kept running after it ends.</p>
-      <div class="price-row"><span class="price" id="pro-price">$5</span><span class="per" id="pro-per">per month</span></div>
-      <p class="price-note" id="pro-note">Billed monthly. Cancel any time.</p>
-      <button type="button" class="cta primary" id="checkout">Get Pro · $5 a month</button>
+      <div class="price-row"><span class="price" id="pro-price">$50</span><span class="per" id="pro-per">per year</span></div>
+      <p class="price-note" id="pro-note">Billed yearly. That's $4.17 a month, less than half the monthly price.</p>
+      <button type="button" class="cta primary" id="checkout">Get Pro · $50 a year</button>
       <ul class="includes">
         <li>Everything in the free trial</li>
         <li>No interruption after 7 days</li>
@@ -221,11 +222,11 @@ const API = "https://api.creditcrate.app/api";
 const TOKEN_KEY = "creditcrate-token";
 const status = document.getElementById("status");
 const checkout = document.getElementById("checkout");
-let cycle = "month";
+let cycle = "year"; // yearly is the one we recommend, so it is the default
 
 const PLANS = {
-  month: { price: "$5", per: "per month", note: "Billed monthly. Cancel any time.", label: "Get Pro · $5 a month" },
-  year: { price: "$50", per: "per year", note: "Billed yearly. That's $4.17 a month, two months free.", label: "Get Pro · $50 a year" },
+  month: { price: "$9", per: "per month", note: "Billed monthly. Cancel any time.", label: "Get Pro · $9 a month" },
+  year: { price: "$50", per: "per year", note: "Billed yearly. That's $4.17 a month, less than half the monthly price.", label: "Get Pro · $50 a year" },
 };
 
 function showCycle(next) {
@@ -271,6 +272,7 @@ async function choose(interval) {
 }
 
 document.querySelectorAll("[data-cycle]").forEach(b => b.addEventListener("click", () => showCycle(b.dataset.cycle)));
+showCycle(cycle);
 checkout.addEventListener("click", () => choose(cycle));
 </script>
 </body>

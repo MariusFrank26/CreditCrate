@@ -115,8 +115,8 @@ Sends run inside the request, about 0.6 s per email. Lists are capped at 500 per
 
 ## Plans and billing
 - **Free trial:** 7 days from account creation, with every tool. After that, tools return "trial ended" until the account has Pro.
-- **Pro:** $5 a month or $50 a year, paid through Stripe Checkout. The Stripe webhook at `/api/billing/webhook` marks the account as Pro. Renewals extend Pro automatically.
-- **Setup:** create two recurring prices in Stripe (monthly $5, yearly $50) and set `STRIPE_PRICE_MONTH` and `STRIPE_PRICE_YEAR`. Add a webhook endpoint `https://api.creditcrate.app/api/billing/webhook` for `checkout.session.completed` and `invoice.paid`, and set its signing secret as `STRIPE_WEBHOOK_SECRET`. Start in Stripe's test mode.
+- **Pro:** $9 a month or $50 a year, paid through Stripe Checkout. The Stripe webhook at `/api/billing/webhook` marks the account as Pro. Renewals extend Pro automatically.
+- **Setup:** create two recurring prices in Stripe (monthly $9, yearly $50) and set `STRIPE_PRICE_MONTH` and `STRIPE_PRICE_YEAR`. Add a webhook endpoint `https://api.creditcrate.app/api/billing/webhook` for `checkout.session.completed` and `invoice.paid`, and set its signing secret as `STRIPE_WEBHOOK_SECRET`. Start in Stripe's test mode.
 - **Your own account:** `python set_plan.py you@example.com pro 12` gives Pro for 12 months. `python set_plan.py someone@example.com trial` restarts a trial. `python set_plan.py someone@example.com lifetime` grants Lifetime Pro, which never expires and which Stripe payments never overwrite. `python set_plan.py someone@example.com free` ends a trial so the account needs Pro.
 - **Settings page:** `settings.html` changes the password and checks the Gmail connection.
 

@@ -1,7 +1,7 @@
 """
 Account settings, password change, and Pro subscriptions through Stripe.
 
-Pro costs $5 a month or $50 a year. Stripe takes the payment, and its webhook
+Pro costs $9 a month or $50 a year. Stripe takes the payment, and its webhook
 tells this server when a subscription is paid, which sets plan_expires_at.
 
 Needed on the server (see README):
