@@ -1374,6 +1374,8 @@
     padding: 6px 14px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer;
   }
   .imsg-action:hover:not(:disabled) { background: #2b93ff; }
+  a.imsg-action { display: inline-block; text-decoration: none; }
+  a.imsg-action:hover { background: #2b93ff; }
   .imsg-action:disabled { opacity: .5; cursor: default; }
   .imsg-action-zip { margin-top: 0; }
   .imsg-link { color: var(--sky); text-decoration: none; }
@@ -3127,6 +3129,11 @@ function avatarTone(name) {
   return { background: bg, color: ink };
 }
 
+// Dropbox or Google Drive, for the name on a pack card
+function packSourceName(link) {
+  return /drive\.google\.com|docs\.google\.com/.test(link) ? "Google Drive" : "Dropbox";
+}
+
 function parseSender(from) {
   const match = (from || "").match(/^(.*?)<([^>]+)>\s*$/);
   if (match) {
@@ -3517,9 +3524,11 @@ function InboxTool({ token, onAuthError }) {
                               </button>
                             )}
                             {item.links.map(link => (
-                              <a key={link} className="imsg-bubble imsg-link" href={link} target="_blank" rel="noopener noreferrer">
-                                Open shared link ↗
-                              </a>
+                              <div key={link} className="imsg-bubble imsg-file imsg-pack">
+                                <span className="imsg-file-name">{packSourceName(link)} pack</span>
+                                <span className="imsg-file-meta">{item.subject}</span>
+                                <a className="imsg-action" href={link} target="_blank" rel="noopener noreferrer">Open pack ↗</a>
+                              </div>
                             ))}
                           </div>
                           <time className="imsg-time">{messageTime(item.date)}</time>
