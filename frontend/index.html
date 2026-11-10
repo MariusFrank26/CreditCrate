@@ -4637,7 +4637,7 @@ function HeroDemo({ artwork }) {
   const [picked, setPicked] = useState(new Set(["Producer 1", "Producer 2"]));
   const [dealTab, setDealTab] = useState("split");
   const [splits, setSplits] = useState([50, 50]);
-  const [chatWith, setChatWith] = useState("Jonah");
+  const [chatWith, setChatWith] = useState("P1");
   const current = DEMO_TOOLS.find(t => t.id === tool);
 
   function togglePerson(name) {
@@ -4733,10 +4733,10 @@ function HeroDemo({ artwork }) {
 
   function inbox() {
     const threads = [
-      { key: "Jonah", name: "Jonah Reyes", last: "2 New Ideas From Today's Cook Up", time: "3:00 PM", blue: 2, yellow: 0, tone: "#a3ddc2" },
-      { key: "Maya", name: "Maya Brooks", last: "4 New Loops (Brent Faiyaz)", time: "Nov 9", blue: 9, yellow: 6, tone: "#c9b6ee" },
-      { key: "Sol", name: "Sol Ramirez", last: "Starters v2 (Future, Metro)", time: "Nov 8", blue: 5, yellow: 0, tone: "#a9d8ef" },
-      { key: "Ari", name: "Ari Vance", last: "Loops from the session", time: "Nov 9", blue: 4, yellow: 0, tone: "#f3d58b" },
+      { key: "P1", name: "Producer 1", last: "2 New Ideas From Today's Cook Up", time: "3:00 PM", blue: 2, yellow: 0, tone: "#a3ddc2" },
+      { key: "P2", name: "Producer 2", last: "4 New Loops (Brent Faiyaz)", time: "Nov 9", blue: 9, yellow: 6, tone: "#c9b6ee" },
+      { key: "P3", name: "Producer 3", last: "Starters v2 (Future, Metro)", time: "Nov 8", blue: 5, yellow: 0, tone: "#a9d8ef" },
+      { key: "P4", name: "Producer 4", last: "Loops from the session", time: "Nov 9", blue: 4, yellow: 0, tone: "#f3d58b" },
     ];
     const active = threads.find(t => t.key === chatWith) || threads[0];
     const initials = active.name.split(" ").map(w => w[0]).join("");
@@ -5242,7 +5242,7 @@ function App() {
             <nav className="site-nav site-nav-brand" aria-label="Site">
               <a href="#features" aria-current={page === "features" ? "page" : undefined}>Features</a>
               <a href="pricing.html">Pricing</a>
-              <a href="#faq" aria-current={page === "faq" ? "page" : undefined}>FAQ</a>
+              <a href="#faq" aria-current={page === "faq" ? "page" : undefined}>Frequently Asked</a>
             </nav>
           )}
         </div>
