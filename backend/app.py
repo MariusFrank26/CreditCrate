@@ -691,15 +691,44 @@ def get_history(album_id):
 
 # The landing page's preview shows the Iceman cover and producer photos, taken from Genius
 # through the API (the same token and search the Credits app uses). Cached for an hour.
+def _norm(text):
+    return re.sub(r"[^a-z0-9]", "", (text or "").lower())
+
+
+# (name shown, search queries to try, normalised Genius names that count as a match)
 DEMO_PRODUCERS = [
-    ('Noah "40" Shebib', "Noah 40 Shebib", lambda name: "shebib" in name),
-    ("Boi-1da", "Boi-1da", lambda name: name == "boi-1da"),
-    ("Tay Keith", "Tay Keith", lambda name: name == "tay keith"),
-    ("Cash Cobain", "Cash Cobain", lambda name: name == "cash cobain"),
-    ("Conductor Williams", "Conductor Williams", lambda name: name == "conductor williams"),
-    ("Oz", "Oz", lambda name: name == "oz"),
+    ('Noah "40" Shebib', ["Noah 40 Shebib", "40 Shebib", "Noah Shebib"], {"40", "noah40shebib", "noahshebib", "40shebib", "shebib"}),
+    ("Boi-1da", ["Boi-1da", "Boi 1da"], {"boi1da"}),
+    ("London Cyr", ["London Cyr"], {"londoncyr"}),
+    ("Cash Cobain", ["Cash Cobain"], {"cashcobain"}),
+    ("Conductor Williams", ["Conductor Williams"], {"conductorwilliams"}),
+    ("Oz", ["Oz"], {"oz"}),
 ]
 _demo_cache = {"at": 0.0, "data": None}
+
+
+def _artist_image(primary):
+    """A Genius artist's photo. Search results sometimes leave it out, so ask for the artist itself."""
+    if primary.get("image_url"):
+        return primary["image_url"]
+    if not primary.get("id"):
+        return None
+    resp = requests.get(f"{GENIUS_BASE}/artists/{primary['id']}", headers=HEADERS, timeout=10)
+    resp.raise_for_status()
+    return (resp.json()["response"]["artist"] or {}).get("image_url")
+
+
+def _producer_photo(queries, names):
+    for query in queries:
+        resp = requests.get(f"{GENIUS_BASE}/search", headers=HEADERS, params={"q": query, "per_page": 10}, timeout=10)
+        resp.raise_for_status()
+        for hit in resp.json()["response"]["hits"]:
+            primary = hit["result"].get("primary_artist") or {}
+            if _norm(primary.get("name")) in names:
+                image = _artist_image(primary)
+                if image:
+                    return image
+    return None
 
 
 @app.route("/api/demo/artwork", methods=["GET"])
@@ -707,23 +736,24 @@ def demo_artwork():
     if _demo_cache["data"] is not None and time.time() - _demo_cache["at"] < 3600:
         return jsonify(_demo_cache["data"])
     data = {"album": None, "producers": []}
+    complete = True
     try:
         album = next((a for a in find_albums("Iceman Drake") if a.get("name", "").lower() == "iceman"), None)
         if album:
             data["album"] = {"name": album["name"], "artist": album.get("artist", ""), "image_url": album.get("cover_art")}
-        for display, query, matches in DEMO_PRODUCERS:
-            resp = requests.get(f"{GENIUS_BASE}/search", headers=HEADERS, params={"q": query, "per_page": 10}, timeout=10)
-            resp.raise_for_status()
-            image = None
-            for hit in resp.json()["response"]["hits"]:
-                primary = hit["result"].get("primary_artist") or {}
-                if matches((primary.get("name") or "").lower()):
-                    image = primary.get("image_url")
-                    break
-            data["producers"].append({"name": display, "image_url": image})
     except Exception as e:
-        logger.warning(f"Demo artwork could not be loaded: {e}")
-    _demo_cache.update(at=time.time(), data=data)
+        complete = False
+        logger.warning(f"Demo album cover could not be loaded: {e}")
+    for display, queries, names in DEMO_PRODUCERS:
+        try:
+            image = _producer_photo(queries, names)
+        except Exception as e:
+            complete = False
+            image = None
+            logger.warning(f"Demo photo for {display} could not be loaded: {e}")
+        data["producers"].append({"name": display, "image_url": image})
+    if complete:
+        _demo_cache.update(at=time.time(), data=data)  # only a full answer is kept for an hour
     return jsonify(data)
 
 

@@ -4610,7 +4610,7 @@ const DEMO_TOOLS = [
 const DEMO_PRODUCERS = [
   { name: "Noah \"40\" Shebib", initials: "40", tone: "#c9b6ee" },
   { name: "Boi-1da", initials: "B1", tone: "#a9d8ef" },
-  { name: "Tay Keith", initials: "TK", tone: "#a3ddc2" },
+  { name: "London Cyr", initials: "LC", tone: "#a3ddc2" },
   { name: "Cash Cobain", initials: "CC", tone: "#f2a79c" },
   { name: "Conductor Williams", initials: "CW", tone: "#f3d58b" },
   { name: "Oz", initials: "OZ", tone: "#9fb4f2" },
@@ -4618,7 +4618,7 @@ const DEMO_PRODUCERS = [
 
 function HeroDemo({ artwork }) {
   const [tool, setTool] = useState("credits");
-  const [picked, setPicked] = useState(new Set(["Boi-1da", "Tay Keith"]));
+  const [picked, setPicked] = useState(new Set(["Boi-1da", "London Cyr"]));
   const [chatWith, setChatWith] = useState("Jonah");
   const current = DEMO_TOOLS.find(t => t.id === tool);
 
@@ -4782,10 +4782,10 @@ function HeroDemo({ artwork }) {
           <div className="dm-camp"><span className="dm-row-top"><span className="dm-name">New drums</span><span className="dm-status">Draft</span></span><span className="dm-meta">Not sent yet</span></div>
           <p className="dm-kicker">Recently opened</p>
           <div className="dm-act"><span>Boi-1da</span><span className="dm-meta">opened · 2h</span></div>
-          <div className="dm-act"><span>Tay Keith</span><span className="dm-meta">clicked · 5h</span></div>
+          <div className="dm-act"><span>London Cyr</span><span className="dm-meta">clicked · 5h</span></div>
           <p className="dm-kicker">Top openers</p>
           <div className="dm-act"><span>Boi-1da</span><b>9</b></div>
-          <div className="dm-act"><span>Tay Keith</span><b>6</b></div>
+          <div className="dm-act"><span>London Cyr</span><b>6</b></div>
         </div>
         <div className="dm-compose">
           <p className="dm-kicker">New campaign</p>
