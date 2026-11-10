@@ -591,6 +591,17 @@
   .quick-copy { font-size: 13px; color: var(--fog); }
 
   /* ── LANDING: features and pipeline (visitors before sign-in) ── */
+  .drift-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .drift-orb {
+    position: absolute; border-radius: 50%; filter: blur(20px);
+    animation-name: orb-drift; animation-timing-function: ease-in-out; animation-iteration-count: infinite;
+    animation-direction: alternate;
+  }
+  @keyframes orb-drift {
+    from { transform: translate(0, 0) scale(1); }
+    to { transform: translate(var(--dx), var(--dy)) scale(1.12); }
+  }
+  @media (prefers-reduced-motion: reduce) { .drift-orb { animation: none; } }
   .features { margin-top: 32px; }
   .faq-page { margin-top: 32px; max-width: 760px; }
   .faq-list { margin-top: 28px; border-top: 1px solid var(--graphite); }
@@ -1605,8 +1616,10 @@
   /* ── HERO + SIGN-UP ── */
   .hero {
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-    gap: 56px; align-items: center;
-    padding: 4px 0 0; max-width: none;
+    gap: 64px; align-items: center;
+    padding: 24px 0 48px; max-width: 1240px; margin: 0 auto;
+    min-height: calc(100vh - 150px);
+    position: relative; z-index: 1;
   }
   .hero-copy-col { min-width: 0; }
   .hero-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
@@ -4957,6 +4970,37 @@ function FaqPage() {
   );
 }
 
+// The landing background: soft coloured light that drifts slowly behind the page
+const ORBS = [
+  { color: "rgba(243, 213, 139, .22)", size: 520, top: "-8%", left: "62%", dur: 38, dx: -120, dy: 80 },
+  { color: "rgba(163, 221, 194, .16)", size: 460, top: "45%", left: "-6%", dur: 46, dx: 140, dy: -60 },
+  { color: "rgba(201, 182, 238, .14)", size: 560, top: "58%", left: "70%", dur: 52, dx: -90, dy: -110 },
+  { color: "rgba(169, 216, 239, .10)", size: 420, top: "18%", left: "24%", dur: 60, dx: 110, dy: 90 },
+];
+
+function DriftBackground() {
+  return (
+    <div className="drift-bg" aria-hidden="true">
+      {ORBS.map((o, i) => (
+        <span
+          key={i}
+          className="drift-orb"
+          style={{
+            width: o.size,
+            height: o.size,
+            top: o.top,
+            left: o.left,
+            background: `radial-gradient(circle, ${o.color}, transparent 68%)`,
+            animationDuration: `${o.dur}s`,
+            "--dx": `${o.dx}px`,
+            "--dy": `${o.dy}px`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function pageForHash(hash) {
   if (hash === "#features") return "features";
   if (hash === "#faq") return "faq";
@@ -5503,6 +5547,7 @@ function App() {
         </AppDeck>
         )}
 
+        {!token && <DriftBackground />}
         {!token && page === "features" && <Features />}
         {!token && page === "faq" && <FaqPage />}
         {!token && page === "home" && <>
