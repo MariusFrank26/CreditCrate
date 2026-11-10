@@ -458,8 +458,50 @@
   .panel-copy { margin-top: 8px; font-size: 14px; color: var(--fog); }
   .send-progress { margin-top: 12px; font-size: 18px; color: var(--paper); }
   .opens-chart { display: flex; flex-direction: column; gap: 6px; }
-  .opens-bars { display: flex; align-items: flex-end; gap: 2px; height: 96px; border-bottom: 1px solid var(--graphite); }
-  .opens-bar { flex: 1; min-width: 2px; background: #0a84ff; border-radius: 2px 2px 0 0; }
+  .opens-bars {
+    display: flex; align-items: flex-end; gap: 3px; height: 130px; padding: 0 2px;
+    border-bottom: 1px solid var(--smoke);
+    background: repeating-linear-gradient(to top, transparent 0 32px, var(--graphite) 32px 33px);
+  }
+  .opens-bar {
+    flex: 1; min-width: 3px; border-radius: 4px 4px 0 0;
+    background: linear-gradient(to top, #0a84ff, #7fc4ff);
+    transition: opacity .15s;
+  }
+  .opens-bar:hover { opacity: .75; }
+  .send-hero { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  .send-hero-top { display: flex; align-items: baseline; gap: 8px; }
+  .send-count { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; color: var(--paper); }
+  .send-hero-label { font-size: 15px; color: var(--fog); }
+  .send-hero-pct { margin-left: auto; font-family: var(--mono); font-size: 14px; color: var(--mint); }
+  .send-bar { height: 10px; border-radius: 999px; background: var(--graphite); overflow: hidden; }
+  .send-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #0a84ff, #7fc4ff); transition: width .6s ease; }
+  .send-bar > span.is-done { background: linear-gradient(90deg, #a3ddc2, #6fd3a4); }
+  .ring-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .ring-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; text-align: center; }
+  .ring { width: 88px; height: 88px; }
+  .ring-track { fill: none; stroke: var(--graphite); stroke-width: 8; }
+  .ring-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset .6s ease; }
+  .ring-text { fill: var(--paper); font-size: 16px; font-weight: 600; }
+  .ring-label { font-size: 13px; color: var(--paper); font-weight: 510; }
+  .ring-detail { font-size: 12px; color: var(--ash); }
+  .funnel { display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; }
+  .funnel-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) 96px; align-items: center; gap: 12px; font-size: 13px; }
+  .funnel-label { color: var(--fog); }
+  .funnel-track { height: 12px; border-radius: 999px; background: var(--graphite); overflow: hidden; }
+  .funnel-fill { display: block; height: 100%; border-radius: 999px; transition: width .6s ease; }
+  .funnel-num { color: var(--paper); font-family: var(--mono); text-align: right; white-space: nowrap; }
+  .funnel-pct { color: var(--ash); }
+  .link-bars { list-style: none; display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; }
+  .link-top { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+  .link-host { color: var(--paper); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .link-count { color: var(--ash); white-space: nowrap; }
+  .link-track { display: block; height: 8px; margin-top: 6px; border-radius: 999px; background: var(--graphite); overflow: hidden; }
+  .link-fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #a3ddc2, #6fd3a4); transition: width .6s ease; }
+  @media (max-width: 720px) {
+    .ring-row { grid-template-columns: minmax(0, 1fr); }
+    .funnel-row { grid-template-columns: 56px minmax(0, 1fr) 84px; }
+  }
   .opens-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--ash); }
   .people { display: flex; flex-direction: column; gap: 12px; }
   .people-filters { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -4391,6 +4433,8 @@ function CampaignsTool({ token, onAuthError }) {
 
 
   const selectedStatus = selected ? statusText(selected.status) : "";
+  // Once a campaign has gone out, the people are fixed: show only its results
+  const hasSent = Boolean(selected) && ["sending", "partial", "sent"].includes(selected.status);
 
   const visibleContacts = contacts.filter(c => {
     const q = audienceQuery.trim().toLowerCase();
@@ -4526,6 +4570,7 @@ function CampaignsTool({ token, onAuthError }) {
               <p className="panel-copy">Subject: {selected.subject} · {selectedStatus}</p>
             </div>
 
+            {!hasSent && (<>
             <div className="cmp-block">
               <span className="cmp-section-title">Who gets it</span>
               <div className="share-sheet">
@@ -4618,13 +4663,23 @@ function CampaignsTool({ token, onAuthError }) {
                 </button>
               </div>
             )}
+            </>)}
 
             {stats && (
               <div className="campaign-stats cmp-block">
                 <span className="cmp-section-title">Results</span>
                 <p className="panel-copy">Status: {statusText(stats.status)}</p>
                 {stats.total > 0 && (
-                  <p className="send-progress"><b>{stats.sent} of {stats.total} sent</b></p>
+                  <div className="send-hero">
+                    <div className="send-hero-top">
+                      <span className="send-count">{stats.sent} of {stats.total}</span>
+                      <span className="send-hero-label">sent</span>
+                      <span className="send-hero-pct">{Math.round((100 * stats.sent) / stats.total)}%</span>
+                    </div>
+                    <div className="send-bar" role="img" aria-label={`${stats.sent} of ${stats.total} sent`}>
+                      <span className={stats.remaining === 0 ? "is-done" : ""} style={{ width: `${(100 * stats.sent) / stats.total}%` }} />
+                    </div>
+                  </div>
                 )}
                 {stats.done_at ? (
                   <>
@@ -4634,33 +4689,23 @@ function CampaignsTool({ token, onAuthError }) {
                 ) : stats.total > 0 ? (
                   <p className="panel-copy">Everyone has it. The next campaign can be started now.</p>
                 ) : null}
+                {stats.remaining > 0 && stats.can_send_at && (
+                  <p className="panel-copy">
+                    {stats.can_send_at > Date.now() / 1000
+                      ? `Emails can be sent again on ${whenText(stats.can_send_at)}`
+                      : "Emails can be sent now"}
+                  </p>
+                )}
                 {stats.tracking ? (
                   <>
                     <CampaignAnalytics stats={stats} />
                     <span className="cmp-section-title">Opens over time</span>
                     <OpensChart hours={stats.opens_by_hour} later={stats.opens_later} />
                     {stats.links.length > 0 && (
-                      <div className="table-wrap">
-                        <table className="data-table">
-                          <caption className="sr-only">Clicks per link</caption>
-                          <thead>
-                            <tr>
-                              <th scope="col">Link</th>
-                              <th scope="col">Clicks</th>
-                              <th scope="col">People</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {stats.links.map(l => (
-                              <tr key={l.url}>
-                                <td className="cell-link">{l.url}</td>
-                                <td>{l.clicks}</td>
-                                <td>{l.people}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                      <>
+                        <span className="cmp-section-title">Links clicked</span>
+                        <LinkBars links={stats.links} />
+                      </>
                     )}
                     <span className="cmp-section-title">People</span>
                     <CampaignPeople people={people} />
@@ -4734,21 +4779,97 @@ function AppWindow({ name, children }) {
   );
 }
 
+// A ring that fills to a percentage, for open rate, click rate and so on
+function Ring({ part, whole, label, detail, color }) {
+  const radius = 34;
+  const length = 2 * Math.PI * radius;
+  const percent = whole ? Math.min(100, (100 * part) / whole) : 0;
+  return (
+    <div className="ring-card">
+      <svg className="ring" viewBox="0 0 88 88" aria-hidden="true">
+        <circle className="ring-track" cx="44" cy="44" r={radius} />
+        <circle
+          className="ring-fill"
+          cx="44"
+          cy="44"
+          r={radius}
+          style={{ stroke: color, strokeDasharray: length, strokeDashoffset: length * (1 - percent / 100) }}
+          transform="rotate(-90 44 44)"
+        />
+        <text className="ring-text" x="44" y="49" textAnchor="middle">{whole ? `${Math.round(percent)}%` : "—"}</text>
+      </svg>
+      <span className="ring-label">{label}</span>
+      <span className="ring-detail">{detail}</span>
+    </div>
+  );
+}
+
+// Sent, then opened, then clicked, as bars that shrink step by step
+function Funnel({ sent, opened, clicked }) {
+  const steps = [
+    { label: "Sent", value: sent, color: "#a9d8ef" },
+    { label: "Opened", value: opened, color: "#0a84ff" },
+    { label: "Clicked", value: clicked, color: "#a3ddc2" },
+  ];
+  return (
+    <div className="funnel">
+      {steps.map(step => (
+        <div key={step.label} className="funnel-row">
+          <span className="funnel-label">{step.label}</span>
+          <span className="funnel-track">
+            <span
+              className="funnel-fill"
+              style={{ width: `${sent ? Math.max(step.value ? 3 : 0, (100 * step.value) / sent) : 0}%`, background: step.color }}
+            />
+          </span>
+          <span className="funnel-num">
+            {step.value}
+            {step.label !== "Sent" && sent ? <span className="funnel-pct"> · {Math.round((100 * step.value) / sent)}%</span> : null}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // The numbers that show how a campaign did
 function CampaignAnalytics({ stats }) {
   const sent = stats.sent || 0;
-  const share = (part, whole) => (whole ? `${Math.round((100 * part) / whole)}%` : "—");
   const median = stats.median_open_hours;
   const medianText = median == null ? "—" : median >= 48 ? `${(median / 24).toFixed(1)} days` : `${median} h`;
   return (
-    <div className="stat-grid stat-grid-compact">
-      <StatTile label="Open rate" value={share(stats.opened, sent)} hint={`${stats.opened} of ${sent} opened it`} />
-      <StatTile label="Click rate" value={share(stats.clicked, sent)} hint={`${stats.clicked} of ${sent} clicked a link`} />
-      <StatTile label="Click to open" value={share(stats.clicked, stats.opened)} hint="Of those who opened, how many clicked" />
-      <StatTile label="Time to open" value={medianText} hint="Median, from the send to the first open" />
-      <StatTile label="Not opened" value={Math.max(0, sent - stats.opened)} hint="Sent, no open seen yet" />
-      <StatTile label="Unsubscribed" value={stats.unsubscribed} hint={`${stats.failed} could not be sent`} />
-    </div>
+    <>
+      <div className="ring-row">
+        <Ring part={stats.opened} whole={sent} label="Open rate" detail={`${stats.opened} of ${sent} opened`} color="#0a84ff" />
+        <Ring part={stats.clicked} whole={sent} label="Click rate" detail={`${stats.clicked} of ${sent} clicked`} color="#a3ddc2" />
+        <Ring part={stats.clicked} whole={stats.opened} label="Click to open" detail="Of those who opened" color="#f3d58b" />
+      </div>
+      <Funnel sent={sent} opened={stats.opened} clicked={stats.clicked} />
+      <div className="stat-grid stat-grid-compact">
+        <StatTile label="Time to open" value={medianText} hint="Median, from the send" />
+        <StatTile label="Not opened" value={Math.max(0, sent - stats.opened)} hint="Sent, no open seen yet" />
+        <StatTile label="Unsubscribed" value={stats.unsubscribed} hint="After getting this one" />
+        <StatTile label="Failed" value={stats.failed} hint="Could not be sent" />
+      </div>
+    </>
+  );
+}
+
+// Each link as a bar, so the one that got the most clicks stands out
+function LinkBars({ links }) {
+  const max = Math.max(...links.map(l => l.clicks), 1);
+  return (
+    <ul className="link-bars">
+      {links.map(l => (
+        <li key={l.url}>
+          <span className="link-top">
+            <span className="link-host" title={l.url}>{hostOf(l.url)}</span>
+            <span className="link-count">{l.clicks} {l.clicks === 1 ? "click" : "clicks"} · {l.people} {l.people === 1 ? "person" : "people"}</span>
+          </span>
+          <span className="link-track"><span className="link-fill" style={{ width: `${(100 * l.clicks) / max}%` }} /></span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

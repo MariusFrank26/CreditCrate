@@ -518,6 +518,21 @@ def _done_estimate(address, remaining, now=None):
     return full_at + (days - 1) * 86400 + last_day * AVERAGE_SEND_SECONDS
 
 
+def _free_again_at(address, now=None):
+    """When the account can send again: now if it has room, else when its oldest send in the last 24 hours expires."""
+    now = now or time.time()
+    if not address:
+        return now
+    with _conn() as conn:
+        times = [r[0] for r in conn.execute(
+            "SELECT sent_at FROM mail_sends WHERE sender = ? AND status = 'sent' AND sent_at > ?",
+            (address, now - 86400),
+        )]
+    if len(times) < gmail.DAILY_LIMIT:
+        return now
+    return min(times) + 86400
+
+
 def _busy_campaign(owner, address, exclude_id):
     """Another campaign that still owes people. A new campaign waits until it is done.
     Returns (campaign, done_at) or None."""
@@ -808,8 +823,11 @@ def campaign_stats(campaign_id):
     gaps = [max(0, first - sent) / 3600 for sent, first in first_opens]
     median_open_hours = round(statistics.median(gaps), 1) if gaps else None
     account = _load_account(accounts.current_email())
-    done_at = _done_estimate(account[0] if account else None, remaining) if remaining > 0 else None
+    address = account[0] if account else None
+    done_at = _done_estimate(address, remaining) if remaining > 0 else None
+    can_send_at = _free_again_at(address) if remaining > 0 else None
     return jsonify({
+        "can_send_at": can_send_at,  # when more emails can go out under the daily limit
         "status": campaign["status"],
         "tracking": bool(campaign["track"]),
         "sent": sent,
