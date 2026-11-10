@@ -1291,6 +1291,7 @@
   }
   .pk-card .pk-name { font-size: 15px; font-weight: 600; line-height: 1.25; color: #fff; }
   .pk-card .pk-host { margin-top: 5px; font-size: 11px; color: var(--sunshine); }
+  .pk-card .pk-kicker { font-size: 10px; color: var(--sky); margin-bottom: 3px; }
   @media (max-width: 560px) {
     .pk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .pk-card .pk-info { padding: 36px 11px 11px; }
@@ -3410,14 +3411,18 @@ function PacksTool({ token, onAuthError }) {
       ) : (
         <>
           {featured && (
-            <button type="button" className="pk-featured" onClick={() => setSelected(featured)}>
-              <PackDisc name={featured.name} large />
-              <span className="pk-featured-text">
-                <span className="pk-kicker">Latest pack</span>
-                <span className="pk-name">{featured.name}</span>
-                <span className="pk-host">{packHost(featured.url)} · {packDate(featured.created_at)}</span>
-              </span>
-            </button>
+            <ul className="pk-grid">
+              <li style={{ "--i": 0 }}>
+                <button type="button" className="pk-card" onClick={() => setSelected(featured)}>
+                  <PackDisc name={featured.name} />
+                  <span className="pk-info">
+                    <span className="pk-kicker">Latest pack</span>
+                    <span className="pk-name">{featured.name}</span>
+                    <span className="pk-host">{packHost(featured.url)} · {packDate(featured.created_at)}</span>
+                  </span>
+                </button>
+              </li>
+            </ul>
           )}
           {shelf.length > 0 && (
             <ul className="pk-grid">
