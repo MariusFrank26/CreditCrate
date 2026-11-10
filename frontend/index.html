@@ -894,6 +894,28 @@
   @media (min-width: 760px) {
     .ios-sheet { left: 50%; right: auto; width: 480px; margin-left: -240px; bottom: 24px; border-radius: 20px; }
   }
+  /* Pack sheet: centred over a soft Dropbox-blue backdrop */
+  .pk-sheet-wrap .ios-backdrop { background: rgba(0, 97, 255, .28); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+  .pk-sheet-wrap .ios-sheet {
+    top: 50%; bottom: auto; left: 50%; right: auto;
+    transform: translate(-50%, -50%);
+    width: min(520px, calc(100vw - 32px)); max-height: 88vh;
+    border-radius: 20px; padding: 24px 24px 28px;
+    animation: ios-fade .25s ease-out both;
+  }
+  .pk-sheet-wrap .ios-sheet .ios-handle { display: none; }
+  .dbx-choose {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 14px 16px; border: 0; border-radius: 12px;
+    background: #0061ff; color: #ffffff;
+    font-family: var(--sans); font-size: 15px; font-weight: 600; letter-spacing: -0.011em;
+    cursor: pointer; transition: background-color .15s;
+  }
+  .dbx-choose:hover:not(:disabled) { background: #0052d9; }
+  .dbx-choose:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+  .dbx-choose:disabled { opacity: .6; cursor: default; }
+  .dbx-or { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
+  .dbx-or::before, .dbx-or::after { content: ""; flex: 1; height: 1px; background: var(--graphite); }
   .ios-handle { width: 40px; height: 5px; border-radius: 999px; background: var(--smoke); align-self: center; }
   .ios-sheet-title { font-size: 20px; font-weight: 600; color: var(--paper); text-align: center; }
   .ios-profile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 4px; }
@@ -2743,15 +2765,19 @@ function PacksTool({ token, onAuthError }) {
       {selected && <PackSheet pack={selected} busy={busy} onClose={() => setSelected(null)} onRemove={removePack} />}
 
       {adding && (
-        <div className="ios-sheet-wrap">
+        <div className="ios-sheet-wrap pk-sheet-wrap">
           <div className="ios-backdrop" onClick={() => !busy && setAdding(false)} />
           <div className="ios-sheet" role="dialog" aria-modal="true" aria-labelledby="add-pack-heading">
-            <div className="ios-handle" aria-hidden="true" />
             <h3 id="add-pack-heading" className="ios-sheet-title">New pack</h3>
             <form className="ios-form" onSubmit={addPack}>
               <Field label="Pack name" id="pack-name" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} required />
               {DROPBOX_APP_KEY && (
-                <button type="button" className="back-btn" onClick={chooseFromDropbox} disabled={busy}>Choose from Dropbox</button>
+                <>
+                  <button type="button" className="dbx-choose" onClick={chooseFromDropbox} disabled={busy}>
+                    Choose from Dropbox
+                  </button>
+                  <p className="dbx-or">or paste a link</p>
+                </>
               )}
               <Field label="Dropbox or Google Drive link" id="pack-url" type="url" value={form.url} onChange={v => setForm(f => ({ ...f, url: v }))} required placeholder="https://www.dropbox.com/…" />
               <p className="panel-copy">Set the link to “anyone with the link can view” so people can open it from a campaign.</p>
