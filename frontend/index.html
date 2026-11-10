@@ -609,8 +609,8 @@
   .roadmap-grid { margin-top: 36px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
   .roadmap-card { position: relative; overflow: hidden; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 12px; min-height: 380px; }
   .roadmap-card > *:not(.roadmap-art) { position: relative; z-index: 1; }
-  .roadmap-art { position: absolute; right: -40px; bottom: -40px; width: 62%; height: 80%; opacity: .45; pointer-events: none; z-index: 0; -webkit-mask-image: linear-gradient(to left, #000 40%, transparent 100%); mask-image: linear-gradient(to left, #000 40%, transparent 100%); }
-  .rm-phone { position: absolute; right: 8%; bottom: -60px; width: 200px; height: 420px; border-radius: 34px; background: #0b0c0d; border: 6px solid #2a2d33; box-shadow: 0 30px 60px -30px rgba(0,0,0,.9); overflow: hidden; }
+  .roadmap-art { position: absolute; inset: 0; opacity: .5; pointer-events: none; z-index: 0; -webkit-mask-image: linear-gradient(to left, #000 40%, transparent 100%); mask-image: linear-gradient(to left, #000 40%, transparent 100%); }
+  .rm-phone { position: absolute; right: 9%; bottom: -150px; zoom: 1.7; width: 200px; height: 420px; border-radius: 34px; background: #0b0c0d; border: 6px solid #2a2d33; box-shadow: 0 30px 60px -30px rgba(0,0,0,.9); overflow: hidden; }
   .rm-phone-screen { position: relative; height: 100%; background: var(--void); padding: 26px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
   .rm-phone-notch { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 62px; height: 16px; border-radius: 10px; background: #000; }
   .rm-phone-top { display: flex; justify-content: space-between; align-items: center; }
@@ -628,7 +628,7 @@
   .rm-phone-tabs { margin-top: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding-top: 8px; border-top: 1px solid var(--graphite); }
   .rm-phone-tabs span { height: 14px; border-radius: 4px; background: var(--graphite); }
   .rm-phone-tabs span.is-on { background: var(--paper); }
-  .rm-laptop { position: absolute; right: 0; bottom: 0; width: 100%; max-width: 520px; }
+  .rm-laptop { position: absolute; right: -6%; bottom: 4%; width: 92%; zoom: 1.3; }
   .rm-laptop-lid { background: linear-gradient(180deg, #2a2d33, #16171a); border-radius: 14px 14px 6px 6px; padding: 9px 9px 11px; box-shadow: 0 30px 60px -30px rgba(0,0,0,.9); }
   .rm-laptop-screen { aspect-ratio: 16 / 10; background: var(--void); border-radius: 5px; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #000; }
   .rm-laptop-bar { display: flex; align-items: center; gap: 5px; padding: 7px 10px; background: var(--obsidian); border-bottom: 1px solid var(--graphite); }
@@ -646,7 +646,7 @@
   .rm-laptop-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--graphite); }
   .rm-laptop-row em { margin-left: auto; font-style: normal; font-size: 9px; color: var(--mist); background: var(--graphite); border-radius: 999px; padding: 2px 8px; }
   .rm-laptop-base { height: 8px; width: 108%; margin: 0 -4%; border-radius: 0 0 12px 12px; background: linear-gradient(180deg, #2a2d33, #101113); }
-  @media (max-width: 720px) { .roadmap-art { width: 100%; height: 60%; opacity: .3; } .rm-phone { right: 4%; } }
+  @media (max-width: 720px) { .roadmap-art { opacity: .3; } .rm-phone { right: 2%; zoom: 1.2; } .rm-laptop { width: 110%; right: -20%; } }
   .roadmap-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   .roadmap-platform { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); }
   .roadmap-status { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--sunshine); border: 1px solid rgba(243, 213, 139, .4); border-radius: 999px; padding: 4px 10px; }
