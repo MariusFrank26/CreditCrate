@@ -1448,6 +1448,55 @@
   }
   .price-link:hover { filter: brightness(1.05); }
 
+  /* ── CAMPAIGNS: a list of campaigns on the left, one panel on the right ── */
+  .cmp-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
+  .cmp-list {
+    display: flex; flex-direction: column; gap: 6px;
+    background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; padding: 12px;
+    max-height: 760px; overflow-y: auto;
+  }
+  .cmp-list-head { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 8px; }
+  .cmp-empty { font-size: 13px; color: var(--fog); padding: 8px 4px; }
+  .cmp-item {
+    display: flex; flex-direction: column; gap: 4px; width: 100%;
+    text-align: left; background: none; border: 1px solid transparent; border-radius: 10px;
+    padding: 10px 12px; color: inherit; cursor: pointer; font-family: var(--sans);
+  }
+  .cmp-item:hover { background: var(--graphite); }
+  .cmp-item.is-active { background: var(--graphite); border-color: var(--smoke); }
+  .cmp-item.is-example { opacity: .5; pointer-events: none; }
+  .cmp-item-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
+  .cmp-item-name { font-size: 14px; font-weight: 510; color: var(--paper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .cmp-item-meta { font-size: 12px; color: var(--fog); }
+  .cmp-status {
+    flex: none; font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid var(--smoke); color: var(--fog);
+  }
+  .cmp-status-sent { color: var(--mint); border-color: rgba(163, 221, 194, .4); }
+  .cmp-status-sending { color: var(--sunshine); border-color: rgba(243, 213, 139, .4); }
+  .cmp-status-failed, .cmp-status-stopped { color: var(--salmon); border-color: rgba(242, 167, 156, .4); }
+  .cmp-panel {
+    display: flex; flex-direction: column; gap: 18px; min-width: 0;
+    background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; padding: 24px;
+  }
+  .cmp-panel-head { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .cmp-panel-title { font-size: 20px; font-weight: 600; color: var(--paper); letter-spacing: -0.016em; }
+  .cmp-back { margin-bottom: 4px; }
+  .cmp-section-title { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); }
+  .cmp-block { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--graphite); padding-top: 18px; }
+  .cmp-audience { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .cmp-activity { margin-top: 24px; }
+  .cmp-activity > summary { cursor: pointer; font-size: 14px; color: var(--fog); padding: 8px 0; }
+  .cmp-activity > summary:hover { color: var(--paper); }
+  @media (max-width: 900px) {
+    .cmp-layout { grid-template-columns: minmax(0, 1fr); }
+    .cmp-list { max-height: none; }
+  }
+  @media (max-width: 560px) {
+    .cmp-audience { grid-template-columns: minmax(0, 1fr); }
+    .cmp-panel { padding: 18px; }
+  }
+
   /* ── CAMPAIGN VARIABLES ── */
   .var-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -2px 0 2px; }
   .var-label { font-family: var(--mono); font-size: 11px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; margin-right: 4px; }
@@ -3776,185 +3825,201 @@ function CampaignsTool({ token, onAuthError }) {
   }
 
 
+  const selectedStatus = selected ? statusText(selected.status) : "";
+
   return (
     <section className="tool-section" aria-labelledby="campaigns-heading">
       <div className="tool-heading">
         <p className="tool-eyebrow">Outreach</p>
         <h2 id="campaigns-heading" className="tool-title">Campaigns</h2>
         <p className="tool-copy">
-          Write an email, choose who receives it, and preview before anything is sent. Every email has an unsubscribe link.
+          Write an email once, then choose who gets it. You always see a preview before anything is sent.
         </p>
       </div>
       <ToolMessages error={error} message={message} />
 
       <GmailConnect token={token} onAuthError={onAuthError} account={account} onChange={setAccount} />
 
-      <ActivityPanel activity={activity} />
-
-      <div className="tool-grid">
-        <form className="tool-card" onSubmit={createCampaign}>
-          <h3 className="tool-card-title">New campaign</h3>
-          <Field label="Name (internal)" id="campaign-name" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} />
-          <Field label="Subject" id="campaign-subject" value={form.subject} onChange={v => setForm(f => ({ ...f, subject: v }))} onFocus={() => setFocusedField("subject")} required />
-          <Field label="Message" id="campaign-body" as="textarea" rows={8} value={form.body} onChange={v => setForm(f => ({ ...f, body: v }))} onFocus={() => setFocusedField("body")} required />
-          <div className="var-bar" role="group" aria-label="Insert a personal detail">
-            <span className="var-label">Insert into {focusedField === "subject" ? "subject" : "message"}</span>
-            {CAMPAIGN_VARIABLES.map(v => (
-              <button key={v.token} type="button" className="var-chip" title={v.help} onClick={() => insertVariable(v.token)}>{v.label}</button>
-            ))}
-          </div>
-          <p className="var-help">
-            Each person's details replace the variables when the email is sent. Name falls back to "there" if we don't have it.
-          </p>
-          <PackPicker packs={packs} value={form.pack_id} onChange={v => setForm(f => ({ ...f, pack_id: v }))} />
-          <label className="check-row">
-            <input type="checkbox" checked={form.track} onChange={e => setForm(f => ({ ...f, track: e.target.checked }))} />
-            <span>Track opens and clicks</span>
-          </label>
-          <button type="submit" className="search-btn" disabled={busy || !form.subject.trim() || !form.body.trim()}>Save draft</button>
-        </form>
-
-        <div className="tool-card">
-          <h3 className="tool-card-title">Send</h3>
-          <Field label="Campaign" id="campaign-select" as="select" value={selectedId} onChange={v => { setSelectedId(v); setPreview(null); }}>
-            <option value="">Choose a campaign</option>
-            {(campaigns || []).map(c => (
-              <option key={c.id} value={c.id}>{c.name || c.subject} ({c.status})</option>
-            ))}
-          </Field>
-          <div className="search-row">
-            <Field label="Role" id="audience-role" value={audience.role} onChange={v => { setAudience(a => ({ ...a, role: v })); setPreview(null); }} />
-            <Field label="Tag" id="audience-tag" value={audience.tag} onChange={v => { setAudience(a => ({ ...a, tag: v })); setPreview(null); }} />
-          </div>
-          <div className="send-actions">
-            <button type="button" className="back-btn" onClick={previewSend} disabled={busy || !selectedId}>Preview recipients</button>
-            <button type="button" className="back-btn" onClick={sendTest} disabled={busy || !selectedId || !canSend}>Send test to me</button>
+      <div className="cmp-layout">
+        <aside className="cmp-list" aria-label="Your campaigns">
+          <div className="cmp-list-head">
+            <span className="cmp-section-title">Campaigns</span>
+            <button
+              type="button"
+              className="back-btn"
+              onClick={() => { setSelectedId(""); setPreview(null); }}
+            >
+              + New
+            </button>
           </div>
 
-          {preview && (
-            <div className="tool-preview" role="status">
-              <p>
-                This would reach <strong>{preview.would_send}</strong> people.
-                {!canSend && " Connect your Gmail above to send."}
-              </p>
-              {preview.sample?.length > 0 && <p className="panel-copy">Sample: {preview.sample.join(", ")}</p>}
+          {(campaigns || []).length === 0 && (
+            <p className="cmp-empty">No campaigns yet. Write your first one and it will appear here.</p>
+          )}
+
+          {(campaigns || []).map(c => {
+            const active = String(c.id) === selectedId;
+            return (
               <button
+                key={c.id}
                 type="button"
-                className="search-btn"
-                onClick={sendNow}
-                disabled={busy || !canSend || preview.would_send === 0}
+                className={`cmp-item${active ? " is-active" : ""}`}
+                onClick={() => { setSelectedId(String(c.id)); setPreview(null); }}
+                aria-current={active ? "true" : undefined}
               >
-                Send to {preview.would_send} people
+                <span className="cmp-item-top">
+                  <span className="cmp-item-name">{c.name || c.subject}</span>
+                  <span className={`cmp-status cmp-status-${String(c.status || "draft").split(":")[0]}`}>
+                    {c.status === "draft" || !c.status ? "Draft" : (c.status === "sent" ? "Sent" : statusText(c.status))}
+                  </span>
+                </span>
+                <span className="cmp-item-meta">
+                  {c.sent_at ? new Date(c.sent_at * 1000).toLocaleDateString() : "Not sent yet"}
+                  {c.track && c.sent ? ` · ${c.opened ?? 0} opened · ${c.clicked ?? 0} clicked` : c.sent ? ` · ${c.sent} sent` : ""}
+                </span>
               </button>
-            </div>
-          )}
+            );
+          })}
 
-          {stats && (
-            <div className="campaign-stats">
-              {selected && <p className="panel-copy">Status: {statusText(stats.status)}</p>}
-              {stats.tracking ? (
-                <>
-                  <div className="stat-grid stat-grid-compact">
-                    <StatTile label="Sent" value={stats.sent} hint="Accepted by Gmail" />
-                    <StatTile
-                      label="Opened"
-                      value={stats.opened}
-                      hint={stats.sent ? `${Math.round(100 * stats.opened / stats.sent)}% of recipients (estimate)` : "No sends yet"}
-                    />
-                    <StatTile
-                      label="Clicked"
-                      value={stats.clicked}
-                      hint={stats.sent ? `${Math.round(100 * stats.clicked / stats.sent)}% of recipients` : "No sends yet"}
-                    />
-                  </div>
-                  {stats.links.length > 0 && (
-                    <div className="table-wrap">
-                      <table className="data-table">
-                        <caption className="sr-only">Clicks per link</caption>
-                        <thead>
-                          <tr>
-                            <th scope="col">Link</th>
-                            <th scope="col">Clicks</th>
-                            <th scope="col">People</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {stats.links.map(l => (
-                            <tr key={l.url}>
-                              <td className="cell-link">{l.url}</td>
-                              <td>{l.clicks}</td>
-                              <td>{l.people}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                  <p className="panel-copy">
-                    Opens are estimates. Some mail apps load images automatically, so they can count opens nobody read.
-                  </p>
-                </>
-              ) : (
-                <p className="panel-copy">Tracking was off for this campaign.</p>
-              )}
+          {(campaigns || []).length < 3 && pastExamples.map(c => (
+            <div key={c.id} className="cmp-item is-example" aria-hidden="true">
+              <span className="cmp-item-top">
+                <span className="cmp-item-name">{c.name}</span>
+                <span className="cmp-status cmp-status-sent">Sent</span>
+              </span>
+              <span className="cmp-item-meta">Example · {c.sent} sent · {c.opened} opened · {c.clicked} clicked</span>
             </div>
-          )}
-        </div>
+          ))}
+        </aside>
+
+        {selected ? (
+          <section className="cmp-panel" aria-label="Send this campaign">
+            <div className="cmp-panel-head">
+              <button type="button" className="back-btn cmp-back" onClick={() => { setSelectedId(""); setPreview(null); }}>
+                ← Write a new campaign
+              </button>
+              <h3 className="cmp-panel-title">{selected.name || selected.subject}</h3>
+              <p className="panel-copy">Subject: {selected.subject} · {selectedStatus}</p>
+            </div>
+
+            <div className="cmp-block">
+              <span className="cmp-section-title">Who gets it</span>
+              <div className="cmp-audience">
+                <Field label="Role" id="audience-role" value={audience.role} onChange={v => { setAudience(a => ({ ...a, role: v })); setPreview(null); }} />
+                <Field label="Tag" id="audience-tag" value={audience.tag} onChange={v => { setAudience(a => ({ ...a, tag: v })); setPreview(null); }} />
+              </div>
+              <p className="panel-copy">Leave both empty to send to everyone on your list.</p>
+              <div className="send-actions">
+                <button type="button" className="back-btn" onClick={previewSend} disabled={busy}>Preview recipients</button>
+                <button type="button" className="back-btn" onClick={sendTest} disabled={busy || !canSend}>Send a test to me</button>
+              </div>
+            </div>
+
+            {preview && (
+              <div className="tool-preview cmp-block" role="status">
+                <span className="cmp-section-title">Ready to send</span>
+                <p>
+                  This would reach <strong>{preview.would_send}</strong> people.
+                  {!canSend && " Connect your Gmail above to send."}
+                </p>
+                {preview.sample?.length > 0 && <p className="panel-copy">Sample: {preview.sample.join(", ")}</p>}
+                <button
+                  type="button"
+                  className="search-btn"
+                  onClick={sendNow}
+                  disabled={busy || !canSend || preview.would_send === 0}
+                >
+                  Send to {preview.would_send} people
+                </button>
+              </div>
+            )}
+
+            {stats && (
+              <div className="campaign-stats cmp-block">
+                <span className="cmp-section-title">Results</span>
+                <p className="panel-copy">Status: {statusText(stats.status)}</p>
+                {stats.tracking ? (
+                  <>
+                    <div className="stat-grid stat-grid-compact">
+                      <StatTile label="Sent" value={stats.sent} hint="Accepted by Gmail" />
+                      <StatTile
+                        label="Opened"
+                        value={stats.opened}
+                        hint={stats.sent ? `${Math.round(100 * stats.opened / stats.sent)}% of recipients (estimate)` : "No sends yet"}
+                      />
+                      <StatTile
+                        label="Clicked"
+                        value={stats.clicked}
+                        hint={stats.sent ? `${Math.round(100 * stats.clicked / stats.sent)}% of recipients` : "No sends yet"}
+                      />
+                    </div>
+                    {stats.links.length > 0 && (
+                      <div className="table-wrap">
+                        <table className="data-table">
+                          <caption className="sr-only">Clicks per link</caption>
+                          <thead>
+                            <tr>
+                              <th scope="col">Link</th>
+                              <th scope="col">Clicks</th>
+                              <th scope="col">People</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {stats.links.map(l => (
+                              <tr key={l.url}>
+                                <td className="cell-link">{l.url}</td>
+                                <td>{l.clicks}</td>
+                                <td>{l.people}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    <p className="panel-copy">
+                      Opens are estimates. Some mail apps load images automatically, so they can count opens nobody read.
+                    </p>
+                  </>
+                ) : (
+                  <p className="panel-copy">Tracking was off for this campaign.</p>
+                )}
+              </div>
+            )}
+          </section>
+        ) : (
+          <form className="cmp-panel" onSubmit={createCampaign}>
+            <div className="cmp-panel-head">
+              <h3 className="cmp-panel-title">New campaign</h3>
+              <p className="panel-copy">Write it here, save it, then pick who gets it from the list.</p>
+            </div>
+            <Field label="Name (internal)" id="campaign-name" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} />
+            <Field label="Subject" id="campaign-subject" value={form.subject} onChange={v => setForm(f => ({ ...f, subject: v }))} onFocus={() => setFocusedField("subject")} required />
+            <Field label="Message" id="campaign-body" as="textarea" rows={9} value={form.body} onChange={v => setForm(f => ({ ...f, body: v }))} onFocus={() => setFocusedField("body")} required />
+            <div className="var-bar" role="group" aria-label="Insert a personal detail">
+              <span className="var-label">Insert into {focusedField === "subject" ? "subject" : "message"}</span>
+              {CAMPAIGN_VARIABLES.map(v => (
+                <button key={v.token} type="button" className="var-chip" title={v.help} onClick={() => insertVariable(v.token)}>{v.label}</button>
+              ))}
+            </div>
+            <p className="var-help">
+              Each person's details replace the variables when the email is sent. Name falls back to "there" if we don't have it.
+            </p>
+            <PackPicker packs={packs} value={form.pack_id} onChange={v => setForm(f => ({ ...f, pack_id: v }))} />
+            <label className="check-row">
+              <input type="checkbox" checked={form.track} onChange={e => setForm(f => ({ ...f, track: e.target.checked }))} />
+              <span>Track opens and clicks</span>
+            </label>
+            <div className="send-actions">
+              <button type="submit" className="search-btn" disabled={busy || !form.subject.trim() || !form.body.trim()}>Save draft</button>
+            </div>
+          </form>
+        )}
       </div>
 
-      <section className="past-campaigns" aria-labelledby="past-heading">
-        <div className="past-head">
-          <h3 id="past-heading" className="tool-card-title">Past campaigns</h3>
-          <span className="history-meta">{pastCampaigns.length} sent</span>
-        </div>
-        {(
-          <div className="past-table-wrap">
-            <table className="data-table">
-              <caption className="sr-only">Past campaigns and their results</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Campaign</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Sent</th>
-                  <th scope="col">Opened</th>
-                  <th scope="col">Clicked</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pastCampaigns.map(c => (
-                  <tr key={c.id} className="past-row" onClick={() => { setSelectedId(String(c.id)); setPreview(null); }}>
-                    <td>
-                      <span className="past-name">{c.name || c.subject}</span>
-                      <span className="past-date">{c.sent_at ? new Date(c.sent_at * 1000).toLocaleDateString() : "Not sent"}</span>
-                    </td>
-                    <td>{statusText(c.status)}</td>
-                    <td>{c.sent ?? 0}</td>
-                    <td>
-                      {c.track ? <RateBar value={pct(c.opened, c.sent)} count={c.opened ?? 0} color="var(--lilac)" /> : <span className="past-off">Tracking off</span>}
-                    </td>
-                    <td>
-                      {c.track ? <RateBar value={pct(c.clicked, c.sent)} count={c.clicked ?? 0} color="var(--mint)" /> : <span className="past-off">Tracking off</span>}
-                    </td>
-                  </tr>
-                ))}
-                {pastExamples.map(c => (
-                  <tr key={c.id} className="is-example" aria-hidden="true">
-                    <td>
-                      <span className="past-name">{c.name}</span>
-                      <span className="past-date">Example</span>
-                    </td>
-                    <td>Sent</td>
-                    <td>{c.sent}</td>
-                    <td><RateBar value={pct(c.opened, c.sent)} count={c.opened} color="var(--lilac)" /></td>
-                    <td><RateBar value={pct(c.clicked, c.sent)} count={c.clicked} color="var(--mint)" /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <p className="panel-copy">Click a campaign to load it into the Send card. Opens are estimates.</p>
-      </section>
+      <details className="cmp-activity">
+        <summary>Recent activity</summary>
+        <ActivityPanel activity={activity} />
+      </details>
     </section>
   );
 }
