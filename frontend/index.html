@@ -1594,6 +1594,9 @@
 const { useState, useEffect, useRef, Children, isValidElement } = React;
 
 const API = "https://api.creditcrate.app/api";
+// Dropbox Chooser app key (public, not a secret). Leave empty to hide the "Choose from Dropbox" button.
+// The Dropbox app must list creditcrate.app (and localhost for testing) as allowed domains.
+const DROPBOX_APP_KEY = "6velxk3m4u79wms";
 const ROLE_FILTERS = ["ALL", "PRODUCER", "ENGINEER", "MIXER", "WRITER"];
 const STEPS = [["1", "Search album"], ["2", "Select album"], ["3", "View credits"]];
 
@@ -2606,6 +2609,36 @@ function PacksTool({ token, onAuthError }) {
 
   useEffect(() => { run(load); }, []);
 
+  // Loads Dropbox's Chooser once, only when an app key is set
+  useEffect(() => {
+    if (!DROPBOX_APP_KEY || document.getElementById("dropboxjs")) return;
+    const script = document.createElement("script");
+    script.src = "https://www.dropbox.com/static/api/2/dropins.js";
+    script.id = "dropboxjs";
+    script.setAttribute("data-app-key", DROPBOX_APP_KEY);
+    document.head.appendChild(script);
+  }, []);
+
+  // Opens Dropbox's own picker. The user chooses a folder or file, and we get a share link back.
+  // CreditCrate never sees the Dropbox account or its file list.
+  function chooseFromDropbox() {
+    if (!window.Dropbox || !window.Dropbox.isBrowserSupported()) {
+      setMessage(null);
+      run(async () => { throw new Error("Dropbox's picker could not open in this browser. Paste the link instead."); });
+      return;
+    }
+    window.Dropbox.choose({
+      folderselect: true,
+      linkType: "preview",
+      success: files => {
+        const item = files[0];
+        if (!item) return;
+        setForm(f => ({ ...f, url: item.link, name: f.name || item.name }));
+      },
+      cancel: () => {},
+    });
+  }
+
   function addPack(e) {
     e.preventDefault();
     run(async () => {
@@ -2717,6 +2750,9 @@ function PacksTool({ token, onAuthError }) {
             <h3 id="add-pack-heading" className="ios-sheet-title">New pack</h3>
             <form className="ios-form" onSubmit={addPack}>
               <Field label="Pack name" id="pack-name" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} required />
+              {DROPBOX_APP_KEY && (
+                <button type="button" className="back-btn" onClick={chooseFromDropbox} disabled={busy}>Choose from Dropbox</button>
+              )}
               <Field label="Dropbox or Google Drive link" id="pack-url" type="url" value={form.url} onChange={v => setForm(f => ({ ...f, url: v }))} required placeholder="https://www.dropbox.com/…" />
               <p className="panel-copy">Set the link to “anyone with the link can view” so people can open it from a campaign.</p>
               <button type="submit" className="search-btn" disabled={busy || !form.name.trim() || !form.url.trim()}>Save pack</button>
