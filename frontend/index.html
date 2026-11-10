@@ -1266,20 +1266,34 @@
   /* Every pack cover is the CreditCrate C-and-dot logo. It scales with the cover. */
   .pk-art-logo { display: block; width: 60%; height: auto; flex: none; }
   .pk-art-large { width: 124px; height: 124px; border-radius: 16px; }
-  .pk-grid { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  /* Packs as a gallery of square tiles, sized like Recent searches */
+  .pk-grid { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 14px; }
   .pk-grid li { min-width: 0; animation: rise .5s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(var(--i) * 60ms); }
   .pk-card {
-    display: flex; flex-direction: column; align-items: stretch; gap: 10px;
-    width: 100%; padding: 14px; text-align: left; cursor: pointer; color: inherit;
+    position: relative; display: block; width: 100%; aspect-ratio: 1 / 1; padding: 0;
+    overflow: hidden; text-align: left; cursor: pointer; color: inherit;
     background: var(--carbon);
-    border: 1px solid var(--graphite); border-radius: 14px;
-    transition: transform .2s, border-color .2s;
+    border: 1px solid var(--graphite); border-radius: 16px;
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
   }
-  .pk-card:hover { transform: translateY(-2px); border-color: var(--smoke); }
-  .pk-card .pk-art { width: 100%; height: auto; aspect-ratio: 1; }
-  .pk-card .pk-name, .pk-card .pk-host { padding: 0 2px; }
-  @media (max-width: 480px) {
-    .pk-grid { grid-template-columns: minmax(0, 1fr); }
+  .pk-card:hover { transform: translateY(-3px); border-color: var(--smoke); box-shadow: 0 18px 40px -18px rgba(0, 0, 0, .85); }
+  .pk-card:focus-visible { outline: 2px solid var(--paper); outline-offset: 3px; }
+  .pk-card .pk-art {
+    position: absolute; inset: 0; width: 100%; height: 100%; padding: 0;
+    border-radius: 0; box-shadow: none; overflow: hidden;
+    background: radial-gradient(120px 120px at 30% 20%, rgba(10, 132, 255, .25), transparent 70%), linear-gradient(135deg, #1d2a3a, #0f1011);
+  }
+  .pk-card .pk-art-logo { width: 38%; }
+  .pk-card .pk-info {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column; gap: 2px; min-width: 0;
+    padding: 48px 14px 13px; background: linear-gradient(180deg, transparent, rgba(8, 9, 10, .94) 68%);
+  }
+  .pk-card .pk-name { font-size: 15px; font-weight: 600; line-height: 1.25; color: #fff; }
+  .pk-card .pk-host { margin-top: 5px; font-size: 11px; color: var(--sunshine); }
+  @media (max-width: 560px) {
+    .pk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .pk-card .pk-info { padding: 36px 11px 11px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .cc-trace, .cc-eq span, .cc-head::before, .cc-head::after, .cc-eyebrow::after, .pk-grid li, .pk-featured, .cc-brand-row { animation: none !important; }
@@ -3411,8 +3425,10 @@ function PacksTool({ token, onAuthError }) {
                 <li key={p.id} style={{ "--i": i }}>
                   <button type="button" className="pk-card" onClick={() => setSelected(p)}>
                     <PackDisc name={p.name} />
-                    <span className="pk-name">{p.name}</span>
-                    <span className="pk-host">{packHost(p.url)}</span>
+                    <span className="pk-info">
+                      <span className="pk-name">{p.name}</span>
+                      <span className="pk-host">{packHost(p.url)}</span>
+                    </span>
                   </button>
                 </li>
               ))}
@@ -3429,8 +3445,10 @@ function PacksTool({ token, onAuthError }) {
               <li key={name}>
                 <div className="pk-card">
                   <PackDisc name={name} />
-                  <span className="pk-name">{name}</span>
-                  <span className="pk-host">dropbox.com</span>
+                  <span className="pk-info">
+                    <span className="pk-name">{name}</span>
+                    <span className="pk-host">dropbox.com</span>
+                  </span>
                 </div>
               </li>
             ))}
