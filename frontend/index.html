@@ -74,7 +74,7 @@
   .skip-link:focus { top: 16px; }
 
   /* ── LAYOUT ── */
-  .page { max-width: 1200px; margin: 0 auto; padding: 0 24px 96px; }
+  .page { max-width: 1360px; margin: 0 auto; padding: 0 24px 96px; }
 
   /* ── HEADER ── */
   header {
@@ -455,7 +455,7 @@
     background: var(--carbon);
     border: 1px solid var(--graphite);
     border-radius: 8px;
-    padding: 20px;
+    padding: 28px;
     min-width: 0;
   }
   .tool-card-wide { max-width: 720px; }
@@ -508,7 +508,7 @@
     box-shadow: inset 0 -1px 0 rgba(243, 213, 139, 0.12);
   }
   .app-bar-inner {
-    max-width: 1200px; margin: 0 auto;
+    max-width: 1360px; margin: 0 auto;
     padding: 10px 24px;
     display: flex; align-items: center; gap: 28px;
   }
@@ -581,8 +581,8 @@
   .data-table tbody tr { transition: background-color .15s; }
   .data-table tbody tr:hover td { background: rgba(255, 255, 255, 0.02); }
   .data-table tbody tr:last-child td { border-bottom: none; }
-  .tool-section { gap: 28px; }
-  .tool-card { gap: 18px; background: var(--carbon); }
+  .tool-section { gap: 36px; }
+  .tool-card { gap: 22px; background: var(--carbon); }
   .check-row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--fog); cursor: pointer; }
   .check-row input { width: 16px; height: 16px; accent-color: var(--sunshine); }
   .campaign-stats { display: flex; flex-direction: column; gap: 16px; border-top: 1px solid var(--graphite); padding-top: 16px; }
@@ -798,7 +798,7 @@
   .app-window-dots i:nth-child(2) { background: var(--sunshine); }
   .app-window-dots i:nth-child(3) { background: var(--mint); }
   .app-window-name { font-size: 13px; font-weight: 510; color: var(--mist); letter-spacing: -0.011em; }
-  .app-window-body { padding: 28px 28px 36px; }
+  .app-window-body { padding: 40px 44px 48px; }
   .app-window-body .tool-section { margin-top: 0; }
   @media (max-width: 760px) {
     .app-window { border-radius: 14px; }
@@ -808,7 +808,7 @@
   /* ── APP GRID: two apps side by side on wide screens ── */
   .app-main {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px; align-items: start;
+    gap: 32px; align-items: start;
   }
   .app-main > .error-msg { grid-column: 1 / -1; }
   .app-main > .app-window { margin-top: 0; }
@@ -1155,7 +1155,7 @@
   .app-main { display: flex; flex-direction: column; align-items: stretch; gap: 24px; }
   .deck { display: flex; flex-direction: column; gap: 18px; }
   .deck-stage {
-    display: flex; align-items: flex-start; gap: 24px;
+    display: flex; align-items: flex-start; gap: 32px;
     overflow-x: auto; overflow-y: hidden;
     scroll-snap-type: x mandatory;
     padding: 8px 7% 12px;
@@ -1203,7 +1203,7 @@
 
   /* ── GALLERY FRAMES: every app is the same size and frame; content scrolls inside ── */
   .deck-card .app-window {
-    height: 800px; margin-top: 0;
+    height: 920px; margin-top: 0;
     display: flex; flex-direction: column;
   }
   .deck-card .app-window-body {
@@ -1213,7 +1213,7 @@
   .deck-card .app-window:not(.is-open) .app-window-body { max-height: none; overflow-y: auto; }
   .deck-card .app-window:not(.is-open) .app-window-body::after { display: none; }
   .deck-card .app-window-toggle { display: none; }
-  .deck-card .tool-frame { height: 660px; min-height: 0; }
+  .deck-card .tool-frame { height: 780px; min-height: 0; }
   .pk-examples .pk-card { flex-direction: row; align-items: center; gap: 14px; padding: 10px 14px; }
   .pk-examples .pk-card .pk-art { width: 44px; height: 44px; aspect-ratio: auto; border-radius: 10px; flex: none; }
   .pk-examples .pk-card .pk-name { flex: 1; min-width: 0; }
@@ -1307,6 +1307,13 @@
     padding: 11px 18px; text-decoration: none; white-space: nowrap;
   }
   .price-link:hover { filter: brightness(1.05); }
+
+  /* ── CAMPAIGN VARIABLES ── */
+  .var-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -2px 0 2px; }
+  .var-label { font-family: var(--mono); font-size: 11px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; margin-right: 4px; }
+  .var-chip { font-family: var(--mono); font-size: 12px; background: none; border: 1px solid var(--graphite); border-radius: 999px; color: var(--fog); padding: 4px 10px; cursor: pointer; }
+  .var-chip:hover, .var-chip:focus-visible { color: var(--paper); border-color: var(--mist); outline: none; }
+  .var-help { font-size: 12px; color: var(--ash); line-height: 1.5; margin: 2px 0 0; }
 
   /* ── AUTH: sign up and log in on the landing page ── */
   .auth { margin-top: 36px; max-width: 460px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 16px; padding: 22px; }
@@ -3090,6 +3097,15 @@ function InboxTool({ token, onAuthError }) {
   );
 }
 
+// Personal details that can be put into a campaign's subject or message.
+const CAMPAIGN_VARIABLES = [
+  { token: "{{name}}", label: "Name", help: "Full name, or 'there' if we don't have one" },
+  { token: "{{first_name}}", label: "First name", help: "First word of the name, or 'there'" },
+  { token: "{{instagram}}", label: "Instagram", help: "Their Instagram handle" },
+  { token: "{{roles}}", label: "Roles", help: "Their roles, such as mixer or producer" },
+  { token: "{{pack_link}}", label: "Pack link", help: "The pack you pick below. Put it where you want the link" },
+];
+
 function CampaignsTool({ token, onAuthError }) {
   const [campaigns, setCampaigns] = useState(null);
   const [packs, setPacks] = useState([]);
@@ -3101,7 +3117,23 @@ function CampaignsTool({ token, onAuthError }) {
   const [preview, setPreview] = useState(null);
   const [stats, setStats] = useState(null);
   const [message, setMessage] = useState(null);
+  const [focusedField, setFocusedField] = useState("body");
   const { busy, error, run } = useToolRunner(onAuthError);
+
+  // Puts a variable where the cursor is in the subject or message
+  function insertVariable(variable) {
+    const key = focusedField;
+    const el = document.getElementById(key === "subject" ? "campaign-subject" : "campaign-body");
+    const value = form[key];
+    const start = el ? el.selectionStart : value.length;
+    const end = el ? el.selectionEnd : value.length;
+    setForm(f => ({ ...f, [key]: value.slice(0, start) + variable + value.slice(end) }));
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(start + variable.length, start + variable.length);
+    });
+  }
 
   async function load() {
     const [c, p, a, act] = await Promise.all([
@@ -3221,8 +3253,17 @@ function CampaignsTool({ token, onAuthError }) {
         <form className="tool-card" onSubmit={createCampaign}>
           <h3 className="tool-card-title">New campaign</h3>
           <Field label="Name (internal)" id="campaign-name" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} />
-          <Field label="Subject" id="campaign-subject" value={form.subject} onChange={v => setForm(f => ({ ...f, subject: v }))} required />
-          <Field label="Message" id="campaign-body" as="textarea" rows={8} value={form.body} onChange={v => setForm(f => ({ ...f, body: v }))} required />
+          <Field label="Subject" id="campaign-subject" value={form.subject} onChange={v => setForm(f => ({ ...f, subject: v }))} onFocus={() => setFocusedField("subject")} required />
+          <Field label="Message" id="campaign-body" as="textarea" rows={8} value={form.body} onChange={v => setForm(f => ({ ...f, body: v }))} onFocus={() => setFocusedField("body")} required />
+          <div className="var-bar" role="group" aria-label="Insert a personal detail">
+            <span className="var-label">Insert into {focusedField === "subject" ? "subject" : "message"}</span>
+            {CAMPAIGN_VARIABLES.map(v => (
+              <button key={v.token} type="button" className="var-chip" title={v.help} onClick={() => insertVariable(v.token)}>{v.label}</button>
+            ))}
+          </div>
+          <p className="var-help">
+            Each person's details replace the variables when the email is sent. A detail we don't have leaves the text blank. Name and first name fall back to "there".
+          </p>
           <PackPicker packs={packs} value={form.pack_id} onChange={v => setForm(f => ({ ...f, pack_id: v }))} />
           <label className="check-row">
             <input type="checkbox" checked={form.track} onChange={e => setForm(f => ({ ...f, track: e.target.checked }))} />

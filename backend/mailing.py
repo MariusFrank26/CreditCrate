@@ -177,6 +177,13 @@ def init_db():
                 updated_at REAL
             )
         """)
+        # Dropbox links saved earlier had dl=1, which forces a download. Show the preview page instead.
+        conn.execute("UPDATE mail_packs SET url = REPLACE(url, 'dl=1', 'dl=0') "
+                     "WHERE url LIKE '%dropbox.com%' AND url LIKE '%dl=1%'")
+        # Drive links saved earlier forced a download too. Switch them to the preview page.
+        for row in conn.execute("SELECT id, url FROM mail_packs WHERE url LIKE 'https://drive.google.com/uc?export=download&id=%'").fetchall():
+            file_id = row[1].split("id=", 1)[1].split("&", 1)[0]
+            conn.execute("UPDATE mail_packs SET url = ? WHERE id = ?", (f"https://drive.google.com/file/d/{file_id}/view", row[0]))
 
 
 # ── Contacts ────────────────────────────────────────────────────────────────
@@ -316,13 +323,14 @@ def normalize_pack_url(raw):
     if parsed.scheme != "https" or host not in PACK_HOSTS:
         return None
     if host == "dropbox.com":
-        # dl=1 makes Dropbox download the file instead of showing its preview page
-        query = [(k, v) for k, v in parse_qsl(parsed.query) if k != "dl"] + [("dl", "1")]
+        # Not every producer wants the whole pack downloaded, so the recipient chooses:
+        # Dropbox shows its preview page unless the link forces a download (dl=1).
+        query = [(k, "0" if k == "dl" and v == "1" else v) for k, v in parse_qsl(parsed.query, keep_blank_values=True)]
         return urlunparse(parsed._replace(query=urlencode(query)))
     match = re.match(r"^/file/d/([\w-]+)", parsed.path)
     if host == "drive.google.com" and match:
-        # Direct download link for a single Drive file
-        return f"https://drive.google.com/uc?export=download&id={match.group(1)}"
+        # Drive's preview page for the file, so the recipient chooses whether to download
+        return f"https://drive.google.com/file/d/{match.group(1)}/view"
     return url
 
 
@@ -442,13 +450,28 @@ def _html_body(text, pixel_url):
     return f"<!doctype html><html><body>{body}{pixel}</body></html>"
 
 
+def fill_variables(text, contact, pack_url):
+    """Replaces {{variables}} with this person's details. Unknown variables are left as typed."""
+    name = (contact.get("name") or "").strip()
+    values = {
+        "{{name}}": name or "there",
+        "{{first_name}}": name.split()[0] if name else "there",
+        "{{instagram}}": (contact.get("instagram") or "").strip(),
+        "{{roles}}": ", ".join(r.strip() for r in (contact.get("roles") or "").split(",") if r.strip()),
+        "{{pack_link}}": pack_url or "",
+    }
+    for key, value in values.items():
+        text = text.replace(key, value)
+    return text
+
+
 def _render(campaign, contact, pack_url):
     """Returns (text, html) for one recipient."""
     campaign_id, email = campaign["id"], contact["email"]
     unsubscribe = unsubscribe_link(email, campaign["owner"])
-    text = campaign["body"].replace("{{name}}", contact["name"] or "there")
-    if pack_url:
-        text += f"\n\nDownload the pack: {pack_url}"
+    text = fill_variables(campaign["body"], contact, pack_url)
+    if pack_url and "{{pack_link}}" not in campaign["body"]:
+        text += "\n\nDownload the pack: " + pack_url
     text += f"\n\n---\nNot interested? Unsubscribe: {unsubscribe}"
 
     if not campaign["track"]:
@@ -658,7 +681,7 @@ def _run_campaign(campaign, batch, pack_url, role, tag, address, app_password):
             for contact in batch:
                 text, html_body = _render(campaign, contact, pack_url)
                 try:
-                    sender.send(contact["email"], campaign["subject"], text, html_body,
+                    sender.send(contact["email"], fill_variables(campaign["subject"], contact, pack_url), text, html_body,
                                 unsubscribe_link(contact["email"], campaign["owner"]))
                     _log_send(campaign["id"], contact["email"], address, "sent", None)
                 except (smtplib.SMTPRecipientsRefused, smtplib.SMTPSenderRefused, smtplib.SMTPDataError) as e:
@@ -772,7 +795,8 @@ def send_test():
         me = {"email": address, "name": "Test"}
         text, html_body = _render(campaign, me, pack["url"] if pack else None)
         with gmail.Sender(address, app_password) as sender:
-            sender.send(address, "[Test] " + campaign["subject"], text, html_body, unsubscribe_link(address, owner))
+            sender.send(address, "[Test] " + fill_variables(campaign["subject"], me, pack["url"] if pack else None),
+                        text, html_body, unsubscribe_link(address, owner))
     except gmail.CredentialError as e:
         return jsonify({"error": str(e)}), 409
     except (smtplib.SMTPException, OSError) as e:
