@@ -1033,28 +1033,11 @@
     background: linear-gradient(135deg, var(--graphite), var(--obsidian));
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 6%; padding: 9%; overflow: hidden;
+    padding: 14%; overflow: hidden;
   }
-  /* Every pack cover: the CreditCrate mark, with the letter disc beneath it. Sizes scale with the cover. */
-  .pk-art-logo { display: block; width: 26%; height: auto; flex: none; }
-  .pk-art .pk-disc { width: 52%; height: auto; aspect-ratio: 1; flex: none; }
+  /* Every pack cover is the CreditCrate C-and-dot logo. It scales with the cover. */
+  .pk-art-logo { display: block; width: 60%; height: auto; flex: none; }
   .pk-art-large { width: 124px; height: 124px; border-radius: 16px; }
-  .pk-disc {
-    width: 84%; aspect-ratio: 1; border-radius: 50%;
-    background: repeating-radial-gradient(circle, #1b1d20 0 2px, #0c0d0e 2px 3px);
-    display: grid; place-items: center;
-    animation: pk-spin 8s linear infinite;
-    animation-play-state: paused;
-  }
-  .pk-featured:hover .pk-disc, .pk-card:hover .pk-disc { animation-play-state: running; }
-  .pk-label {
-    width: 36%; aspect-ratio: 1; border-radius: 50%;
-    background: var(--graphite);
-    display: grid; place-items: center;
-    font-size: 12px; font-weight: 600; color: var(--paper);
-  }
-  .pk-art-large .pk-label { font-size: 22px; }
-  @keyframes pk-spin { to { transform: rotate(360deg); } }
   .pk-grid { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
   .pk-grid li { min-width: 0; animation: rise .5s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(var(--i) * 60ms); }
   .pk-card {
@@ -1071,7 +1054,7 @@
     .pk-grid { grid-template-columns: minmax(0, 1fr); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .pk-disc, .cc-trace, .cc-eq span, .cc-head::before, .cc-head::after, .cc-eyebrow::after, .pk-grid li, .pk-featured, .cc-brand-row { animation: none !important; }
+    .cc-trace, .cc-eq span, .cc-head::before, .cc-head::after, .cc-eyebrow::after, .pk-grid li, .pk-featured, .cc-brand-row { animation: none !important; }
   }
 
   /* ── HOME: the apps are the dashboard. Previews expand in place ── */
@@ -2711,13 +2694,10 @@ function packDate(timestamp) {
   return new Date(timestamp * 1000).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
-function PackDisc({ name, large = false }) {
+function PackDisc({ large = false }) {
   return (
     <div className={`pk-art${large ? " pk-art-large" : ""}`} aria-hidden="true">
       <img className="pk-art-logo" src="logo.svg" alt="" />
-      <div className="pk-disc">
-        <span className="pk-label">{name.charAt(0).toUpperCase()}</span>
-      </div>
     </div>
   );
 }
