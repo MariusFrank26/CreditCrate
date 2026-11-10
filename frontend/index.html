@@ -1485,9 +1485,6 @@
   .cmp-section-title { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); }
   .cmp-block { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--graphite); padding-top: 18px; }
   .cmp-audience { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .cmp-activity { margin-top: 24px; }
-  .cmp-activity > summary { cursor: pointer; font-size: 14px; color: var(--fog); padding: 8px 0; }
-  .cmp-activity > summary:hover { color: var(--paper); }
   @media (max-width: 900px) {
     .cmp-layout { grid-template-columns: minmax(0, 1fr); }
     .cmp-list { max-height: none; }
@@ -1495,6 +1492,52 @@
   @media (max-width: 560px) {
     .cmp-audience { grid-template-columns: minmax(0, 1fr); }
     .cmp-panel { padding: 18px; }
+  }
+
+  /* ── SHARE-SHEET PICKER: who a campaign goes to ── */
+  .share-sheet { display: flex; flex-direction: column; background: var(--void); border: 1px solid var(--graphite); border-radius: 16px; overflow: hidden; }
+  .share-search { display: flex; align-items: center; gap: 8px; margin: 12px 12px 0; padding: 9px 12px; background: var(--graphite); border-radius: 10px; color: var(--ash); }
+  .share-search input { flex: 1; min-width: 0; border: 0; background: none; padding: 0; color: var(--paper); font-family: var(--sans); font-size: 15px; }
+  .share-search input:focus { outline: none; }
+  .share-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 12px 0; }
+  .share-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--sans); font-size: 13px; padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--smoke); background: none; color: var(--mist); cursor: pointer;
+  }
+  .share-tag:hover { border-color: var(--fog); }
+  .share-tag.is-on { background: #0a84ff; border-color: #0a84ff; color: #ffffff; }
+  .share-tag-count { font-family: var(--mono); font-size: 11px; opacity: .7; }
+  .share-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px 8px; font-size: 13px; color: var(--fog); }
+  .share-bar-actions { display: flex; gap: 14px; }
+  .share-link { background: none; border: 0; padding: 0; color: #0a84ff; font-family: var(--sans); font-size: 13px; cursor: pointer; }
+  .share-link:disabled { color: var(--ash); cursor: default; }
+  .share-list { list-style: none; margin: 0; max-height: 360px; overflow-y: auto; border-top: 1px solid var(--graphite); }
+  .share-row {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 10px 16px; background: none; border: 0; border-bottom: 1px solid var(--graphite);
+    color: inherit; text-align: left; cursor: pointer; font-family: var(--sans);
+  }
+  .share-row:hover { background: var(--carbon); }
+  .share-check {
+    width: 22px; height: 22px; border-radius: 50%; flex: none;
+    border: 1.5px solid var(--smoke); display: grid; place-items: center;
+    font-size: 13px; color: #ffffff;
+  }
+  .share-row.is-on .share-check { background: #0a84ff; border-color: #0a84ff; }
+  .share-avatar { width: 36px; height: 36px; font-size: 13px; }
+  .share-text { display: flex; flex-direction: column; min-width: 0; }
+  .share-name { font-size: 15px; font-weight: 510; color: var(--paper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .share-email { font-size: 12px; color: var(--ash); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .share-empty { padding: 16px; font-size: 14px; color: var(--fog); }
+
+  /* Recent activity sits beside the campaigns on wide screens, below them on narrow ones */
+  .cmp-side { display: flex; flex-direction: column; gap: 10px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; padding: 16px; min-width: 0; }
+  @media (min-width: 1180px) {
+    .cmp-layout { grid-template-columns: 300px minmax(0, 1fr) 300px; }
+  }
+  @media (max-width: 1179px) {
+    .cmp-side { grid-column: 1 / -1; }
   }
 
   /* ── CAMPAIGN VARIABLES ── */
@@ -3704,7 +3747,9 @@ function CampaignsTool({ token, onAuthError }) {
   const [activity, setActivity] = useState(null);
   const [form, setForm] = useState({ name: "", subject: "", body: "Hi {{name}},\n\n", pack_id: "", track: true });
   const [selectedId, setSelectedId] = useState("");
-  const [audience, setAudience] = useState({ role: "", tag: "" });
+  const [contacts, setContacts] = useState([]);
+  const [chosen, setChosen] = useState(new Set());
+  const [audienceQuery, setAudienceQuery] = useState("");
   const [preview, setPreview] = useState(null);
   const [stats, setStats] = useState(null);
   const [message, setMessage] = useState(null);
@@ -3727,16 +3772,18 @@ function CampaignsTool({ token, onAuthError }) {
   }
 
   async function load() {
-    const [c, p, a, act] = await Promise.all([
+    const [c, p, a, act, ct] = await Promise.all([
       callApi("/campaigns", token),
       callApi("/packs", token),
       callApi("/mail/account", token),
       callApi("/activity", token),
+      callApi("/contacts", token),
     ]);
     setCampaigns(c.campaigns);
     setPacks(p.packs);
     setAccount(a);
     setActivity(act);
+    setContacts(ct.contacts || []);
   }
 
   async function loadStats(id) {
@@ -3746,6 +3793,8 @@ function CampaignsTool({ token, onAuthError }) {
   useEffect(() => { run(load); }, []);
 
   useEffect(() => {
+    setChosen(new Set());
+    setAudienceQuery("");
     if (selectedId) run(() => loadStats(selectedId));
     else setStats(null);
   }, [selectedId]);
@@ -3777,7 +3826,7 @@ function CampaignsTool({ token, onAuthError }) {
   function requestSend(confirm) {
     return callApi(`/campaigns/${selectedId}/send`, token, {
       method: "POST",
-      body: { role: audience.role.trim(), tag: audience.tag.trim(), confirm },
+      body: { emails: [...chosen], confirm },
     });
   }
 
@@ -3826,6 +3875,35 @@ function CampaignsTool({ token, onAuthError }) {
 
 
   const selectedStatus = selected ? statusText(selected.status) : "";
+
+  const visibleContacts = contacts.filter(c => {
+    const q = audienceQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [c.name, c.email, c.tags, c.roles].some(v => (v || "").toLowerCase().includes(q));
+  });
+
+  // Every tag in the contacts, with the people who have it
+  const tagOptions = (() => {
+    const map = new Map();
+    contacts.forEach(c => (c.tags || "").split(",").map(t => t.trim()).filter(Boolean).forEach(t => {
+      const key = t.toLowerCase();
+      if (!map.has(key)) map.set(key, { tag: t, emails: [] });
+      map.get(key).emails.push(c.email);
+    }));
+    return [...map.values()].sort((a, b) => a.tag.localeCompare(b.tag));
+  })();
+
+  // Adds or removes people. A tag or "select all" only adds when some of them are not chosen yet.
+  function toggleEmails(emails, addOnly = false) {
+    setChosen(prev => {
+      const next = new Set(prev);
+      const allOn = emails.every(e => next.has(e));
+      if (allOn && !addOnly) emails.forEach(e => next.delete(e));
+      else emails.forEach(e => next.add(e));
+      return next;
+    });
+    setPreview(null);
+  }
 
   return (
     <section className="tool-section" aria-labelledby="campaigns-heading">
@@ -3904,13 +3982,69 @@ function CampaignsTool({ token, onAuthError }) {
 
             <div className="cmp-block">
               <span className="cmp-section-title">Who gets it</span>
-              <div className="cmp-audience">
-                <Field label="Role" id="audience-role" value={audience.role} onChange={v => { setAudience(a => ({ ...a, role: v })); setPreview(null); }} />
-                <Field label="Tag" id="audience-tag" value={audience.tag} onChange={v => { setAudience(a => ({ ...a, tag: v })); setPreview(null); }} />
+              <div className="share-sheet">
+                <div className="share-search">
+                  <span aria-hidden="true">⌕</span>
+                  <input
+                    type="search"
+                    placeholder="Search people or tags"
+                    aria-label="Search people or tags"
+                    autoComplete="off"
+                    value={audienceQuery}
+                    onChange={e => setAudienceQuery(e.target.value)}
+                  />
+                </div>
+
+                {tagOptions.length > 0 && (
+                  <div className="share-tags" role="group" aria-label="Choose everyone with a tag">
+                    {tagOptions.map(t => {
+                      const on = t.emails.every(e => chosen.has(e));
+                      return (
+                        <button key={t.tag} type="button" className={`share-tag${on ? " is-on" : ""}`} aria-pressed={on} onClick={() => toggleEmails(t.emails)}>
+                          {t.tag}<span className="share-tag-count">{t.emails.length}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="share-bar">
+                  <span>{chosen.size === 0 ? "Nobody chosen yet" : `${chosen.size} chosen`}</span>
+                  <span className="share-bar-actions">
+                    <button type="button" className="share-link" onClick={() => toggleEmails(visibleContacts.map(c => c.email), true)} disabled={visibleContacts.length === 0}>
+                      {audienceQuery.trim() ? "Select shown" : "Select all"}
+                    </button>
+                    <button type="button" className="share-link" onClick={() => { setChosen(new Set()); setPreview(null); }} disabled={chosen.size === 0}>
+                      Clear
+                    </button>
+                  </span>
+                </div>
+
+                <ul className="share-list">
+                  {visibleContacts.map(c => {
+                    const on = chosen.has(c.email);
+                    return (
+                      <li key={c.email}>
+                        <button type="button" className={`share-row${on ? " is-on" : ""}`} aria-pressed={on} onClick={() => toggleEmails([c.email])}>
+                          <span className="share-check" aria-hidden="true">{on ? "✓" : ""}</span>
+                          <span className="imsg-avatar share-avatar" style={avatarTone(c.name || c.email)}>{senderInitials(c.name || c.email)}</span>
+                          <span className="share-text">
+                            <span className="share-name">{c.name || c.email}</span>
+                            <span className="share-email">{c.email}</span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {visibleContacts.length === 0 && (
+                    <li className="share-empty">
+                      {contacts.length === 0 ? "No contacts yet. Add some in the Contacts app." : "No one matches that search."}
+                    </li>
+                  )}
+                </ul>
               </div>
-              <p className="panel-copy">Leave both empty to send to everyone on your list.</p>
               <div className="send-actions">
-                <button type="button" className="back-btn" onClick={previewSend} disabled={busy}>Preview recipients</button>
+                <button type="button" className="back-btn" onClick={previewSend} disabled={busy || chosen.size === 0}>Preview recipients</button>
                 <button type="button" className="back-btn" onClick={sendTest} disabled={busy || !canSend}>Send a test to me</button>
               </div>
             </div>
@@ -4014,12 +4148,11 @@ function CampaignsTool({ token, onAuthError }) {
             </div>
           </form>
         )}
+        <aside className="cmp-side" aria-label="Recent activity">
+          <span className="cmp-section-title">Recent activity</span>
+          <ActivityPanel activity={activity} />
+        </aside>
       </div>
-
-      <details className="cmp-activity">
-        <summary>Recent activity</summary>
-        <ActivityPanel activity={activity} />
-      </details>
     </section>
   );
 }

@@ -408,7 +408,7 @@ def list_campaigns():
     return jsonify({"campaigns": rows})
 
 
-def _recipients(conn, campaign_id, owner, role, tag):
+def _recipients(conn, campaign_id, owner, role, tag, emails=None):
     query = """
         SELECT email, name FROM mail_contacts
         WHERE owner = ? AND unsubscribed_at IS NULL
@@ -421,6 +421,9 @@ def _recipients(conn, campaign_id, owner, role, tag):
     if tag:
         query += " AND tags LIKE ?"
         args.append(f"%{tag}%")
+    if emails is not None:
+        query += " AND email IN (" + ",".join("?" * len(emails)) + ")"
+        args.extend(emails)
     query += " ORDER BY email LIMIT ?"
     args.append(MAX_RECIPIENTS_PER_SEND)
     return [dict(r) for r in conn.execute(query, args)]
@@ -674,7 +677,7 @@ def activity():
     return jsonify({"recent": recent, "top": top})
 
 
-def _run_campaign(campaign, batch, pack_url, role, tag, address, app_password):
+def _run_campaign(campaign, batch, pack_url, role, tag, address, app_password, emails=None):
     """Runs in a background thread. Sends one message per person over one Gmail session."""
     status = "sent"
     try:
@@ -696,7 +699,7 @@ def _run_campaign(campaign, batch, pack_url, role, tag, address, app_password):
     except gmail.CredentialError as e:
         status = f"stopped: {str(e)[:120]}"
     with _conn() as conn:
-        remaining = len(_recipients(conn, campaign["id"], campaign["owner"], role, tag))
+        remaining = len(_recipients(conn, campaign["id"], campaign["owner"], role, tag, emails))
     if status == "sent" and remaining > 0:
         status = "partial"  # the daily limit or a stop left people waiting
     with _conn() as conn:
@@ -715,6 +718,13 @@ def send_campaign(campaign_id):
     role = (data.get("role") or "").strip()
     tag = (data.get("tag") or "").strip()
     owner = accounts.current_email()
+    emails = None
+    if isinstance(data.get("emails"), list):
+        emails = sorted({str(e).strip().lower() for e in data["emails"] if str(e).strip()})
+        if not emails:
+            return jsonify({"error": "Choose at least one person to send to."}), 400
+        if len(emails) > 900:
+            return jsonify({"error": "Choose up to 900 people at a time."}), 400
 
     with _conn() as conn:
         campaign = conn.execute(
@@ -722,7 +732,7 @@ def send_campaign(campaign_id):
         ).fetchone()
         if not campaign:
             return jsonify({"error": "Campaign not found."}), 404
-        recipients = _recipients(conn, campaign_id, owner, role, tag)
+        recipients = _recipients(conn, campaign_id, owner, role, tag, emails)
         pack = conn.execute("SELECT url FROM mail_packs WHERE id = ? AND owner = ?", (campaign["pack_id"], owner)).fetchone() \
             if campaign["pack_id"] else None
     pack_url = pack["url"] if pack else None
@@ -760,7 +770,7 @@ def send_campaign(campaign_id):
         conn.execute("UPDATE mail_campaigns SET status = 'sending' WHERE id = ?", (campaign_id,))
     thread = threading.Thread(
         target=_run_campaign,
-        args=(dict(campaign), batch, pack_url, role, tag, address, app_password),
+        args=(dict(campaign), batch, pack_url, role, tag, address, app_password, emails),
         daemon=True,
     )
     thread.start()
