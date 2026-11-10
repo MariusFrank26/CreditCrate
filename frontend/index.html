@@ -1354,6 +1354,9 @@
   }
   .imsg-pin-avatar { position: relative; display: inline-flex; }
   .imsg-badge-pin { position: absolute; top: -4px; right: -6px; box-shadow: 0 0 0 2px var(--carbon); }
+  .imsg-badge-pack { background: var(--sunshine); color: var(--void); }
+  .imsg-badge-pin-pack { top: -4px; right: auto; left: -6px; }
+  .imsg-badges { display: flex; gap: 4px; }
   .imsg-back { display: none; }
   .imsg-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 18px 20px; display: flex; flex-direction: column; gap: 4px; }
   .imsg-day { align-self: center; font-size: 12px; color: var(--ash); margin: 14px 0 8px; }
@@ -3361,6 +3364,29 @@ function InboxTool({ token, onAuthError }) {
     );
   }
 
+  // Packs (Dropbox or Drive links) that haven't been opened yet, per sender
+  function packKey(uid, link) {
+    return `pack|${uid}|${link}`;
+  }
+
+  function newPacksIn(chat) {
+    return chat.items.reduce(
+      (total, item) => total + item.links.filter(link => !downloaded.has(packKey(item.uid, link))).length,
+      0
+    );
+  }
+
+  function openPack(uid, link) {
+    setDownloaded(prev => {
+      const next = new Set(prev);
+      next.add(packKey(uid, link));
+      if (downloadKey) {
+        try { localStorage.setItem(downloadKey, JSON.stringify([...next])); } catch (e) { /* storage blocked */ }
+      }
+      return next;
+    });
+  }
+
   const favouritesKey = accountAddress ? `creditcrate-inbox-favourites:${accountAddress}` : null;
   const [favourites, setFavourites] = useState(new Set());
 
@@ -3446,6 +3472,7 @@ function InboxTool({ token, onAuthError }) {
                       <span className="imsg-pin-avatar">
                         <span className="imsg-avatar imsg-avatar-pin" style={avatarTone(c.name)}>{senderInitials(c.name)}</span>
                         {newSamplesIn(c) > 0 && <span className="imsg-badge imsg-badge-pin">{newSamplesIn(c)}</span>}
+                        {newPacksIn(c) > 0 && <span className="imsg-badge imsg-badge-pin imsg-badge-pack imsg-badge-pin-pack">{newPacksIn(c)}</span>}
                       </span>
                       <span className="imsg-pin-name">{c.name}</span>
                     </button>
@@ -3463,7 +3490,12 @@ function InboxTool({ token, onAuthError }) {
                     </span>
                     <span className="imsg-conv-side">
                       <span className="imsg-conv-time">{messageTime(last.date)}</span>
-                      {!demo && newSamplesIn(c) > 0 && <span className="imsg-badge">{newSamplesIn(c)}</span>}
+                      {!demo && (newSamplesIn(c) > 0 || newPacksIn(c) > 0) && (
+                        <span className="imsg-badges">
+                          {newSamplesIn(c) > 0 && <span className="imsg-badge">{newSamplesIn(c)}</span>}
+                          {newPacksIn(c) > 0 && <span className="imsg-badge imsg-badge-pack">{newPacksIn(c)}</span>}
+                        </span>
+                      )}
                     </span>
                   </button>
                 );
@@ -3527,7 +3559,7 @@ function InboxTool({ token, onAuthError }) {
                               <div key={link} className="imsg-bubble imsg-file imsg-pack">
                                 <span className="imsg-file-name">{packSourceName(link)} pack</span>
                                 <span className="imsg-file-meta">{item.subject}</span>
-                                <a className="imsg-action" href={link} target="_blank" rel="noopener noreferrer">Open pack ↗</a>
+                                <a className="imsg-action" href={link} target="_blank" rel="noopener noreferrer" onClick={() => openPack(item.uid, link)}>Open pack ↗</a>
                               </div>
                             ))}
                           </div>
