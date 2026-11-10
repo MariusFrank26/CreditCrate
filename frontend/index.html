@@ -457,6 +457,31 @@
   .panel-title { font-size: 20px; font-weight: 510; letter-spacing: -0.016em; color: var(--paper); }
   .panel-copy { margin-top: 8px; font-size: 14px; color: var(--fog); }
   .send-progress { margin-top: 12px; font-size: 18px; color: var(--paper); }
+  .confirm-scrim {
+    position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
+    padding: 16px; background: rgba(8, 9, 10, .62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    animation: confirm-in .18s ease-out;
+  }
+  @keyframes confirm-in { from { opacity: 0; } to { opacity: 1; } }
+  .confirm-card {
+    width: 100%; max-width: 420px; padding: 26px; border-radius: 18px;
+    background: var(--carbon); border: 1px solid var(--graphite);
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .85);
+    animation: confirm-pop .22s cubic-bezier(.2, .8, .2, 1);
+  }
+  @keyframes confirm-pop { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+  .confirm-title { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; color: var(--paper); margin: 0 0 10px; }
+  .confirm-message { font-size: 15px; line-height: 1.55; color: var(--fog); margin: 0; }
+  .confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+  .confirm-danger {
+    font: inherit; font-size: 14px; font-weight: 500; padding: 10px 18px; border-radius: 999px; cursor: pointer;
+    border: 0; background: var(--salmon); color: var(--void);
+  }
+  .confirm-danger:hover { filter: brightness(1.06); }
+  .confirm-card .back-btn:focus-visible, .confirm-card .search-btn:focus-visible, .confirm-card .confirm-danger:focus-visible {
+    outline: 2px solid var(--paper); outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) { .confirm-scrim, .confirm-card { animation: none; } }
   .opens-chart { display: flex; flex-direction: column; gap: 6px; }
   .opens-bars {
     display: flex; align-items: flex-end; gap: 3px; height: 130px; padding: 0 2px;
@@ -2239,6 +2264,7 @@
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 <div id="root"></div>
+<div id="confirm-root"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -3277,8 +3303,14 @@ function PacksTool({ token, onAuthError }) {
     });
   }
 
-  function removePack(pack) {
-    if (!window.confirm(`Remove “${pack.name}” from CreditCrate? The file in Dropbox or Drive stays where it is.`)) return;
+  async function removePack(pack) {
+    const ok = await askConfirm({
+      title: "Remove this pack?",
+      message: `“${pack.name}” will be removed from CreditCrate. The file in Dropbox or Drive stays where it is.`,
+      confirmLabel: "Remove",
+      danger: true,
+    });
+    if (!ok) return;
     run(async () => {
       await callApi(`/packs/${pack.id}`, token, { method: "DELETE" });
       setSelected(null);
@@ -4301,9 +4333,15 @@ function CampaignsTool({ token, onAuthError }) {
   const { busy, error, run } = useToolRunner(onAuthError);
 
   // Removes a draft after a confirmation. Sent campaigns cannot be removed.
-  function deleteDraft(c) {
+  async function deleteDraft(c) {
     setDraftMenu(null);
-    if (!window.confirm(`Delete the draft “${c.name || c.subject}”? This cannot be undone.`)) return;
+    const ok = await askConfirm({
+      title: "Delete this draft?",
+      message: `“${c.name || c.subject}” will be deleted. This cannot be undone.`,
+      confirmLabel: "Delete draft",
+      danger: true,
+    });
+    if (!ok) return;
     run(async () => {
       await callApi(`/campaigns/${c.id}`, token, { method: "DELETE" });
       if (String(c.id) === selectedId) setSelectedId("");
@@ -4433,8 +4471,14 @@ function CampaignsTool({ token, onAuthError }) {
     });
   }
 
-  function sendNow() {
-    if (!preview || !window.confirm(`Send this campaign to ${preview.would_send} people from ${account.address}? This cannot be undone.`)) return;
+  async function sendNow() {
+    if (!preview) return;
+    const ok = await askConfirm({
+      title: "Send this campaign?",
+      message: `It goes to ${preview.would_send} ${preview.would_send === 1 ? "person" : "people"} from ${account.address}. Once the first emails are sent, it cannot be stopped from here.`,
+      confirmLabel: `Send to ${preview.would_send}`,
+    });
+    if (!ok) return;
     run(async () => {
       const result = await requestSend(true);
       setPreview(null);
@@ -5695,6 +5739,66 @@ function RoadmapPage() {
   );
 }
 
+// A themed confirmation box. Ask with: if (!(await askConfirm({ ... }))) return;
+// Resolves true when the person confirms, false when they cancel or press Escape.
+function askConfirm({ title, message, confirmLabel = "Confirm", danger = false }) {
+  return new Promise(resolve => {
+    window.dispatchEvent(new CustomEvent("cc:confirm", { detail: { title, message, confirmLabel, danger, resolve } }));
+  });
+}
+
+function ConfirmHost() {
+  const [request, setRequest] = useState(null);
+  const cancelRef = useRef(null);
+
+  useEffect(() => {
+    const open = e => setRequest(e.detail);
+    window.addEventListener("cc:confirm", open);
+    return () => window.removeEventListener("cc:confirm", open);
+  }, []);
+
+  function answer(ok) {
+    if (!request) return;
+    request.resolve(ok);
+    setRequest(null);
+  }
+
+  useEffect(() => {
+    if (!request) return undefined;
+    cancelRef.current?.focus();
+    const onKey = e => { if (e.key === "Escape") answer(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  });
+
+  if (!request) return null;
+  return (
+    <div className="confirm-scrim" onClick={() => answer(false)}>
+      <div
+        className="confirm-card"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="confirm-title"
+        aria-describedby="confirm-message"
+        onClick={e => e.stopPropagation()}
+      >
+        <h2 id="confirm-title" className="confirm-title">{request.title}</h2>
+        <p id="confirm-message" className="confirm-message">{request.message}</p>
+        <div className="confirm-actions">
+          <button ref={cancelRef} type="button" className="back-btn" onClick={() => answer(false)}>Cancel</button>
+          <button
+            type="button"
+            className={request.danger ? "confirm-danger" : "search-btn"}
+            onClick={() => answer(true)}
+          >
+            {request.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function pageForHash(hash) {
   if (hash === "#features") return "features";
   if (hash === "#faq") return "faq";
@@ -6282,6 +6386,7 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById("confirm-root")).render(<ConfirmHost />);
 </script>
 </body>
 </html>
