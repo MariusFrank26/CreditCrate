@@ -39,33 +39,55 @@
   .label { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); }
   .grid { display: grid; gap: 14px; }
   .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .kpi { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
+  .kpi { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 8px; text-align: left; font: inherit; color: inherit; width: 100%; cursor: pointer; transition: border-color .15s, transform .15s; }
+  .kpi:hover, .kpi:focus-visible { border-color: var(--smoke); transform: translateY(-1px); outline: none; }
   .kpi::before { content: ""; position: absolute; left: 0; top: 16px; bottom: 16px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent, var(--blue)); }
   .kpi-value { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; color: var(--paper); line-height: 1.05; }
   .kpi-hint { font-size: 13px; color: var(--fog); }
+  .kpi-more { font-size: 12px; color: var(--ash); margin-top: auto; }
   .row2 { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); margin-top: 14px; }
   .section-title { font-size: 15px; font-weight: 600; color: var(--paper); margin: 0 0 14px; }
   .chart { display: flex; align-items: flex-end; gap: 3px; height: 150px; padding-top: 6px; border-bottom: 1px solid var(--smoke); background: repeating-linear-gradient(to top, transparent 0 37px, var(--graphite) 37px 38px); }
-  .bar { flex: 1; min-width: 4px; border-radius: 4px 4px 0 0; background: linear-gradient(to top, var(--blue), #7fc4ff); position: relative; }
-  .bar.is-empty { background: var(--graphite); }
-  .bar:hover { opacity: .8; }
+  .bar { flex: 1; min-width: 4px; border-radius: 4px 4px 0 0; background: linear-gradient(to top, var(--blue), #7fc4ff); position: relative; border: 0; padding: 0; cursor: pointer; }
+  .bar.is-empty { background: var(--graphite); cursor: default; }
+  .bar:hover:not(.is-empty), .bar:focus-visible { opacity: .75; outline: none; }
   .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--ash); margin-top: 8px; font-family: var(--mono); }
   .plan-bar { display: flex; height: 16px; border-radius: 999px; overflow: hidden; background: var(--graphite); }
   .plan-bar > span { display: block; height: 100%; }
-  .legend { display: grid; gap: 10px; margin-top: 16px; }
-  .legend-row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .legend { display: grid; gap: 4px; margin-top: 12px; }
+  .legend-row { display: flex; align-items: center; gap: 10px; font: inherit; font-size: 14px; color: inherit; background: none; border: 0; border-radius: 10px; padding: 8px 10px; margin: 0 -10px; cursor: pointer; text-align: left; }
+  .legend-row:hover, .legend-row:focus-visible { background: var(--graphite); outline: none; }
   .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
   .legend-row b { margin-left: auto; font-family: var(--mono); font-weight: 500; color: var(--paper); }
+  .detail { margin-top: 14px; scroll-margin-top: 16px; }
+  .detail-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .detail-title { font-size: 17px; font-weight: 600; color: var(--paper); margin: 0; }
+  .detail-count { font-family: var(--mono); font-size: 13px; color: var(--fog); margin-left: 8px; font-weight: 400; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .chip { font: inherit; font-size: 13px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--smoke); background: none; color: var(--mist); cursor: pointer; }
+  .chip:hover { background: var(--graphite); }
+  .chip[aria-pressed="true"] { background: var(--paper); color: var(--void); border-color: var(--paper); }
+  .search { width: 100%; font: inherit; font-size: 14px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--smoke); background: var(--void); color: var(--paper); margin-bottom: 12px; }
+  .search:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .scroll { max-height: 520px; overflow: auto; border-radius: 10px; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th { position: sticky; top: 0; background: var(--carbon); }
   th { text-align: left; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ash); font-weight: 500; padding: 0 8px 10px; }
   td { padding: 11px 8px; border-top: 1px solid var(--graphite); color: var(--mist); }
   td.email { color: var(--paper); word-break: break-all; }
+  td.num { font-family: var(--mono); font-size: 13px; color: var(--fog); white-space: nowrap; }
   .pill { font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--smoke); color: var(--fog); white-space: nowrap; }
   .pill.ok { color: var(--mint); border-color: rgba(163, 221, 194, .45); }
   .pill.warn { color: var(--salmon); border-color: rgba(242, 167, 156, .45); }
   .state { padding: 40px 20px; text-align: center; color: var(--fog); }
   .state a { color: var(--sunshine); }
   .table-wrap { overflow-x: auto; }
+  .empty { color: var(--fog); padding: 18px 8px; }
+  .notice { font-size: 14px; color: var(--mint); margin: 0 0 12px; }
+  .plan-select { font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--smoke); background: var(--void); color: var(--mist); max-width: 220px; }
+  .plan-select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .close { font: inherit; font-size: 13px; color: var(--fog); background: none; border: 1px solid var(--smoke); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+  .close:hover { background: var(--graphite); color: var(--paper); }
   @media (max-width: 860px) {
     .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .row2 { grid-template-columns: minmax(0, 1fr); }
@@ -92,11 +114,43 @@
   <div id="content">
     <div class="card state" id="state">Loading the numbers…</div>
   </div>
+  <div id="detail"></div>
 </div>
 
 <script>
 const API = "https://api.creditcrate.app/api";
 const TOKEN_KEY = "creditcrate-token";
+
+const PLAN_COLORS = { trial: "#a9d8ef", pro: "#0a84ff", lifetime: "#f3d58b", expired: "#62666d" };
+const PLAN_NAMES = { trial: "Free trial", pro: "Pro", lifetime: "Lifetime", expired: "Trial ended" };
+
+// The quick filters under a list, in order
+const ACCOUNT_CHIPS = [
+  ["all", "Everyone"],
+  ["verified", "Verified"],
+  ["unverified", "Not verified"],
+  ["trial", "Free trial"],
+  ["pro", "Pro"],
+  ["lifetime", "Lifetime"],
+  ["expired", "Trial ended"],
+  ["new24", "Signed up, 24h"],
+  ["new7", "Signed up, 7 days"],
+  ["new30", "Signed up, 30 days"],
+];
+
+// What the plan dropdown does: value -> the request body the server expects
+const PLAN_OPTIONS = [
+  ["pro:1", "Pro, 1 month"],
+  ["pro:12", "Pro, 12 months"],
+  ["trial", "Free trial, 7 days from now"],
+  ["lifetime", "Lifetime (never expires)"],
+  ["free", "Trial ended (must choose Pro)"],
+];
+
+const PLAN_LABELS = Object.fromEntries(PLAN_OPTIONS);
+
+let current = null; // the list on screen: { view, rows, title, kind }
+let notice = ""; // a short message after a change, e.g. "Changed x to Pro"
 
 function token() {
   try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
@@ -116,75 +170,101 @@ function dayLabel(iso) {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString([], { day: "numeric", month: "short", timeZone: "UTC" });
 }
 
+function dayTitle(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+}
+
 function showState(html) {
   document.getElementById("content").innerHTML = `<div class="card state">${html}</div>`;
 }
 
-const PLAN_COLORS = { trial: "#a9d8ef", pro: "#0a84ff", lifetime: "#f3d58b", expired: "#62666d" };
-const PLAN_NAMES = { trial: "Free trial", pro: "Pro", lifetime: "Lifetime", expired: "Trial ended" };
+async function api(path) {
+  const key = token();
+  const res = await fetch(`${API}${path}`, { headers: { Authorization: `Bearer ${key}` } });
+  if (res.status === 401) throw Object.assign(new Error("signed out"), { code: 401 });
+  if (res.status === 403) throw Object.assign(new Error("not owner"), { code: 403 });
+  if (!res.ok) throw new Error(`Server error ${res.status}`);
+  return res.json();
+}
+
+function titleFor(view) {
+  if (view === "newsletter") return "Newsletter subscribers";
+  if (view.startsWith("day:")) return `Signed up on ${dayTitle(view.slice(4))}`;
+  const map = {
+    all: "Everyone", verified: "Verified accounts", unverified: "Not verified yet",
+    trial: "On the free trial", pro: "Pro subscribers", lifetime: "Lifetime accounts", expired: "Trial ended",
+    new24: "Signed up in the last 24 hours", new7: "Signed up in the last 7 days", new30: "Signed up in the last 30 days",
+  };
+  return map[view] || "Accounts";
+}
 
 function render(data) {
   const t = data.totals, s = data.signups, p = data.plans;
   const verifiedShare = t.accounts ? Math.round((100 * t.verified) / t.accounts) : 0;
   const maxDay = Math.max(1, ...data.daily.map(d => d.signups));
-  const planTotal = Object.values(p).reduce((a, b) => a + b, 0);
 
   const bars = data.daily.map(d => {
     const h = d.signups ? Math.max(6, Math.round((100 * d.signups) / maxDay)) : 0;
     const label = `${dayLabel(d.day)}: ${d.signups} sign-up${d.signups === 1 ? "" : "s"}, ${d.verified} verified`;
-    return `<span class="bar${d.signups ? "" : " is-empty"}" title="${esc(label)}" style="height:${h}%"></span>`;
+    return `<button type="button" class="bar${d.signups ? "" : " is-empty"}" data-view="day:${esc(d.day)}" title="${esc(label)}" aria-label="${esc(label)}" style="height:${h}%"${d.signups ? "" : " disabled"}></button>`;
   }).join("");
 
+  const planTotal = Object.values(p).reduce((a, b) => a + b, 0);
   const planBar = Object.keys(PLAN_NAMES).map(k => {
     const w = planTotal ? (100 * p[k]) / planTotal : 0;
     return w ? `<span style="width:${w}%;background:${PLAN_COLORS[k]}"></span>` : "";
   }).join("");
 
   const legend = Object.keys(PLAN_NAMES).map(k => `
-    <div class="legend-row">
+    <button type="button" class="legend-row" data-view="${k}">
       <span class="dot" style="background:${PLAN_COLORS[k]}"></span>
       <span>${PLAN_NAMES[k]}</span>
       <b>${p[k]}</b>
-    </div>`).join("");
+    </button>`).join("");
 
-  const rows = data.recent.length
+  const recent = data.recent.length
     ? data.recent.map(u => `
       <tr>
         <td class="email">${esc(u.email)}</td>
-        <td>${when(u.created_at)}</td>
+        <td class="num">${when(u.created_at)}</td>
         <td><span class="pill ${u.verified ? "ok" : "warn"}">${u.verified ? "Verified" : "Not verified"}</span></td>
         <td>${esc(PLAN_NAMES[u.plan] || u.plan)}</td>
       </tr>`).join("")
-    : `<tr><td colspan="4">No sign-ups yet.</td></tr>`;
+    : `<tr><td colspan="4" class="empty">No sign-ups yet.</td></tr>`;
 
   document.getElementById("content").innerHTML = `
     <div class="grid kpis">
-      <div class="card kpi" style="--accent:#0a84ff">
+      <button type="button" class="card kpi" data-view="all" style="--accent:#0a84ff">
         <span class="label">Accounts</span>
         <span class="kpi-value">${t.accounts}</span>
         <span class="kpi-hint">${t.unverified} not verified yet</span>
-      </div>
-      <div class="card kpi" style="--accent:#a3ddc2">
+        <span class="kpi-more">See all accounts →</span>
+      </button>
+      <button type="button" class="card kpi" data-view="new30" style="--accent:#a3ddc2">
         <span class="label">Signed up</span>
         <span class="kpi-value">${s.day}</span>
         <span class="kpi-hint">last 24 hours · ${s.week} in 7 days · ${s.month} in 30</span>
-      </div>
-      <div class="card kpi" style="--accent:#f3d58b">
+        <span class="kpi-more">See the last 30 days →</span>
+      </button>
+      <button type="button" class="card kpi" data-view="verified" style="--accent:#f3d58b">
         <span class="label">Verified</span>
         <span class="kpi-value">${verifiedShare}%</span>
         <span class="kpi-hint">${t.verified} of ${t.accounts} confirmed their email</span>
-      </div>
-      <div class="card kpi" style="--accent:#c9b6ee">
+        <span class="kpi-more">See verified accounts →</span>
+      </button>
+      <button type="button" class="card kpi" data-view="newsletter" style="--accent:#c9b6ee">
         <span class="label">Newsletter</span>
         <span class="kpi-value">${t.newsletter}</span>
         <span class="kpi-hint">people on the newsletter list</span>
-      </div>
+        <span class="kpi-more">See everyone on it →</span>
+      </button>
     </div>
 
     <div class="grid row2">
       <div class="card">
         <h2 class="section-title">Sign-ups, last 30 days</h2>
-        <div class="chart" role="img" aria-label="Sign-ups per day">${bars}</div>
+        <div class="chart" role="group" aria-label="Sign-ups per day">${bars}</div>
         <div class="axis"><span>${dayLabel(data.daily[0].day)}</span><span>${dayLabel(data.daily[data.daily.length - 1].day)}</span></div>
       </div>
       <div class="card">
@@ -199,40 +279,164 @@ function render(data) {
       <div class="table-wrap">
         <table>
           <thead><tr><th>Email</th><th>Signed up</th><th>Email check</th><th>Plan</th></tr></thead>
-          <tbody>${rows}</tbody>
+          <tbody>${recent}</tbody>
         </table>
       </div>
     </div>`;
 
   document.getElementById("updated").textContent =
-    `Updated ${new Date(data.generated_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Daily counts use UTC`;
+    `Updated ${new Date(data.generated_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Daily counts use UTC · Click any number to see the people behind it`;
+}
+
+// The list panel: quick filters, a search box, and the table
+function renderDetail() {
+  const panel = document.getElementById("detail");
+  if (!current) { panel.innerHTML = ""; return; }
+  const q = (document.getElementById("detail-search")?.value || "").trim().toLowerCase();
+  const rows = current.rows.filter(r => !q || r.email.toLowerCase().includes(q));
+  const isNewsletter = current.kind === "newsletter";
+  const chips = isNewsletter ? "" : `
+    <div class="chips" role="group" aria-label="Quick filters">
+      ${ACCOUNT_CHIPS.map(([id, label]) => `<button type="button" class="chip" data-chip="${id}" aria-pressed="${current.view === id}">${esc(label)}</button>`).join("")}
+      <button type="button" class="chip" data-chip="newsletter" aria-pressed="false">Newsletter</button>
+    </div>`;
+  const body = isNewsletter
+    ? rows.map(r => `<tr><td class="email">${esc(r.email)}</td><td class="num">${when(r.created_at)}</td></tr>`).join("")
+    : rows.map(r => `
+        <tr>
+          <td class="email">${esc(r.email)}</td>
+          <td class="num">${when(r.created_at)}</td>
+          <td><span class="pill ${r.verified ? "ok" : "warn"}">${r.verified ? "Verified" : "Not verified"}</span></td>
+          <td>${esc(PLAN_NAMES[r.plan] || r.plan)}</td>
+          <td>
+            <select class="plan-select" data-plan-email="${esc(r.email)}" aria-label="Change the plan for ${esc(r.email)}">
+              <option value="">Change to…</option>
+              ${PLAN_OPTIONS.map(([value, label]) => `<option value="${value}">${esc(label)}</option>`).join("")}
+            </select>
+          </td>
+        </tr>`).join("");
+  const head = isNewsletter
+    ? "<th>Email</th><th>Subscribed</th>"
+    : "<th>Email</th><th>Signed up</th><th>Email check</th><th>Plan</th><th>Change plan</th>";
+  const empty = `<tr><td colspan="${isNewsletter ? 2 : 5}" class="empty">${q ? "No one matches that search." : "Nobody here yet."}</td></tr>`;
+
+  panel.innerHTML = `
+    <div class="card detail" id="detail-card">
+      <div class="detail-head">
+        <h2 class="detail-title">${esc(current.title)}<span class="detail-count">${current.rows.length}</span></h2>
+        <button type="button" class="close" data-close="1">Close</button>
+      </div>
+      ${chips}
+      ${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ""}
+      <input class="search" id="detail-search" type="search" placeholder="Search by email" aria-label="Search by email" value="${esc(q)}" />
+      <div class="scroll table-wrap">
+        <table>
+          <thead><tr>${head}</tr></thead>
+          <tbody>${rows.length ? body : empty}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+async function openView(view) {
+  const panel = document.getElementById("detail");
+  panel.innerHTML = `<div class="card detail"><p class="state">Loading…</p></div>`;
+  try {
+    let rows;
+    if (view === "newsletter") {
+      const data = await api("/admin/newsletter");
+      rows = data.subscribers.map(s => ({ email: s.email, created_at: s.created_at }));
+    } else {
+      const data = await api(`/admin/accounts?view=${encodeURIComponent(view)}`);
+      rows = data.accounts;
+    }
+    current = { view, rows, title: titleFor(view), kind: view === "newsletter" ? "newsletter" : "accounts" };
+    renderDetail();
+    document.getElementById("detail-card").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) {
+    handleError(e);
+  }
+}
+
+function handleError(e) {
+  if (e.code === 401) showState(`Your sign-in has expired. <a href="index.html">Sign in again</a>.`);
+  else if (e.code === 403) showState("This page is only for the CreditCrate owner account.");
+  else showState(`Could not load the numbers. ${esc(e.message)}`);
 }
 
 async function load() {
-  const key = token();
-  if (!key) {
+  if (!token()) {
     document.getElementById("updated").textContent = "";
     showState(`You are not signed in. <a href="index.html">Sign in to CreditCrate</a>, then come back here.`);
     return;
   }
   try {
-    const res = await fetch(`${API}/admin/stats`, { headers: { Authorization: `Bearer ${key}` } });
-    if (res.status === 401) {
-      document.getElementById("updated").textContent = "";
-      showState(`Your sign-in has expired. <a href="index.html">Sign in again</a>.`);
-      return;
-    }
-    if (res.status === 403) {
-      document.getElementById("updated").textContent = "";
-      showState("This page is only for the CreditCrate owner account.");
-      return;
-    }
-    if (!res.ok) throw new Error(`Server error ${res.status}`);
-    render(await res.json());
+    render(await api("/admin/stats"));
+    if (current) openView(current.view);
   } catch (e) {
-    showState(`Could not load the numbers. ${esc(e.message)}`);
+    document.getElementById("updated").textContent = "";
+    handleError(e);
   }
 }
+
+// Clicks on cards, bars and plan rows open their list
+function openFromEvent(target) {
+  const el = target.closest("[data-view]");
+  if (el && !el.disabled) openView(el.dataset.view);
+}
+
+document.getElementById("content").addEventListener("click", e => openFromEvent(e.target));
+document.getElementById("content").addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-view]")) {
+    e.preventDefault();
+    openFromEvent(e.target);
+  }
+});
+
+const detail = document.getElementById("detail");
+detail.addEventListener("click", e => {
+  if (e.target.closest("[data-close]")) {
+    current = null;
+    renderDetail();
+    return;
+  }
+  const chip = e.target.closest("[data-chip]");
+  if (chip) {
+    notice = "";
+    openView(chip.dataset.chip);
+  }
+});
+detail.addEventListener("input", e => {
+  if (e.target.id === "detail-search") renderDetail();
+});
+
+// Changing a plan: confirm first, then update the account and reload the list
+detail.addEventListener("change", async e => {
+  const select = e.target.closest(".plan-select");
+  if (!select || !select.value) return;
+  const email = select.dataset.planEmail;
+  const choice = select.value;
+  const [plan, months] = choice.split(":");
+  const label = PLAN_LABELS[choice];
+  select.value = "";
+  if (!window.confirm(`Change ${email} to: ${label}?`)) return;
+  try {
+    const res = await fetch(`${API}/admin/plan`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ email, plan, months: months ? Number(months) : undefined }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+    notice = `${email} is now on ${data.plan === "none" ? "no plan" : PLAN_NAMES[data.plan] || data.plan}.`;
+    const view = current ? current.view : null;
+    await load();
+    if (view) await openView(view);
+    notice = "";
+  } catch (err) {
+    handleError(err);
+  }
+});
 
 document.getElementById("refresh").addEventListener("click", load);
 load();
