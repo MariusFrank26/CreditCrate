@@ -157,10 +157,11 @@ def list_messages(address, password):
                                                    "(UID BODYSTRUCTURE BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])"):
                 structure = _structure_of(meta)
                 heads[uid] = (literal, _attachments(structure) if structure else [])
-            without_files = [uid for uid in chunk if uid in heads and not heads[uid][1]]
+            # Links are looked for in every email, including ones that also have files
             links = {}
-            if without_files:
-                for uid, _, literal in _fetch_items(server, without_files, "(UID BODY.PEEK[TEXT]<0.40000>)"):
+            present = [uid for uid in chunk if uid in heads]
+            if present:
+                for uid, _, literal in _fetch_items(server, present, "(UID BODY.PEEK[TEXT]<0.40000>)"):
                     links[uid] = sorted(set(LINK_RE.findall(literal.decode("utf-8", "replace"))))
             for uid in chunk:
                 if uid not in heads:
