@@ -607,10 +607,10 @@
   .roadmap-page { margin-top: 32px; max-width: none; }
   .roadmap-lead { margin-top: 12px; font-size: 16px; color: var(--fog); max-width: 60ch; }
   .roadmap-grid { margin-top: 36px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
-  .roadmap-card { position: relative; overflow: hidden; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 14px; min-height: calc(100vh - 260px); padding: 36px; }
+  .roadmap-card { position: relative; overflow: hidden; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 14px; min-height: min(560px, calc(100vh - 320px)); padding: 36px; }
   .roadmap-card > *:not(.roadmap-art) { position: relative; z-index: 1; }
   .roadmap-art { position: absolute; right: -40px; bottom: -40px; width: 62%; height: 80%; opacity: .45; pointer-events: none; z-index: 0; -webkit-mask-image: linear-gradient(to left, #000 40%, transparent 100%); mask-image: linear-gradient(to left, #000 40%, transparent 100%); }
-  .rm-phone { position: absolute; right: 8%; bottom: -60px; width: 200px; height: 420px; border-radius: 34px; background: #0b0c0d; border: 6px solid #2a2d33; box-shadow: 0 30px 60px -30px rgba(0,0,0,.9); overflow: hidden; }
+  .rm-phone { position: absolute; right: 8%; bottom: -60px; zoom: 1.25; width: 200px; height: 420px; border-radius: 34px; background: #0b0c0d; border: 6px solid #2a2d33; box-shadow: 0 30px 60px -30px rgba(0,0,0,.9); overflow: hidden; }
   .rm-phone-screen { position: relative; height: 100%; background: var(--void); padding: 26px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
   .rm-phone-notch { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 62px; height: 16px; border-radius: 10px; background: #000; }
   .rm-phone-top { display: flex; justify-content: space-between; align-items: center; }
@@ -628,7 +628,7 @@
   .rm-phone-tabs { margin-top: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding-top: 8px; border-top: 1px solid var(--graphite); }
   .rm-phone-tabs span { height: 14px; border-radius: 4px; background: var(--graphite); }
   .rm-phone-tabs span.is-on { background: var(--paper); }
-  .rm-laptop { position: absolute; right: 0; bottom: 0; width: 100%; max-width: 520px; }
+  .rm-laptop { position: absolute; right: 0; bottom: 0; width: 100%; max-width: 520px; zoom: 1.25; }
   .rm-laptop-lid { background: linear-gradient(180deg, #2a2d33, #16171a); border-radius: 14px 14px 6px 6px; padding: 9px 9px 11px; box-shadow: 0 30px 60px -30px rgba(0,0,0,.9); }
   .rm-laptop-screen { aspect-ratio: 16 / 10; background: var(--void); border-radius: 5px; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #000; }
   .rm-laptop-bar { display: flex; align-items: center; gap: 5px; padding: 7px 10px; background: var(--obsidian); border-bottom: 1px solid var(--graphite); }
