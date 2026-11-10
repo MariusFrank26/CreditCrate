@@ -19,7 +19,9 @@ import re
 import base64
 import html
 import json
+import mimetypes
 import random
+import secrets
 import signal
 import statistics
 import smtplib
@@ -43,6 +45,9 @@ bp = Blueprint("mailing", __name__)
 PUBLIC_API_URL = os.getenv("PUBLIC_API_URL", "https://api.creditcrate.app/api").rstrip("/")
 
 MAX_CSV_BYTES = 10 * 1024 * 1024
+# Gmail allows 25 MB per email, and attachments grow by about a third when encoded, so the file itself stays under 18 MB
+MAX_ATTACHMENT_BYTES = 18 * 1024 * 1024
+BLOCKED_ATTACHMENT_EXTENSIONS = {".exe", ".bat", ".cmd", ".com", ".scr", ".msi", ".vbs", ".js", ".jar", ".dll", ".ps1", ".reg"}
 MAX_RECIPIENTS_PER_SEND = 500
 SEND_INTERVAL_SECONDS = (2.0, 4.0)  # a random pause between emails, like a person sending by hand
 # Sends are queued in the database (mail_queue) and a background worker sends them one by one.
@@ -64,14 +69,16 @@ PACK_HOSTS = {"dropbox.com", "drive.google.com", "docs.google.com"}
 
 _db_path = None
 _signer = None
+_attachment_dir = None
 
 
 def register(app, db_path):
     """Called once from app.py with the shared SQLite file."""
-    global _db_path, _signer
+    global _db_path, _signer, _attachment_dir
     _db_path = db_path
     _signer = URLSafeTimedSerializer(accounts.AUTH_SECRET, salt="creditcrate-mail")
-    app.config["MAX_CONTENT_LENGTH"] = MAX_CSV_BYTES + 64 * 1024
+    _attachment_dir = os.path.join(os.path.dirname(db_path), "attachments")
+    app.config["MAX_CONTENT_LENGTH"] = max(MAX_CSV_BYTES, MAX_ATTACHMENT_BYTES) + 64 * 1024
     init_db()
     app.register_blueprint(bp)
     _start_worker()
@@ -191,6 +198,10 @@ def init_db():
         if "audience" not in columns:
             # who the campaign goes to (role, tag or chosen people), saved when it is first sent
             conn.execute("ALTER TABLE mail_campaigns ADD COLUMN audience TEXT")
+        for column, kind in (("attachment_path", "TEXT"), ("attachment_name", "TEXT"),
+                             ("attachment_type", "TEXT"), ("attachment_size", "INTEGER")):
+            if column not in columns:
+                conn.execute(f"ALTER TABLE mail_campaigns ADD COLUMN {column} {kind}")
         sent_columns = {row[1] for row in conn.execute("PRAGMA table_info(mail_sends)")}
         if "sender" not in sent_columns:
             conn.execute("ALTER TABLE mail_sends ADD COLUMN sender TEXT")
@@ -425,7 +436,7 @@ def delete_campaign(campaign_id):
     # Only drafts can be deleted. Sent campaigns keep their history.
     with _conn() as conn:
         row = conn.execute(
-            "SELECT status FROM mail_campaigns WHERE id = ? AND owner = ?",
+            "SELECT status, attachment_path FROM mail_campaigns WHERE id = ? AND owner = ?",
             (campaign_id, accounts.current_email()),
         ).fetchone()
         if not row:
@@ -433,6 +444,93 @@ def delete_campaign(campaign_id):
         if row["status"] not in (None, "draft"):
             return jsonify({"error": "Only drafts can be deleted."}), 409
         conn.execute("DELETE FROM mail_campaigns WHERE id = ? AND owner = ?", (campaign_id, accounts.current_email()))
+    if row["attachment_path"]:  # the attached file goes with the draft
+        try:
+            os.remove(row["attachment_path"])
+        except OSError:
+            pass
+    return jsonify({"ok": True})
+
+
+def _safe_attachment_name(filename):
+    base = os.path.basename(filename.replace("\\", "/")).strip()
+    cleaned = re.sub(r"[^\w.\- ()]+", "_", base)[:120].strip(" .")
+    return cleaned or "attachment"
+
+
+def _clear_attachment(campaign_id):
+    """Removes a campaign's attached file from the server and forgets it."""
+    with _conn() as conn:
+        row = conn.execute("SELECT attachment_path FROM mail_campaigns WHERE id = ?", (campaign_id,)).fetchone()
+        conn.execute(
+            "UPDATE mail_campaigns SET attachment_path = NULL, attachment_name = NULL, "
+            "attachment_type = NULL, attachment_size = NULL WHERE id = ?",
+            (campaign_id,),
+        )
+    if row and row["attachment_path"]:
+        try:
+            os.remove(row["attachment_path"])
+        except OSError:
+            pass  # already gone
+
+
+@bp.route("/api/campaigns/<int:campaign_id>/attachment", methods=["POST"])
+@accounts.login_required
+def upload_attachment(campaign_id):
+    owner = accounts.current_email()
+    upload = request.files.get("file")
+    if upload is None or not upload.filename:
+        return jsonify({"error": "Choose a file to attach."}), 400
+    name = _safe_attachment_name(upload.filename)
+    if os.path.splitext(name)[1].lower() in BLOCKED_ATTACHMENT_EXTENSIONS:
+        return jsonify({"error": "Gmail does not accept this kind of file. Zip it first, or share it with a link."}), 400
+    with _conn() as conn:
+        campaign = conn.execute(
+            "SELECT status, attachment_path FROM mail_campaigns WHERE id = ? AND owner = ?", (campaign_id, owner)
+        ).fetchone()
+    if not campaign:
+        return jsonify({"error": "Campaign not found."}), 404
+    if campaign["status"] in ("sending", "partial", "sent"):
+        return jsonify({"error": "Attachments can only be changed before a campaign is sent."}), 409
+    data = upload.read(MAX_ATTACHMENT_BYTES + 1)
+    if not data:
+        return jsonify({"error": "That file is empty."}), 400
+    if len(data) > MAX_ATTACHMENT_BYTES:
+        return jsonify({"error": "Attachments can be up to 18 MB, so each email stays under Gmail's 25 MB limit."}), 400
+
+    content_type = upload.mimetype or mimetypes.guess_type(name)[0] or "application/octet-stream"
+    os.makedirs(_attachment_dir, exist_ok=True)
+    path = os.path.join(_attachment_dir, f"{campaign_id}-{secrets.token_hex(12)}.bin")
+    with open(path, "wb") as f:
+        f.write(data)
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE mail_campaigns SET attachment_path = ?, attachment_name = ?, attachment_type = ?, attachment_size = ? "
+            "WHERE id = ? AND owner = ?",
+            (path, name, content_type, len(data), campaign_id, owner),
+        )
+    old = campaign["attachment_path"]
+    if old:
+        try:
+            os.remove(old)
+        except OSError:
+            pass
+    return jsonify({"attachment": {"name": name, "size": len(data)}})
+
+
+@bp.route("/api/campaigns/<int:campaign_id>/attachment", methods=["DELETE"])
+@accounts.login_required
+def remove_attachment(campaign_id):
+    owner = accounts.current_email()
+    with _conn() as conn:
+        campaign = conn.execute(
+            "SELECT status FROM mail_campaigns WHERE id = ? AND owner = ?", (campaign_id, owner)
+        ).fetchone()
+    if not campaign:
+        return jsonify({"error": "Campaign not found."}), 404
+    if campaign["status"] in ("sending", "partial", "sent"):
+        return jsonify({"error": "Attachments can only be changed before a campaign is sent."}), 409
+    _clear_attachment(campaign_id)
     return jsonify({"ok": True})
 
 
@@ -442,6 +540,7 @@ def list_campaigns():
     with _conn() as conn:
         rows = [dict(r) for r in conn.execute(
             "SELECT c.id, c.name, c.subject, c.pack_id, c.status, c.created_at, c.sent_at, c.track, "
+            "c.attachment_name, c.attachment_size, "
             "(SELECT COUNT(*) FROM mail_sends s WHERE s.campaign_id = c.id AND s.status = 'sent') AS sent, "
             "(SELECT COUNT(DISTINCT e.email) FROM mail_events e WHERE e.campaign_id = c.id AND e.kind = 'open') AS opened, "
             "(SELECT COUNT(DISTINCT e.email) FROM mail_events e WHERE e.campaign_id = c.id AND e.kind = 'click') AS clicked "
@@ -925,7 +1024,9 @@ def _stop_campaign(campaign_id, status):
 
 
 def _finish_if_done(campaign_id):
-    """Marks a campaign sent (or partial, if people are still waiting) once its queue is empty."""
+    """Marks a campaign sent (or partial, if people are still waiting) once its queue is empty.
+    A campaign that is fully sent no longer needs its attachment, so the file is removed."""
+    finished = False
     with _conn() as conn:
         left = conn.execute(
             "SELECT COUNT(*) FROM mail_queue WHERE campaign_id = ? AND status IN ('pending', 'sending')",
@@ -940,6 +1041,9 @@ def _finish_if_done(campaign_id):
             conn.execute("UPDATE mail_campaigns SET status = 'partial' WHERE id = ?", (campaign_id,))
         else:
             conn.execute("UPDATE mail_campaigns SET status = 'sent', sent_at = ? WHERE id = ?", (time.time(), campaign_id))
+            finished = True
+    if finished:
+        _clear_attachment(campaign_id)
 
 
 def _reconcile():
@@ -997,6 +1101,13 @@ def _send_queued(item, senders):
             conn.execute("DELETE FROM mail_queue WHERE id = ?", (item["id"],))
         _stop_campaign(campaign_id, "partial")
         return
+    attachment = None
+    if campaign["attachment_path"]:
+        if not os.path.exists(campaign["attachment_path"]):
+            _set_queue_row(item["id"], "pending")
+            _stop_campaign(campaign_id, "stopped: The attached file is missing. Attach it again to continue.")
+            return
+        attachment = (campaign["attachment_path"], campaign["attachment_name"], campaign["attachment_type"])
     try:
         sender = senders.get(address)
         if sender is None:
@@ -1005,8 +1116,9 @@ def _send_queued(item, senders):
             senders[address] = sender
         pack_url = pack["url"] if pack else None
         text, html_body = _render(dict(campaign), dict(contact), pack_url)
+        extra = {"attachment": attachment} if attachment else {}
         sender.send(email, fill_variables(campaign["subject"], dict(contact), pack_url), text, html_body,
-                    unsubscribe_link(email, owner))
+                    unsubscribe_link(email, owner), **extra)
         _log_send(campaign_id, email, address, "sent", None)
         _set_queue_row(item["id"], "sent")
     except (smtplib.SMTPRecipientsRefused, smtplib.SMTPSenderRefused, smtplib.SMTPDataError) as e:
@@ -1060,6 +1172,7 @@ def _resume_partial():
                     "UPDATE mail_campaigns SET status = 'sent', sent_at = ? WHERE id = ? AND status = 'partial'",
                     (time.time(), campaign["id"]),
                 )
+            _clear_attachment(campaign["id"])
 
 
 def _worker_loop():

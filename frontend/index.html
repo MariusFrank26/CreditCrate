@@ -457,6 +457,13 @@
   .panel-title { font-size: 20px; font-weight: 510; letter-spacing: -0.016em; color: var(--paper); }
   .panel-copy { margin-top: 8px; font-size: 14px; color: var(--fog); }
   .send-progress { margin-top: 12px; font-size: 18px; color: var(--paper); }
+  .attach-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 14px; background: var(--void); border: 1px solid var(--graphite); border-radius: 12px; }
+  .attach-file { display: flex; flex-direction: column; min-width: 0; }
+  .attach-file b { font-weight: 510; color: var(--paper); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40ch; }
+  .attach-file small { font-family: var(--mono); font-size: 11px; color: var(--ash); }
+  .attach-actions { display: flex; gap: 8px; }
+  .attach-pick { cursor: pointer; }
+  .attach-first { align-self: flex-start; }
   .confirm-scrim {
     position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
     padding: 16px; background: rgba(8, 9, 10, .62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
@@ -3576,6 +3583,13 @@ function timeAgo(timestamp) {
   return `${Math.round(seconds / 86400)}d ago`;
 }
 
+const ATTACH_LIMIT = 18 * 1024 * 1024;
+
+function sizeText(bytes) {
+  if (!bytes) return "";
+  return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 // A time as the viewer sees it, e.g. "Tue 11 Nov, 14:32"
 function whenText(epochSeconds) {
   return new Date(epochSeconds * 1000).toLocaleString([], {
@@ -4407,6 +4421,31 @@ function CampaignsTool({ token, onAuthError }) {
   const [draftMenu, setDraftMenu] = useState(null); // { id, x, y } while the right-click menu is open
   const { busy, error, run } = useToolRunner(onAuthError);
 
+  // Attaching a file: up to 18 MB, so each email stays under Gmail's 25 MB limit. Removed from the server once sent.
+  function uploadAttachment(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    run(async () => {
+      if (file.size > ATTACH_LIMIT) {
+        throw new Error("Attachments can be up to 18 MB, so each email stays under Gmail's 25 MB limit.");
+      }
+      const form = new FormData();
+      form.append("file", file);
+      await callApi(`/campaigns/${selectedId}/attachment`, token, { method: "POST", form });
+      setMessage("File attached. It's removed from our server once the last email is sent.");
+      await load();
+    });
+  }
+
+  function removeAttachment() {
+    run(async () => {
+      await callApi(`/campaigns/${selectedId}/attachment`, token, { method: "DELETE" });
+      setMessage("Attachment removed.");
+      await load();
+    });
+  }
+
   // Removes a draft after a confirmation. Sent campaigns cannot be removed.
   async function deleteDraft(c) {
     setDraftMenu(null);
@@ -4732,6 +4771,33 @@ function CampaignsTool({ token, onAuthError }) {
             </div>
 
             {!hasSent && (<>
+            <div className="cmp-block">
+              <span className="cmp-section-title">Attachment</span>
+              {selected.attachment_name ? (
+                <div className="attach-row">
+                  <span className="attach-file">
+                    <b>{selected.attachment_name}</b>
+                    <small>{sizeText(selected.attachment_size)}</small>
+                  </span>
+                  <span className="attach-actions">
+                    <label className="back-btn attach-pick">
+                      Replace
+                      <input type="file" className="sr-only" onChange={uploadAttachment} disabled={busy} />
+                    </label>
+                    <button type="button" className="back-btn" onClick={removeAttachment} disabled={busy}>Remove</button>
+                  </span>
+                </div>
+              ) : (
+                <label className="back-btn attach-pick attach-first">
+                  Attach a file
+                  <input type="file" className="sr-only" onChange={uploadAttachment} disabled={busy} />
+                </label>
+              )}
+              <p className="panel-copy">
+                Up to 18 MB, so each email stays under Gmail's 25 MB limit. The file is removed from our server once the last email is sent.
+              </p>
+            </div>
+
             <div className="cmp-block">
               <span className="cmp-section-title">Who gets it</span>
               <div className="share-sheet">

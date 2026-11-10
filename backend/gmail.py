@@ -82,7 +82,8 @@ class Sender:
             pass
         self._server = None
 
-    def send(self, to, subject, text, html_body, unsubscribe_url):
+    def send(self, to, subject, text, html_body, unsubscribe_url, attachment=None):
+        """attachment is (file path, file name, content type), or None."""
         message = EmailMessage()
         message["From"] = self.address
         message["To"] = to
@@ -90,4 +91,9 @@ class Sender:
         message["List-Unsubscribe"] = f"<{unsubscribe_url}>"
         message.set_content(text)
         message.add_alternative(html_body, subtype="html")
+        if attachment:
+            path, name, content_type = attachment
+            maintype, _, subtype = (content_type or "application/octet-stream").partition("/")
+            with open(path, "rb") as f:
+                message.add_attachment(f.read(), maintype=maintype or "application", subtype=subtype or "octet-stream", filename=name)
         self._server.send_message(message)
