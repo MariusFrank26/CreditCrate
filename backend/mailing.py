@@ -458,6 +458,7 @@ def fill_variables(text, contact, pack_url):
         "{{first_name}}": name.split()[0] if name else "there",
         "{{instagram}}": (contact.get("instagram") or "").strip(),
         "{{roles}}": ", ".join(r.strip() for r in (contact.get("roles") or "").split(",") if r.strip()),
+        "{{email}}": contact.get("email") or "",
         "{{pack_link}}": pack_url or "",
     }
     for key, value in values.items():

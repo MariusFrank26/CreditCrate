@@ -1291,6 +1291,78 @@
   }
 
   /* ── SAMPLE INBOX ── */
+  /* ── SAMPLE INBOX AS CHATS: one conversation per sender, like Messages ── */
+  .imsg {
+    display: grid; grid-template-columns: 300px minmax(0, 1fr);
+    height: 660px; min-height: 0;
+    border: 1px solid var(--graphite); border-radius: 16px; overflow: hidden;
+    background: var(--void);
+  }
+  .imsg-list { overflow-y: auto; background: var(--carbon); border-right: 1px solid var(--graphite); min-height: 0; }
+  .imsg-conv {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 12px 14px; background: none; border: 0; border-bottom: 1px solid var(--graphite);
+    color: inherit; text-align: left; cursor: pointer; font-family: var(--sans);
+  }
+  .imsg-conv:hover, .imsg-conv.is-active { background: var(--graphite); }
+  .imsg-conv-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .imsg-conv-name { font-size: 15px; font-weight: 510; color: var(--paper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .imsg-conv-last { font-size: 13px; color: var(--fog); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .imsg-conv-time { font-size: 12px; color: var(--ash); flex: none; align-self: flex-start; padding-top: 2px; }
+  .imsg-avatar {
+    width: 40px; height: 40px; border-radius: 50%; flex: none;
+    display: grid; place-items: center;
+    font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  .imsg-avatar-sm { width: 28px; height: 28px; font-size: 11px; align-self: flex-end; }
+  .imsg-avatar-lg { width: 64px; height: 64px; font-size: 22px; }
+  .imsg-thread { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .imsg-thread-head {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 16px 16px 14px; border-bottom: 1px solid var(--graphite); background: var(--carbon);
+  }
+  .imsg-thread-name { font-size: 16px; font-weight: 600; color: var(--paper); }
+  .imsg-thread-addr { font-size: 12px; color: var(--ash); }
+  .imsg-back { display: none; }
+  .imsg-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 18px 20px; display: flex; flex-direction: column; gap: 4px; }
+  .imsg-day { align-self: center; font-size: 12px; color: var(--ash); margin: 14px 0 8px; }
+  .imsg-message { display: flex; flex-direction: column; }
+  .imsg-row { display: flex; align-items: flex-end; gap: 8px; max-width: 88%; }
+  .imsg-bubbles { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+  .imsg-bubble {
+    background: var(--graphite); color: var(--paper);
+    padding: 9px 14px; border-radius: 18px;
+    font-size: 15px; line-height: 1.35; word-break: break-word;
+  }
+  .imsg-file { display: flex; flex-direction: column; gap: 2px; min-width: 240px; }
+  .imsg-file-name { font-weight: 510; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .imsg-file-meta { font-size: 12px; color: var(--fog); }
+  .imsg-action {
+    align-self: flex-start; margin-top: 6px;
+    background: #0a84ff; color: #ffffff; border: 0; border-radius: 999px;
+    padding: 6px 14px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .imsg-action:hover:not(:disabled) { background: #2b93ff; }
+  .imsg-action:disabled { opacity: .5; cursor: default; }
+  .imsg-action-zip { margin-top: 0; }
+  .imsg-link { color: var(--sky); text-decoration: none; }
+  .imsg-link:hover { color: var(--paper); }
+  .imsg-time { font-size: 11px; color: var(--ash); white-space: nowrap; align-self: flex-end; padding-bottom: 4px; }
+  .imsg.is-example { opacity: .55; pointer-events: none; }
+  @media (max-width: 760px) {
+    .imsg { grid-template-columns: minmax(0, 1fr); height: 70vh; }
+    .imsg-list { border-right: 0; }
+    .imsg.has-chat .imsg-list { display: none; }
+    .imsg:not(.has-chat) .imsg-thread { display: none; }
+    .imsg-back {
+      display: inline-block; align-self: flex-start; background: none; border: 0;
+      color: #0a84ff; font-family: var(--sans); font-size: 15px; cursor: pointer; padding: 0;
+    }
+    .imsg-thread-head { position: relative; }
+    .imsg-row { max-width: 94%; }
+    .imsg-file { min-width: 0; }
+  }
+
   .inbox-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .inbox-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
   .inbox-item {
@@ -3009,8 +3081,73 @@ function formatSize(bytes) {
 }
 
 // The sample inbox. Files are read from Gmail on demand and passed straight to the browser.
+// Chat-style inbox helpers: one conversation per sender, like Messages on iPhone
+const CHAT_TONES = [
+  ["#c9b6ee", "#1d1a24"], ["#a9d8ef", "#15222a"], ["#a3ddc2", "#122119"],
+  ["#f2a79c", "#2a1714"], ["#f3d58b", "#2a2212"], ["#9fb4f2", "#141a2c"],
+];
+
+function avatarTone(name) {
+  let hash = 0;
+  for (const ch of name || "") hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  const [bg, ink] = CHAT_TONES[hash % CHAT_TONES.length];
+  return { background: bg, color: ink };
+}
+
+function parseSender(from) {
+  const match = (from || "").match(/^(.*?)<([^>]+)>\s*$/);
+  if (match) {
+    return { name: match[1].replace(/^"|"$/g, "").trim() || match[2], address: match[2].trim().toLowerCase() };
+  }
+  return { name: (from || "").trim() || "Unknown sender", address: (from || "").trim().toLowerCase() };
+}
+
+function senderInitials(name) {
+  const parts = (name || "").replace(/[^\p{L}\p{N} ]/gu, " ").trim().split(/\s+/).slice(0, 2);
+  return parts.map(p => p.charAt(0).toUpperCase()).join("") || "?";
+}
+
+function messageTime(dateStr) {
+  const d = new Date(dateStr);
+  if (!dateStr || isNaN(d)) return "";
+  return d.toDateString() === new Date().toDateString()
+    ? d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
+function dayLabel(dateStr) {
+  const d = new Date(dateStr);
+  if (!dateStr || isNaN(d)) return "";
+  return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}
+
+// Messages arrive newest first. Each sender becomes one chat, with its messages oldest first.
+function groupBySender(messages) {
+  const map = new Map();
+  for (const m of messages) {
+    const { name, address } = parseSender(m.from);
+    if (!map.has(address)) map.set(address, { key: address, name, address, items: [] });
+    map.get(address).items.push(m);
+  }
+  return [...map.values()].map(c => ({ ...c, items: [...c.items].reverse() }));
+}
+
+// The example chats shown while the inbox is empty
+function exampleChats() {
+  return groupBySender(INBOX_EXAMPLES.map((e, i) => ({
+    uid: `example-${i}`,
+    from: e.from,
+    subject: e.subject,
+    date: "",
+    attachments: [{ part: `example-${i}`, name: e.file, size: e.size }],
+    links: [],
+  })));
+}
+
 function InboxTool({ token, onAuthError }) {
   const [messages, setMessages] = useState(null);
+  const [chatKey, setChatKey] = useState(null);
+  const scrollRef = useRef(null);
   const [message, setMessage] = useState(null);
   const [downloadError, setDownloadError] = useState(null);
   const [busyFile, setBusyFile] = useState(null);
@@ -3085,6 +3222,15 @@ function InboxTool({ token, onAuthError }) {
     }
   }
 
+  const demo = messages !== null && messages.length === 0;
+  const chats = demo ? exampleChats() : groupBySender(messages || []);
+  const active = chats.find(c => c.key === chatKey) || chats[0] || null;
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [active?.key, messages]);
+
   return (
     <section className="tool-section" aria-labelledby="inbox-heading">
       <div className="tool-heading">
@@ -3103,65 +3249,83 @@ function InboxTool({ token, onAuthError }) {
 
       {messages === null ? (
         <ToolLoading label="Scanning the last 7 days of email… this can take a minute." />
-      ) : messages.length === 0 ? (
-        <>
-          <EmptyState title="No samples yet" copy="Emails with audio or archive attachments, and Dropbox or Drive links, show up here." />
-          <ul className="inbox-list is-example" aria-hidden="true">
-            {INBOX_EXAMPLES.map(example => (
-              <li key={example.file} className="inbox-item">
-                <div className="inbox-meta">
-                  <span className="inbox-subject">{example.subject}</span>
-                  <span className="inbox-from">{example.from}</span>
-                </div>
-                <div className="inbox-file">
-                  <span>{example.file}</span>
-                  <span className="history-meta">{formatSize(example.size)}</span>
-                  <span className="back-btn">Download</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </>
       ) : (
-        <ul className="inbox-list">
-          {messages.map(item => (
-            <li key={item.uid} className="inbox-item">
-              <div className="inbox-meta">
-                <span className="inbox-subject">{item.subject}</span>
-                <span className="inbox-from">{item.from}</span>
-              </div>
-              {item.attachments.map(file => (
-                <div key={file.part} className="inbox-file">
-                  <span>{file.name}</span>
-                  <span className="history-meta">{formatSize(file.size)}</span>
-                  <button
-                    type="button"
-                    className="back-btn"
-                    onClick={() => download(item.uid, file)}
-                    disabled={busyFile === file.part}
-                  >
-                    {busyFile === file.part ? "Downloading…" : "Download"}
+        <>
+          {demo && <EmptyState title="No samples yet" copy="Emails with audio or archive attachments, and Dropbox or Drive links, show up here." />}
+          <div className={`imsg${active && chatKey ? " has-chat" : ""}${demo ? " is-example" : ""}`}>
+            <aside className="imsg-list" aria-label="Conversations">
+              {chats.map(c => {
+                const last = c.items[c.items.length - 1];
+                return (
+                  <button key={c.key} type="button" className={`imsg-conv${active && c.key === active.key ? " is-active" : ""}`} onClick={() => setChatKey(c.key)}>
+                    <span className="imsg-avatar" style={avatarTone(c.name)}>{senderInitials(c.name)}</span>
+                    <span className="imsg-conv-text">
+                      <span className="imsg-conv-name">{c.name}</span>
+                      <span className="imsg-conv-last">{last.subject}</span>
+                    </span>
+                    <span className="imsg-conv-time">{messageTime(last.date)}</span>
                   </button>
-                </div>
-              ))}
-              {item.attachments.length > 1 && (
-                <button
-                  type="button"
-                  className="back-btn"
-                  onClick={() => downloadZip(item)}
-                  disabled={busyFile === `zip-${item.uid}`}
-                >
-                  {busyFile === `zip-${item.uid}` ? "Preparing zip…" : `Download all ${item.attachments.length} as a zip`}
-                </button>
+                );
+              })}
+            </aside>
+
+            <div className="imsg-thread">
+              {active && (
+                <>
+                  <header className="imsg-thread-head">
+                    <button type="button" className="imsg-back" onClick={() => setChatKey(null)}>‹ Chats</button>
+                    <span className="imsg-avatar imsg-avatar-lg" style={avatarTone(active.name)}>{senderInitials(active.name)}</span>
+                    <span className="imsg-thread-name">{active.name}</span>
+                    {!demo && <span className="imsg-thread-addr">{active.address}</span>}
+                  </header>
+                  <div className="imsg-scroll" ref={scrollRef}>
+                    {active.items.map(item => (
+                      <div key={item.uid} className="imsg-message">
+                        {dayLabel(item.date) && <div className="imsg-day">{dayLabel(item.date)}</div>}
+                        <div className="imsg-row">
+                          <span className="imsg-avatar imsg-avatar-sm" style={avatarTone(active.name)}>{senderInitials(active.name)}</span>
+                          <div className="imsg-bubbles">
+                            <div className="imsg-bubble">{item.subject}</div>
+                            {item.attachments.map(file => (
+                              <div key={file.part} className="imsg-bubble imsg-file">
+                                <span className="imsg-file-name">{file.name}</span>
+                                <span className="imsg-file-meta">{formatSize(file.size)}</span>
+                                <button
+                                  type="button"
+                                  className="imsg-action"
+                                  onClick={() => download(item.uid, file)}
+                                  disabled={demo || busyFile === file.part}
+                                >
+                                  {busyFile === file.part ? "Downloading…" : "Download"}
+                                </button>
+                              </div>
+                            ))}
+                            {item.attachments.length > 1 && (
+                              <button
+                                type="button"
+                                className="imsg-action imsg-action-zip"
+                                onClick={() => downloadZip(item)}
+                                disabled={demo || busyFile === `zip-${item.uid}`}
+                              >
+                                {busyFile === `zip-${item.uid}` ? "Preparing zip…" : `Download all ${item.attachments.length} as a zip`}
+                              </button>
+                            )}
+                            {item.links.map(link => (
+                              <a key={link} className="imsg-bubble imsg-link" href={link} target="_blank" rel="noopener noreferrer">
+                                Open shared link ↗
+                              </a>
+                            ))}
+                          </div>
+                          <time className="imsg-time">{messageTime(item.date)}</time>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
-              {item.links.map(link => (
-                <a key={link} className="inbox-link" href={link} target="_blank" rel="noopener noreferrer">
-                  Open shared link ↗
-                </a>
-              ))}
-            </li>
-          ))}
-        </ul>
+            </div>
+          </div>
+        </>
       )}
     </section>
   );
@@ -3170,9 +3334,7 @@ function InboxTool({ token, onAuthError }) {
 // Personal details that can be put into a campaign's subject or message.
 const CAMPAIGN_VARIABLES = [
   { token: "{{name}}", label: "Name", help: "Full name, or 'there' if we don't have one" },
-  { token: "{{first_name}}", label: "First name", help: "First word of the name, or 'there'" },
-  { token: "{{instagram}}", label: "Instagram", help: "Their Instagram handle" },
-  { token: "{{roles}}", label: "Roles", help: "Their roles, such as mixer or producer" },
+  { token: "{{email}}", label: "Email", help: "Their email address" },
   { token: "{{pack_link}}", label: "Pack link", help: "The pack you pick below. Put it where you want the link" },
 ];
 
@@ -3332,7 +3494,7 @@ function CampaignsTool({ token, onAuthError }) {
             ))}
           </div>
           <p className="var-help">
-            Each person's details replace the variables when the email is sent. A detail we don't have leaves the text blank. Name and first name fall back to "there".
+            Each person's details replace the variables when the email is sent. Name falls back to "there" if we don't have it.
           </p>
           <PackPicker packs={packs} value={form.pack_id} onChange={v => setForm(f => ({ ...f, pack_id: v }))} />
           <label className="check-row">
