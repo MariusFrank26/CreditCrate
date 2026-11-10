@@ -1532,12 +1532,15 @@
   .share-empty { padding: 16px; font-size: 14px; color: var(--fog); }
 
   /* Recent activity sits beside the campaigns on wide screens, below them on narrow ones */
-  .cmp-side { display: flex; flex-direction: column; gap: 10px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; padding: 16px; min-width: 0; }
+  .cmp-side { order: -1; display: flex; flex-direction: column; gap: 10px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; padding: 14px; min-width: 0; align-self: start; }
+  .cmp-side .activity-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .cmp-side .tool-card { padding: 12px; gap: 10px; background: none; border: 0; border-top: 1px solid var(--graphite); border-radius: 0; }
+  .cmp-side .tool-card:first-child { border-top: 0; padding-top: 0; }
   @media (min-width: 1180px) {
-    .cmp-layout { grid-template-columns: 300px minmax(0, 1fr) 300px; }
+    .cmp-layout { grid-template-columns: 240px 280px minmax(0, 1fr); }
   }
   @media (max-width: 1179px) {
-    .cmp-side { grid-column: 1 / -1; }
+    .cmp-side { grid-column: 1 / -1; order: 0; }
   }
 
   /* ── CAMPAIGN VARIABLES ── */
