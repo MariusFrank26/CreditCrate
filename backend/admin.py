@@ -27,6 +27,10 @@ def admin_emails():
     return {e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()}
 
 
+def is_admin(email):
+    return bool(email) and email in admin_emails()
+
+
 def admin_only(view):
     @wraps(view)
     def wrapper(*args, **kwargs):

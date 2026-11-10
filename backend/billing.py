@@ -21,6 +21,7 @@ import requests
 from flask import Blueprint, request, jsonify
 
 import accounts
+import admin
 import gmail
 import mailing
 
@@ -86,6 +87,7 @@ def get_account():
         "active": status["active"],
         "expires_at": status["expires_at"],
         "mail": {"connected": mail["connected"], "address": mail.get("address")},
+        "is_admin": admin.is_admin(email),  # shows the Admin link in the top bar
     })
 
 

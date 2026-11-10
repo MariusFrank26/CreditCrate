@@ -599,6 +599,8 @@
   }
   .app-bar-link { margin-left: auto; font-size: 13px; color: var(--fog); text-decoration: none; }
   .app-bar-link:hover { color: var(--paper); }
+  .app-bar-admin { margin-left: 14px; color: var(--sunshine); }
+  .app-bar-admin:hover { color: var(--paper); }
   .app-bar-brand {
     display: flex; align-items: center; gap: 10px;
     font-size: 15px; font-weight: 510; letter-spacing: -0.016em;
@@ -5745,6 +5747,14 @@ function App() {
   const [mailAccount, setMailAccount] = useState(null); // the connected Gmail, once signed in
   const [page, setPage] = useState(() => pageForHash(window.location.hash));
   const [artwork, setArtwork] = useState(null); // Iceman cover and producer photos for the landing preview
+  const [isAdmin, setIsAdmin] = useState(false); // the server says whether this account is the owner
+
+  useEffect(() => {
+    if (!token) { setIsAdmin(false); return; }
+    callApi("/account", token)
+      .then(account => setIsAdmin(Boolean(account.is_admin)))
+      .catch(() => setIsAdmin(false));
+  }, [token]);
 
   useEffect(() => {
     if (token) return;
@@ -5949,6 +5959,7 @@ function App() {
             CreditCrate
           </span>
           <a className="app-bar-link" href="settings.html">Settings</a>
+          {isAdmin && <a className="app-bar-link app-bar-admin" href="admin.html">Admin</a>}
           <nav className="tool-nav" aria-label="Apps">
             {DECK_TABS.map((label, i) => (
               <button
