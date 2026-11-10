@@ -797,6 +797,18 @@
   .rm-laptop-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--graphite); }
   .rm-laptop-row em { margin-left: auto; font-style: normal; font-size: 9px; color: var(--mist); background: var(--graphite); border-radius: 999px; padding: 2px 8px; }
   .rm-laptop-base { height: 8px; width: 108%; margin: 0 -4%; border-radius: 0 0 12px 12px; background: linear-gradient(180deg, #2a2d33, #101113); }
+  .rm-place { position: absolute; right: 0; bottom: 0; width: 100%; max-width: 420px; zoom: 1.25; display: flex; flex-direction: column; background: var(--void); border: 1px solid var(--graphite); border-radius: 16px; padding: 12px; box-shadow: 0 30px 60px -30px rgba(0,0,0,.9); }
+  .rm-place-head { display: flex; justify-content: space-between; padding: 2px 4px 8px; font-family: var(--mono); font-size: 10px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
+  .rm-place-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 62px 52px; align-items: center; gap: 10px; padding: 9px 6px; border-top: 1px solid var(--graphite); font-size: 12px; }
+  .rm-place-pos { font-family: var(--mono); color: var(--paper); }
+  .rm-place-text { display: flex; flex-direction: column; min-width: 0; }
+  .rm-place-text b { font-weight: 600; color: var(--paper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rm-place-text small { color: var(--ash); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rm-place-spark { width: 62px; height: 20px; }
+  .rm-place-spark polyline { fill: none; stroke: var(--mint); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+  .rm-place-delta { font-family: var(--mono); font-size: 11px; text-align: right; }
+  .rm-place-delta.up { color: var(--mint); }
+  .rm-place-delta.down { color: var(--salmon); }
   @media (max-width: 720px) { .roadmap-art { width: 100%; height: 60%; opacity: .3; } .rm-phone { right: 4%; } }
   .roadmap-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   .roadmap-platform { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); }
@@ -5719,6 +5731,14 @@ const ROADMAP_ITEMS = [
     copy: "Your contacts, packs and sample inbox in your pocket, so you can check new samples and send to a contact from your phone.",
     points: ["Samples and packs on the go", "Same account as the website", "Sign in with your email"],
   },
+  {
+    id: "placement",
+    title: "Placement tracking",
+    platforms: "Streaming playlists",
+    status: "Planned",
+    copy: "See which playlists your songs are on, where they sit in each one, and how their position changes from week to week.",
+    points: ["Playlist positions for each release", "Week-to-week movement at a glance", "Follow only the songs you choose"],
+  },
 ];
 
 // A phone with a small version of the app on it, behind the iOS card
@@ -5770,17 +5790,46 @@ function RoadmapLaptop() {
   );
 }
 
+// A small placement board behind the placement tracking card
+function RoadmapPlacements() {
+  const rows = [
+    { song: "Song 1", list: "Playlist A", now: 12, change: 4, trend: [22, 19, 17, 15, 14, 12] },
+    { song: "Song 2", list: "Playlist B", now: 27, change: -3, trend: [18, 20, 23, 24, 25, 27] },
+    { song: "Song 3", list: "Playlist C", now: 41, change: 9, trend: [60, 55, 52, 49, 45, 41] },
+    { song: "Song 4", list: "Playlist D", now: 8, change: 2, trend: [14, 12, 11, 10, 9, 8] },
+  ];
+  return (
+    <div className="rm-place" aria-hidden="true">
+      <div className="rm-place-head"><span>Placements</span><span>This week</span></div>
+      {rows.map(r => {
+        const max = 60;
+        const points = r.trend.map((v, i) => `${(i * 60) / (r.trend.length - 1)},${2 + (18 * v) / max}`).join(" ");
+        return (
+          <div key={r.song} className="rm-place-row">
+            <span className="rm-place-pos">#{r.now}</span>
+            <span className="rm-place-text"><b>{r.song}</b><small>{r.list}</small></span>
+            <svg className="rm-place-spark" viewBox="0 0 60 20"><polyline points={points} /></svg>
+            <span className={`rm-place-delta ${r.change >= 0 ? "up" : "down"}`}>{r.change >= 0 ? "▲" : "▼"} {Math.abs(r.change)}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function RoadmapPage() {
   return (
     <section className="roadmap-page" aria-labelledby="roadmap-heading">
       <a className="back-btn features-back" href="#home">← Back to home</a>
       <p className="eyebrow">Roadmap</p>
       <h2 id="roadmap-heading" className="features-title">What's next</h2>
-      <p className="roadmap-lead">Two things we're building next. We'll tell you here when each one is ready to try.</p>
+      <p className="roadmap-lead">Three things we're building next. We'll tell you here when each one is ready to try.</p>
       <div className="roadmap-grid">
         {ROADMAP_ITEMS.map(item => (
           <article key={item.id} className="roadmap-card">
-            <div className="roadmap-art">{item.id === "ios" ? <RoadmapPhone /> : <RoadmapLaptop />}</div>
+            <div className="roadmap-art">
+              {item.id === "ios" ? <RoadmapPhone /> : item.id === "placement" ? <RoadmapPlacements /> : <RoadmapLaptop />}
+            </div>
             <div className="roadmap-top">
               <span className="roadmap-platform">{item.platforms}</span>
               <span className="roadmap-status">{item.status}</span>
