@@ -624,6 +624,8 @@
   }
   .app-bar-link { margin-left: auto; font-size: 13px; color: var(--fog); text-decoration: none; }
   .app-bar-link:hover { color: var(--paper); }
+  a.app-bar-brand, .brand-home { color: inherit; text-decoration: none; }
+  .brand-home { display: contents; }
   .app-bar-admin { margin-left: 14px; color: var(--sunshine); }
   .app-bar-admin:hover { color: var(--paper); }
 
@@ -6170,10 +6172,10 @@ function App() {
     {token && (
       <div className="app-bar">
         <div className="app-bar-inner">
-          <span className="app-bar-brand">
+          <a className="app-bar-brand" href="index.html">
             <img src="logo.svg" alt="" width="22" height="22" />
             CreditCrate
-          </span>
+          </a>
           <a className="app-bar-link" href="settings.html">Settings</a>
           {isAdmin && <a className="app-bar-link app-bar-admin" href="admin.html">Admin</a>}
           <nav className="tool-nav" aria-label="Apps">
@@ -6196,9 +6198,11 @@ function App() {
       <header>
         <div className="header-left">
           <h1 className="brand">
-            <img className="brand-mark" src="logo.svg" alt="" width="56" height="56" />
-            CreditCrate
-            <span className="eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+            <a className="brand-home" href="index.html">
+              <img className="brand-mark" src="logo.svg" alt="" width="56" height="56" />
+              CreditCrate
+              <span className="eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+            </a>
           </h1>
           {!token && (
             <nav className="site-nav site-nav-brand" aria-label="Site">
