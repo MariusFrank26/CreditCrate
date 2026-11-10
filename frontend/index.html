@@ -591,7 +591,12 @@
   .quick-copy { font-size: 13px; color: var(--fog); }
 
   /* ── LANDING: features and pipeline (visitors before sign-in) ── */
-  .features { margin-top: 96px; }
+  .features { margin-top: 32px; }
+  .features-back { display: inline-block; margin-bottom: 16px; }
+  .features-cta { margin-top: 56px; display: flex; justify-content: center; }
+  .site-nav { display: flex; gap: 18px; font-size: 14px; }
+  .site-nav a { color: var(--fog); text-decoration: none; }
+  .site-nav a:hover, .site-nav a[aria-current="page"] { color: var(--paper); }
   .features-title {
     margin-top: 12px;
     font-size: clamp(30px, 4vw, 44px); font-weight: 510; line-height: 1.1;
@@ -1657,6 +1662,32 @@
   .dm-cover { display: flex; flex-direction: column; gap: 6px; align-items: center; }
   .dm-cover img { width: 100%; aspect-ratio: 1; padding: 22%; box-sizing: border-box; border-radius: 10px; background: linear-gradient(135deg, var(--graphite), var(--obsidian)); }
   .dm-cover span { font-size: 11px; color: var(--mist); }
+  .dm-album { display: flex; align-items: center; gap: 10px; padding: 8px 4px; }
+  .dm-cover-sm { width: 40px; height: 40px; border-radius: 8px; flex: none; background: linear-gradient(135deg, #2a2d33, #0f1011); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+  .dm-meta { font-size: 12px; color: var(--ash); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dm-role { font-style: normal; font-size: 11px; color: var(--mist); padding: 3px 9px; border-radius: 999px; background: var(--graphite); flex: none; }
+  .dm-pill-quiet { background: var(--graphite); color: var(--mist); }
+  .dm-file span em, .dm-pack span em { display: block; font-style: normal; font-size: 11px; opacity: .7; margin-top: 2px; }
+  .dm-split { display: flex; height: 8px; border-radius: 999px; overflow: hidden; margin-top: 6px; }
+  .dm-split span { height: 100%; }
+  .dm-split-2 { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; }
+  .dm-side { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .dm-camp { display: flex; flex-direction: column; padding: 7px 9px; border-radius: 8px; border: 1px solid transparent; }
+  .dm-camp.is-on { background: var(--graphite); border-color: var(--smoke); }
+  .dm-act { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 12px; color: var(--mist); }
+  .dm-act b { font-size: 11px; color: var(--void); background: var(--sunshine); border-radius: 999px; padding: 1px 7px; }
+  .dm-compose { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .dm-pinned { display: flex; gap: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--graphite); }
+  .dm-pin { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .dm-pin em { font-style: normal; font-size: 11px; color: var(--mist); }
+  .dm-avatar-lg { width: 44px; height: 44px; font-size: 14px; }
+  .dm-count { position: absolute; top: -3px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #0a84ff; color: #ffffff; font-size: 11px; font-weight: 600; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--carbon); }
+  .dm-count-pack { background: var(--sunshine); color: var(--void); }
+  .dm-packcard { display: flex; align-items: center; gap: 10px; background: rgba(243, 213, 139, .12); border: 1px solid rgba(243, 213, 139, .4); border-radius: 16px; padding: 8px 10px; max-width: 100%; }
+  .dm-pack-cover { width: 38px; height: 38px; border-radius: 8px; flex: none; display: grid; place-items: center; background: linear-gradient(135deg, var(--graphite), var(--obsidian)); }
+  .dm-pack-cover img { width: 60%; height: auto; }
+  .dm-action { font-size: 11px; font-weight: 600; color: var(--void); background: var(--sunshine); border-radius: 999px; padding: 4px 10px; flex: none; }
+  .dm-dbx { align-self: stretch; font-family: var(--sans); font-size: 13px; font-weight: 600; color: #ffffff; background: #1a5bc4; border: 0; border-radius: 10px; padding: 10px; cursor: default; }
   .dm-thread { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
   .dm-day { align-self: center; font-size: 11px; color: var(--ash); margin-bottom: 4px; }
   .dm-bubble { background: var(--graphite); color: var(--paper); padding: 8px 12px; border-radius: 16px; font-size: 13px; max-width: 86%; }
@@ -2353,6 +2384,7 @@ function FeatureArt({ id }) {
 function Features() {
   return (
     <section className="features" id="features" aria-labelledby="features-heading">
+      <a className="back-btn features-back" href="#home">← Back to home</a>
       <p className="eyebrow">What’s inside</p>
       <h2 id="features-heading" className="features-title">Six tools, one hub.</h2>
       <div className="feature-grid">
@@ -2364,6 +2396,9 @@ function Features() {
             <p className="feature-copy">{f.copy}</p>
           </article>
         ))}
+      </div>
+      <div className="features-cta">
+        <a className="search-btn" href="#home">Start your free 7-day trial</a>
       </div>
     </section>
   );
@@ -4503,23 +4538,27 @@ function GmailGate({ token, account, onChange, onSignOut }) {
 const DEMO_TOOLS = [
   { id: "credits", label: "Credits", copy: "Search an album and see every producer, engineer and mixer, with the public contact they've shared." },
   { id: "contacts", label: "Contacts", copy: "Keep everyone in one list. Import a CSV and filter by role or tag." },
-  { id: "packs", label: "Packs", copy: "Save a Dropbox or Drive folder as a pack. CreditCrate stores the link, never the files." },
+  { id: "packs", label: "Packs", copy: "Packs from your senders show up like messages. Open one, or save it to your shelf. Only the link is stored." },
   { id: "inbox", label: "Inbox", copy: "Your samples from the last 7 days, grouped by sender. Downloads come straight from Gmail." },
   { id: "campaigns", label: "Campaigns", copy: "Write once, check who gets it or pick a tag, then preview before anything is sent." },
   { id: "deal", label: "Deal Desk", copy: "Split sheets, agreements and invoices. It all stays in your browser." },
 ];
 
+// Made-up people and releases for the preview. They are not real contacts.
 const DEMO_PEOPLE = [
-  { id: "anna", name: "Anna Moreau", tags: "trap, drill", initials: "AM", tone: "#c9b6ee" },
-  { id: "kira", name: "Kira Lind", tags: "drill", initials: "KL", tone: "#a3ddc2" },
-  { id: "dre", name: "Dre Tamba", tags: "trap", initials: "DT", tone: "#f2a79c" },
+  { id: "marcus", name: "Marcus Hale", roles: "Producer", tags: "drill, uk", initials: "MH", tone: "#c9b6ee" },
+  { id: "dana", name: "Dana Okafor", roles: "Mixer", tags: "trap, rnb", initials: "DO", tone: "#a9d8ef" },
+  { id: "kira", name: "Kira Lind", roles: "Engineer", tags: "rnb", initials: "KL", tone: "#a3ddc2" },
+  { id: "ion", name: "Ion Brandt", roles: "Mastering", tags: "trap", initials: "IB", tone: "#f2a79c" },
+  { id: "jonah", name: "Jonah Reyes", roles: "Producer", tags: "drill", initials: "JR", tone: "#f3d58b" },
 ];
 
 function HeroDemo() {
   const [tool, setTool] = useState("credits");
-  const [picked, setPicked] = useState(new Set(["anna"]));
+  const [picked, setPicked] = useState(new Set(["marcus", "dana"]));
   const [filter, setFilter] = useState("All");
   const current = DEMO_TOOLS.find(t => t.id === tool);
+  const tagFilters = ["All", "Drill", "Trap", "RnB"];
 
   function togglePerson(id) {
     setPicked(prev => {
@@ -4535,39 +4574,49 @@ function HeroDemo() {
       return (
         <>
           <div className="dm-search"><span>⌕</span><span className="dm-query">Iceman</span><b>Search</b></div>
-          <p className="dm-kicker">Iceman · Album · 2023</p>
+          <div className="dm-album">
+            <span className="dm-cover-sm" />
+            <span className="dm-grow">
+              <span className="dm-name">Iceman</span>
+              <span className="dm-meta">Drake · 2026</span>
+            </span>
+            <span className="dm-meta">4 credits</span>
+          </div>
           {[
-            ["Anna Moreau", "Producer", "Mixer", "Instagram"],
-            ["Kira Lind", "Engineer", "Email shared"],
-            ["Dre Tamba", "Producer"],
-          ].map(([name, ...roles]) => (
+            ["Track", "Make Them Cry", "3 credits", "01", "#c9b6ee"],
+            ["Track", "Dust", "2 credits", "02", "#a9d8ef"],
+            ["Track", "Whisper My Name", "4 credits", "03", "#a3ddc2"],
+          ].map(([role, name, handle, initials, tone]) => (
             <div key={name} className="dm-row">
-              <span className="dm-avatar" style={{ background: "#c9b6ee" }}>{name.split(" ").map(w => w[0]).join("")}</span>
+              <span className="dm-avatar" style={{ background: tone }}>{initials}</span>
               <span className="dm-grow">
                 <span className="dm-name">{name}</span>
-                <span className="dm-roles">{roles.map(r => <em key={r}>{r}</em>)}</span>
+                <span className="dm-meta">{handle}</span>
               </span>
+              <em className="dm-role">{role}</em>
             </div>
           ))}
         </>
       );
     }
     if (tool === "contacts") {
-      const shown = DEMO_PEOPLE.filter(p => filter === "All" || p.tags.includes(filter.toLowerCase()));
+      const shown = DEMO_PEOPLE.filter(p => filter === "All" || p.tags.toLowerCase().includes(filter.toLowerCase()));
       return (
         <>
           <div className="dm-chips">
-            {["All", "Trap", "Drill"].map(f => (
+            {tagFilters.map(f => (
               <button key={f} type="button" className={`dm-chip${filter === f ? " is-on" : ""}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>{f}</button>
             ))}
           </div>
+          <p className="dm-kicker">{shown.length} of {DEMO_PEOPLE.length} contacts · CSV import</p>
           {shown.map(p => (
             <div key={p.id} className="dm-row">
               <span className="dm-avatar" style={{ background: p.tone }}>{p.initials}</span>
               <span className="dm-grow">
                 <span className="dm-name">{p.name}</span>
-                <span className="dm-roles">{p.tags.split(", ").map(t => <em key={t}>{t}</em>)}</span>
+                <span className="dm-meta">{p.tags}</span>
               </span>
+              <em className="dm-role">{p.roles}</em>
             </div>
           ))}
         </>
@@ -4576,51 +4625,75 @@ function HeroDemo() {
     if (tool === "packs") {
       return (
         <>
-          <div className="dm-covers">
-            {["Summer kit", "Vocal chops", "Drum loops"].map(n => (
-              <div key={n} className="dm-cover"><img src="logo.svg" alt="" /><span>{n}</span></div>
-            ))}
+          <div className="dm-pinned">
+            <span className="dm-pin"><span className="dm-avatar dm-avatar-lg" style={{ background: "#f3d58b" }}>JR</span><b className="dm-count dm-count-pack">2</b><em>Jonah</em></span>
+            <span className="dm-pin"><span className="dm-avatar dm-avatar-lg" style={{ background: "#c9b6ee" }}>MH</span><b className="dm-count">1</b><em>Marcus</em></span>
           </div>
-          <div className="dm-row">
-            <span className="dm-grow"><span className="dm-name">Summer kit</span><span className="dm-roles"><em>dropbox.com</em></span></span>
-            <b className="dm-pill">Open</b>
+          <div className="dm-thread">
+            <p className="dm-day">Jonah Reyes</p>
+            <div className="dm-bubble dm-packcard">
+              <span className="dm-pack-cover"><img src="logo.svg" alt="" /></span>
+              <span className="dm-grow"><span className="dm-name">Iceman stems</span><span className="dm-meta">Dropbox · shared folder</span></span>
+              <b className="dm-action">Open</b>
+            </div>
+            <div className="dm-bubble dm-packcard">
+              <span className="dm-pack-cover"><img src="logo.svg" alt="" /></span>
+              <span className="dm-grow"><span className="dm-name">Iceman drum kit</span><span className="dm-meta">Google Drive · 38 files</span></span>
+              <b className="dm-action">Open</b>
+            </div>
           </div>
+          <button type="button" className="dm-dbx">Choose from Dropbox</button>
         </>
       );
     }
     if (tool === "inbox") {
       return (
         <div className="dm-thread">
-          <p className="dm-day">Today</p>
-          <div className="dm-bubble">September samples</div>
-          <div className="dm-bubble dm-file"><span>September_Drums.wav</span><b>Download</b></div>
-          <div className="dm-bubble dm-pack"><span>Dropbox pack</span><b>Open pack ↗</b></div>
+          <p className="dm-day">Tue 4 Nov</p>
+          <div className="dm-bubble">Iceman stems are up. Make Them Cry and Dust are in there 🔥</div>
+          <div className="dm-bubble dm-file"><span>Make_Them_Cry_stems.wav<em>24 MB</em></span><b>Download</b></div>
+          <div className="dm-bubble dm-file"><span>Dust_mix_v3.wav<em>9 MB</em></span><b>Download</b></div>
+          <div className="dm-bubble dm-pack"><span>Dropbox pack<em>Jonah Reyes</em></span><b>Open pack ↗</b></div>
         </div>
       );
     }
     if (tool === "campaigns") {
       return (
-        <>
-          <div className="dm-field"><span>Subject</span>Fresh samples, {"{{first_name}}"}</div>
-          <div className="dm-chips">
-            {DEMO_PEOPLE.map(p => (
-              <button key={p.id} type="button" className={`dm-check${picked.has(p.id) ? " is-on" : ""}`} aria-pressed={picked.has(p.id)} onClick={() => togglePerson(p.id)}>
-                <span>{picked.has(p.id) ? "✓" : ""}</span>{p.name.split(" ")[0]}
-              </button>
-            ))}
+        <div className="dm-split-2">
+          <div className="dm-side">
+            <p className="dm-kicker">Campaigns</p>
+            <div className="dm-camp is-on"><span className="dm-name">Iceman stems</span><span className="dm-meta">42 sent · 31 opened</span></div>
+            <div className="dm-camp"><span className="dm-name">Dust vocals</span><span className="dm-meta">38 sent · 19 opened</span></div>
+            <p className="dm-kicker">Recently opened</p>
+            <div className="dm-act"><span>Marcus</span><span className="dm-meta">opened · 2h</span></div>
+            <div className="dm-act"><span>Dana</span><span className="dm-meta">clicked · 5h</span></div>
+            <p className="dm-kicker">Top openers</p>
+            <div className="dm-act"><span>Marcus</span><b>9</b></div>
+            <div className="dm-act"><span>Dana</span><b>6</b></div>
           </div>
-          <p className="dm-kicker">{picked.size} chosen</p>
-          <b className="dm-pill dm-pill-wide">Preview {picked.size} {picked.size === 1 ? "person" : "people"}</b>
-        </>
+          <div className="dm-compose">
+            <div className="dm-field"><span>Subject</span>Iceman stems are out</div>
+            <div className="dm-field"><span>Message</span>Hi {"{{first_name}}"}, new drum kit is up. Grab it here: {"{{pack_link}}"}</div>
+            <p className="dm-kicker">Who gets it · {picked.size} chosen</p>
+            <div className="dm-chips">
+              {DEMO_PEOPLE.slice(0, 4).map(p => (
+                <button key={p.id} type="button" className={`dm-check${picked.has(p.id) ? " is-on" : ""}`} aria-pressed={picked.has(p.id)} onClick={() => togglePerson(p.id)}>
+                  <span>{picked.has(p.id) ? "✓" : ""}</span>{p.name.split(" ")[0]}
+                </button>
+              ))}
+            </div>
+            <b className="dm-pill dm-pill-wide">Preview {picked.size} {picked.size === 1 ? "person" : "people"}</b>
+          </div>
+        </div>
       );
     }
     return (
       <>
-        <div className="dm-row"><span className="dm-grow"><span className="dm-name">Mix session</span><span className="dm-roles"><em>Anna Moreau</em></span></span><span className="dm-price">€300</span></div>
-        <div className="dm-row"><span className="dm-grow"><span className="dm-name">Mastering</span><span className="dm-roles"><em>Dre Tamba</em></span></span><span className="dm-price">€120</span></div>
-        <p className="dm-kicker">Split</p>
+        <div className="dm-row"><span className="dm-grow"><span className="dm-name">Mix session · Iceman</span><span className="dm-meta">Dana Okafor · 6 hrs</span></span><span className="dm-price">€300</span></div>
+        <div className="dm-row"><span className="dm-grow"><span className="dm-name">Mastering</span><span className="dm-meta">Ion Brandt · album</span></span><span className="dm-price">€120</span></div>
         <div className="dm-split"><span style={{ width: "50%", background: "#c9b6ee" }} /><span style={{ width: "30%", background: "#a3ddc2" }} /><span style={{ width: "20%", background: "#f3d58b" }} /></div>
         <p className="dm-kicker">Producer 50% · Artist 30% · Writer 20%</p>
+        <div className="dm-row"><span className="dm-grow"><span className="dm-name">Invoice #0042</span><span className="dm-meta">Due 14 Nov 2026</span></span><span className="dm-price">€420</span></div>
       </>
     );
   }
@@ -4639,7 +4712,7 @@ function HeroDemo() {
       </div>
       <div className="demo-caption">
         <p>{current.copy}</p>
-        <a href="#features">How it works ↓</a>
+        <a href="#features">See all features →</a>
       </div>
       <div className="demo-body" role="tabpanel">{body()}</div>
     </div>
@@ -4691,6 +4764,16 @@ function App() {
   const [deckIndex, setDeckIndex] = useState(0);
   const [apiStatus, setApiStatus] = useState("checking"); // checking | online | offline
   const [mailAccount, setMailAccount] = useState(null); // the connected Gmail, once signed in
+  const [page, setPage] = useState(() => (window.location.hash === "#features" ? "features" : "home"));
+
+  useEffect(() => {
+    function onHash() {
+      setPage(window.location.hash === "#features" ? "features" : "home");
+      window.scrollTo(0, 0);
+    }
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -4902,6 +4985,14 @@ function App() {
           <span className="eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
         </h1>
         <div className="header-actions">
+          {!token && (
+            <nav className="site-nav" aria-label="Site">
+              <a href="#features" aria-current={page === "features" ? "page" : undefined}>Features</a>
+              <a href="pricing.html">Pricing</a>
+              <a href="privacy.html">Privacy</a>
+              <a href="terms.html">Terms</a>
+            </nav>
+          )}
           <div className="header-status" role="status">
             <span className={`status-dot ${apiStatus}`} aria-hidden="true"></span>
             {apiStatus === "online" ? "Service online" : apiStatus === "offline" ? "Service offline" : "Checking service…"}
@@ -5158,7 +5249,8 @@ function App() {
         </AppDeck>
         )}
 
-        {!token && <>
+        {!token && page === "features" && <Features />}
+        {!token && page === "home" && <>
           <section className="hero" aria-labelledby="hero-heading">
             <div className="hero-copy-col">
               <p className="eyebrow">Free for 7 days · no card needed</p>
@@ -5170,7 +5262,6 @@ function App() {
             </div>
             <HeroDemo />
           </section>
-          <Features />
           <LandingExtras />
         </>}
       </main>
