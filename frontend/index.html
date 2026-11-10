@@ -1382,6 +1382,10 @@
   .imsg-action:disabled { opacity: .5; cursor: default; }
   .imsg-action-zip { margin-top: 0; }
   .imsg-link { color: var(--sky); text-decoration: none; }
+  .imsg-pack { background: rgba(243, 213, 139, .12); border: 1px solid rgba(243, 213, 139, .4); }
+  .imsg-pack .imsg-file-name { color: var(--sunshine); }
+  .imsg-pack .imsg-action,
+  .imsg-pack .imsg-action:hover { background: var(--sunshine); color: var(--void); }
   .imsg-link:hover { color: var(--paper); }
   .imsg-time { font-size: 11px; color: var(--ash); white-space: nowrap; align-self: flex-end; padding-bottom: 4px; }
   .imsg.is-example { opacity: .55; pointer-events: none; }
@@ -3132,6 +3136,15 @@ function avatarTone(name) {
   return { background: bg, color: ink };
 }
 
+// Each pack is shown once per chat, under the first message that carries it
+function firstPackOwners(chat) {
+  const owners = new Map();
+  chat.items.forEach(item => item.links.forEach(link => {
+    if (!owners.has(link)) owners.set(link, item.uid);
+  }));
+  return owners;
+}
+
 // Dropbox or Google Drive, for the name on a pack card
 function packSourceName(link) {
   return /drive\.google\.com|docs\.google\.com/.test(link) ? "Google Drive" : "Dropbox";
@@ -3365,21 +3378,21 @@ function InboxTool({ token, onAuthError }) {
   }
 
   // Packs (Dropbox or Drive links) that haven't been opened yet, per sender
-  function packKey(uid, link) {
-    return `pack|${uid}|${link}`;
+  function packKey(link) {
+    return `pack|${link}`;
   }
 
+  // Unique packs in a chat that haven't been opened yet
   function newPacksIn(chat) {
-    return chat.items.reduce(
-      (total, item) => total + item.links.filter(link => !downloaded.has(packKey(item.uid, link))).length,
-      0
-    );
+    const links = new Set();
+    chat.items.forEach(item => item.links.forEach(link => links.add(link)));
+    return [...links].filter(link => !downloaded.has(packKey(link))).length;
   }
 
-  function openPack(uid, link) {
+  function openPack(link) {
     setDownloaded(prev => {
       const next = new Set(prev);
-      next.add(packKey(uid, link));
+      next.add(packKey(link));
       if (downloadKey) {
         try { localStorage.setItem(downloadKey, JSON.stringify([...next])); } catch (e) { /* storage blocked */ }
       }
@@ -3419,6 +3432,7 @@ function InboxTool({ token, onAuthError }) {
   const demo = messages !== null && messages.length === 0;
   const chats = demo ? exampleChats() : groupBySender(messages || []);
   const active = chats.find(c => c.key === chatKey) || chats[0] || null;
+  const packOwner = active ? firstPackOwners(active) : new Map();
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -3555,11 +3569,11 @@ function InboxTool({ token, onAuthError }) {
                                 {busyFile === `zip-${item.uid}` ? "Preparing zip…" : `Download all ${item.attachments.length} as a zip`}
                               </button>
                             )}
-                            {item.links.map(link => (
+                            {item.links.filter(link => packOwner.get(link) === item.uid).map(link => (
                               <div key={link} className="imsg-bubble imsg-file imsg-pack">
                                 <span className="imsg-file-name">{packSourceName(link)} pack</span>
                                 <span className="imsg-file-meta">{item.subject}</span>
-                                <a className="imsg-action" href={link} target="_blank" rel="noopener noreferrer" onClick={() => openPack(item.uid, link)}>Open pack ↗</a>
+                                <a className="imsg-action" href={link} target="_blank" rel="noopener noreferrer" onClick={() => openPack(link)}>Open pack ↗</a>
                               </div>
                             ))}
                           </div>
