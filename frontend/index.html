@@ -3196,6 +3196,7 @@ function PacksTool({ token, onAuthError }) {
       setForm({ name: "", url: "" });
       setAdding(false);
       setMessage("Pack saved.");
+      window.dispatchEvent(new Event("cc:packs-changed"));
       await load();
     });
   }
@@ -3206,6 +3207,7 @@ function PacksTool({ token, onAuthError }) {
       await callApi(`/packs/${pack.id}`, token, { method: "DELETE" });
       setSelected(null);
       setMessage("Pack removed.");
+      window.dispatchEvent(new Event("cc:packs-changed"));
       await load();
     });
   }
@@ -4249,6 +4251,27 @@ function CampaignsTool({ token, onAuthError }) {
   }
 
   useEffect(() => { run(load); }, []);
+
+  // A pack added or removed in the Packs window shows up here straight away
+  useEffect(() => {
+    const reloadPacks = () => callApi("/packs", token).then(p => setPacks(p.packs)).catch(() => {});
+    window.addEventListener("cc:packs-changed", reloadPacks);
+    return () => window.removeEventListener("cc:packs-changed", reloadPacks);
+  }, [token]);
+
+  // Recently opened and top openers update on their own. Quiet: no spinner, and paused while the tab is hidden.
+  useEffect(() => {
+    const refreshActivity = () => {
+      if (document.visibilityState !== "visible") return;
+      callApi("/activity", token).then(setActivity).catch(() => {});
+    };
+    const id = setInterval(refreshActivity, 15000);
+    document.addEventListener("visibilitychange", refreshActivity);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", refreshActivity);
+    };
+  }, [token]);
 
   useEffect(() => {
     setChosen(new Set());
