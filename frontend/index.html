@@ -894,8 +894,7 @@
   @media (min-width: 760px) {
     .ios-sheet { left: 50%; right: auto; width: 480px; margin-left: -240px; bottom: 24px; border-radius: 20px; }
   }
-  /* Pack sheet: centred over a soft Dropbox-blue backdrop */
-  .pk-sheet-wrap .ios-backdrop { background: rgba(0, 97, 255, .28); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+  /* Pack sheet: centred over the usual dark backdrop */
   .pk-sheet-wrap .ios-sheet {
     top: 50%; bottom: auto; left: 50%; right: auto;
     transform: translate(-50%, -50%);
@@ -907,11 +906,11 @@
   .dbx-choose {
     width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
     padding: 14px 16px; border: 0; border-radius: 12px;
-    background: #0061ff; color: #ffffff;
+    background: #1a5bc4; color: #ffffff;
     font-family: var(--sans); font-size: 15px; font-weight: 600; letter-spacing: -0.011em;
     cursor: pointer; transition: background-color .15s;
   }
-  .dbx-choose:hover:not(:disabled) { background: #0052d9; }
+  .dbx-choose:hover:not(:disabled) { background: #154caa; }
   .dbx-choose:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
   .dbx-choose:disabled { opacity: .6; cursor: default; }
   .dbx-or { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
