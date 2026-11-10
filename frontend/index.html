@@ -4326,10 +4326,12 @@ function CampaignsTool({ token, onAuthError }) {
       setMessage(
         `Sending ${result.queued} emails from ${account.address}.` +
         (result.waiting ? ` ${result.waiting} more wait until the daily limit resets.` : "") +
-        " Progress updates here."
+        " Click the campaign to see its results."
       );
+      // Back to the list. Results show when the campaign is opened again.
+      setSelectedId("");
+      setStats(null);
       await load();
-      await loadStats(selectedId);
     });
   }
 
