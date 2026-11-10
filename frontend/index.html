@@ -456,6 +456,7 @@
   }
   .panel-title { font-size: 20px; font-weight: 510; letter-spacing: -0.016em; color: var(--paper); }
   .panel-copy { margin-top: 8px; font-size: 14px; color: var(--fog); }
+  .send-progress { margin-top: 12px; font-size: 18px; color: var(--paper); }
   .panel-form { margin-top: 20px; }
 
   /* ── TOOLS (title bar and tool screens) ── */
@@ -3393,10 +3394,17 @@ function timeAgo(timestamp) {
   return `${Math.round(seconds / 86400)}d ago`;
 }
 
+// A time as the viewer sees it, e.g. "Tue 11 Nov, 14:32"
+function whenText(epochSeconds) {
+  return new Date(epochSeconds * 1000).toLocaleString([], {
+    weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+  });
+}
+
 function statusText(status) {
   if (!status) return "";
   if (status === "sending") return "Sending now";
-  if (status === "partial") return "Partly sent. The daily limit or a stop left people waiting.";
+  if (status === "partial") return "Partly sent. The rest goes out automatically when the daily limit has room.";
   if (status.startsWith("stopped")) return `Stopped. ${status.replace(/^stopped:\s*/, "")}`;
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
@@ -4280,12 +4288,12 @@ function CampaignsTool({ token, onAuthError }) {
     else setStats(null);
   }, [selectedId]);
 
-  // While a campaign is sending, keep the progress up to date
+  // While a campaign is sending or partly sent, keep the progress and times up to date
   useEffect(() => {
-    if (stats?.status !== "sending" || !selectedId) return undefined;
+    if (!["sending", "partial"].includes(stats?.status) || !selectedId) return undefined;
     const id = setInterval(() => {
       loadStats(selectedId).catch(() => {});
-    }, 4000);
+    }, 5000);
     return () => clearInterval(id);
   }, [stats?.status, selectedId]);
 
@@ -4324,8 +4332,8 @@ function CampaignsTool({ token, onAuthError }) {
       const result = await requestSend(true);
       setPreview(null);
       setMessage(
-        `Sending ${result.queued} emails from ${account.address}.` +
-        (result.waiting ? ` ${result.waiting} more wait until the daily limit resets.` : "") +
+        `Sending ${result.queued} emails from ${account.address}. Done sending by ${whenText(result.done_at)}.` +
+        (result.waiting ? ` The other ${result.waiting} go out automatically as the daily limit allows.` : "") +
         " Click the campaign to see its results."
       );
       // Back to the list. Results show when the campaign is opened again.
@@ -4569,6 +4577,11 @@ function CampaignsTool({ token, onAuthError }) {
                   This would reach <strong>{preview.would_send}</strong> people.
                   {!canSend && " Connect your Gmail above to send."}
                 </p>
+                {preview.would_send > preview.today && (
+                  <p className="panel-copy">
+                    {preview.today} go out today. The other {preview.would_send - preview.today} follow automatically as the daily limit allows.
+                  </p>
+                )}
                 {preview.sample?.length > 0 && <p className="panel-copy">Sample: {preview.sample.join(", ")}</p>}
                 <button
                   type="button"
@@ -4585,6 +4598,17 @@ function CampaignsTool({ token, onAuthError }) {
               <div className="campaign-stats cmp-block">
                 <span className="cmp-section-title">Results</span>
                 <p className="panel-copy">Status: {statusText(stats.status)}</p>
+                {stats.total > 0 && (
+                  <p className="send-progress"><b>{stats.sent} of {stats.total} sent</b></p>
+                )}
+                {stats.done_at ? (
+                  <>
+                    <p className="panel-copy">Next campaign can be started {whenText(stats.done_at)}</p>
+                    <p className="panel-copy">Done sending by {whenText(stats.done_at)}</p>
+                  </>
+                ) : stats.total > 0 ? (
+                  <p className="panel-copy">Everyone has it. The next campaign can be started now.</p>
+                ) : null}
                 {stats.tracking ? (
                   <>
                     <div className="stat-grid stat-grid-compact">
