@@ -695,39 +695,58 @@ def _norm(text):
     return re.sub(r"[^a-z0-9]", "", (text or "").lower())
 
 
-# (name shown, search queries to try, normalised Genius names that count as a match)
+# Producers shown in the landing preview. Their photos come from Genius: first from the album's own
+# track credits, then from a search for the name.
+ICEMAN_ALBUM_ID = 1395699  # Genius album "ICEMAN"
 DEMO_PRODUCERS = [
-    ('Noah "40" Shebib', ["Noah 40 Shebib", "40 Shebib", "Noah Shebib"], {"40", "noah40shebib", "noahshebib", "40shebib", "shebib"}),
-    ("Boi-1da", ["Boi-1da", "Boi 1da"], {"boi1da"}),
-    ("London Cyr", ["London Cyr"], {"londoncyr"}),
+    ("Hanz (NOR)", ["Hanz (NOR)"], {"hanznor"}),
+    ("Sem0r", ["Sem0r"], {"sem0r"}),
     ("Gordo", ["Gordo"], {"gordo"}),
-    ("Cardo", ["Cardo"], {"cardo"}),
-    ("Oz", ["Oz"], {"oz"}),
 ]
 _demo_cache = {"at": 0.0, "data": None}
 
 
-def _artist_image(primary):
-    """A Genius artist's photo. Search results sometimes leave it out, so ask for the artist itself."""
-    if primary.get("image_url"):
-        return primary["image_url"]
-    if not primary.get("id"):
-        return None
-    resp = requests.get(f"{GENIUS_BASE}/artists/{primary['id']}", headers=HEADERS, timeout=10)
-    resp.raise_for_status()
-    return (resp.json()["response"]["artist"] or {}).get("image_url")
+def _genius_get(path, params=None):
+    """A Genius request that waits and retries once if Genius asks it to slow down."""
+    for attempt in range(2):
+        resp = requests.get(f"{GENIUS_BASE}{path}", headers=HEADERS, params=params, timeout=10)
+        if resp.status_code == 429 and attempt == 0:
+            time.sleep(2)
+            continue
+        resp.raise_for_status()
+        return resp.json()["response"]
+    raise RuntimeError("Genius is busy")
+
+
+def _album_producer_photos():
+    """Music producers credited on the album's tracks, with their Genius photo where there is one."""
+    photos = {}
+    for track in _genius_get(f"/albums/{ICEMAN_ALBUM_ID}/tracks", {"per_page": 50})["tracks"]:
+        song = _genius_get(f"/songs/{track['song']['id']}")["song"]
+        for perf in song.get("custom_performances") or []:
+            label = perf.get("label") or ""
+            if "Producer" not in label or "Video" in label:
+                continue
+            for artist in perf.get("artists") or []:
+                if artist.get("image_url") and artist.get("name"):
+                    photos.setdefault(artist["name"], artist["image_url"])
+    return photos
 
 
 def _producer_photo(queries, names):
+    """The photo of the Genius artist with one of these names. Tries the search result first,
+    then the song's own artist record, which always carries the picture."""
     for query in queries:
-        resp = requests.get(f"{GENIUS_BASE}/search", headers=HEADERS, params={"q": query, "per_page": 10}, timeout=10)
-        resp.raise_for_status()
-        for hit in resp.json()["response"]["hits"]:
+        for hit in _genius_get("/search", {"q": query, "per_page": 10})["hits"]:
             primary = hit["result"].get("primary_artist") or {}
-            if _norm(primary.get("name")) in names:
-                image = _artist_image(primary)
-                if image:
-                    return image
+            if _norm(primary.get("name")) not in names:
+                continue
+            if primary.get("image_url"):
+                return primary["image_url"]
+            song = _genius_get(f"/songs/{hit['result']['id']}")["song"]
+            image = (song.get("primary_artist") or {}).get("image_url")
+            if image:
+                return image
     return None
 
 
@@ -736,33 +755,39 @@ def demo_artwork():
     if _demo_cache["data"] is not None and time.time() - _demo_cache["at"] < 3600:
         return jsonify(_demo_cache["data"])
     data = {"album": None, "producers": []}
-    complete = True
+    problems = []
     try:
         album = next((a for a in find_albums("Iceman Drake") if a.get("name", "").lower() == "iceman"), None)
         if album and album.get("cover_art"):
             data["album"] = {"name": album["name"], "artist": album.get("artist", ""), "image_url": album["cover_art"]}
         else:
             # Fall back to the artwork of one of its songs, which is the album cover for album tracks
-            resp = requests.get(f"{GENIUS_BASE}/search", headers=HEADERS, params={"q": "Make Them Cry Drake", "per_page": 10}, timeout=10)
-            resp.raise_for_status()
-            for hit in resp.json()["response"]["hits"]:
+            for hit in _genius_get("/search", {"q": "Make Them Cry Drake", "per_page": 10})["hits"]:
                 song = hit["result"]
                 if (song.get("primary_artist") or {}).get("name", "").lower() == "drake" and song.get("song_art_image_url"):
                     data["album"] = {"name": "Iceman", "artist": "Drake", "image_url": song["song_art_image_url"]}
                     break
     except Exception as e:
-        complete = False
-        logger.warning(f"Demo album cover could not be loaded: {e}")
+        problems.append(f"album: {e}")
+    try:
+        album_photos = _album_producer_photos()
+    except Exception as e:
+        album_photos = {}
+        problems.append(f"album credits: {e}")
     for display, queries, names in DEMO_PRODUCERS:
-        try:
-            image = _producer_photo(queries, names)
-        except Exception as e:
-            complete = False
-            image = None
-            logger.warning(f"Demo photo for {display} could not be loaded: {e}")
+        image = album_photos.get(display)
+        if not image:
+            try:
+                image = _producer_photo(queries, names)
+            except Exception as e:
+                problems.append(f"{display}: {e}")
         data["producers"].append({"name": display, "image_url": image})
-    if complete:
-        _demo_cache.update(at=time.time(), data=data)  # only a full answer is kept for an hour
+    data["missing"] = [p["name"] for p in data["producers"] if not p["image_url"]]
+    if problems:
+        logger.warning(f"Demo artwork incomplete: {problems}")
+        data["problems"] = problems  # visible at /api/demo/artwork to see what Genius did not return
+    else:
+        _demo_cache.update(at=time.time(), data=data)  # only a complete answer is kept for an hour
     return jsonify(data)
 
 

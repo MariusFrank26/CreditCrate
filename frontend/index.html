@@ -1725,6 +1725,8 @@
   .dm-pack span { color: var(--sunshine); }
   .dm-pack b { background: var(--sunshine); color: var(--void); }
   .dm-muted { color: var(--ash); }
+  .dm-mail { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .dm-copy { flex: none; font-size: 11px; font-weight: 600; color: var(--paper); background: var(--graphite); border-radius: 999px; padding: 3px 9px; }
   .dm-cover-sm img.dm-cover-art { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
   .dm-cover-sm { overflow: hidden; }
   .dm-photo { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex: none; }
@@ -4610,17 +4612,14 @@ const DEMO_TOOLS = [
 
 // Producers from the Iceman credits. Only names and roles are shown; no contact details are invented.
 const DEMO_PRODUCERS = [
-  { name: "Noah \"40\" Shebib", initials: "40", tone: "#c9b6ee" },
-  { name: "Boi-1da", initials: "B1", tone: "#a9d8ef" },
-  { name: "London Cyr", initials: "LC", tone: "#a3ddc2" },
-  { name: "Gordo", initials: "GO", tone: "#f2a79c" },
-  { name: "Cardo", initials: "CA", tone: "#f3d58b" },
-  { name: "Oz", initials: "OZ", tone: "#9fb4f2" },
+  { name: "Hanz (NOR)", initials: "HN", tone: "#c9b6ee" },
+  { name: "Sem0r", initials: "SE", tone: "#a9d8ef" },
+  { name: "Gordo", initials: "GO", tone: "#a3ddc2" },
 ];
 
 function HeroDemo({ artwork }) {
   const [tool, setTool] = useState("credits");
-  const [picked, setPicked] = useState(new Set(["Boi-1da", "London Cyr"]));
+  const [picked, setPicked] = useState(new Set(["Hanz (NOR)", "Sem0r"]));
   const [chatWith, setChatWith] = useState("Jonah");
   const current = DEMO_TOOLS.find(t => t.id === tool);
 
@@ -4639,7 +4638,7 @@ function HeroDemo({ artwork }) {
         <div className="dm-search"><span>⌕</span><span className="dm-query">Iceman</span><b>Search</b></div>
         <div className="dm-album">
           <span className="dm-cover-sm">
-            {artwork?.album?.image_url ? <img src={artwork.album.image_url} alt="" className="dm-cover-art" /> : <img src="logo.svg" alt="" />}
+            {artwork?.album?.image_url && <img src={artwork.album.image_url} alt="" className="dm-cover-art" />}
           </span>
           <span className="dm-grow">
             <span className="dm-name">Iceman</span>
@@ -4658,10 +4657,12 @@ function HeroDemo({ artwork }) {
             )}
             <span className="dm-grow">
               <span className="dm-name">{p.name}</span>
-              <span className="dm-meta">{i % 2 === 0 ? "Instagram" : "–"}</span>
+              <span className="dm-mail">
+                <span className="dm-meta">example@gmail.com</span>
+                <b className="dm-copy">Copy</b>
+              </span>
             </span>
             <em className="dm-role">Producer</em>
-            <span className={`dm-email${i === 0 ? " is-found" : ""}`}>{i === 0 ? "Copy" : "not found"}</span>
           </div>
           );
         })}
@@ -4783,18 +4784,18 @@ function HeroDemo({ artwork }) {
           <div className="dm-camp is-on"><span className="dm-row-top"><span className="dm-name">Iceman stems</span><span className="dm-status">Sent</span></span><span className="dm-meta">42 sent · 31 opened</span></div>
           <div className="dm-camp"><span className="dm-row-top"><span className="dm-name">New drums</span><span className="dm-status">Draft</span></span><span className="dm-meta">Not sent yet</span></div>
           <p className="dm-kicker">Recently opened</p>
-          <div className="dm-act"><span>Boi-1da</span><span className="dm-meta">opened · 2h</span></div>
-          <div className="dm-act"><span>London Cyr</span><span className="dm-meta">clicked · 5h</span></div>
+          <div className="dm-act"><span>Sem0r</span><span className="dm-meta">opened · 2h</span></div>
+          <div className="dm-act"><span>Hanz</span><span className="dm-meta">clicked · 5h</span></div>
           <p className="dm-kicker">Top openers</p>
-          <div className="dm-act"><span>Boi-1da</span><b>9</b></div>
-          <div className="dm-act"><span>London Cyr</span><b>6</b></div>
+          <div className="dm-act"><span>Sem0r</span><b>9</b></div>
+          <div className="dm-act"><span>Hanz</span><b>6</b></div>
         </div>
         <div className="dm-compose">
           <p className="dm-kicker">New campaign</p>
           <div className="dm-field"><span>Subject</span>Iceman stems are out</div>
           <div className="dm-field dm-field-tall"><span>Message</span>Hi {"{{name}}"},<br />New drum kit is up. Grab it here: {"{{pack_link}}"}</div>
           <div className="dm-chips">
-            {DEMO_PRODUCERS.slice(0, 4).map(p => (
+            {DEMO_PRODUCERS.map(p => (
               <button key={p.name} type="button" className={`dm-check${picked.has(p.name) ? " is-on" : ""}`} aria-pressed={picked.has(p.name)} onClick={() => togglePerson(p.name)}>
                 <span>{picked.has(p.name) ? "✓" : ""}</span>{p.name.split(" ")[0]}
               </button>
