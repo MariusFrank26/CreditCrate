@@ -150,10 +150,12 @@ def _links_in(raw):
                 text += payload.decode(part.get_content_charset() or "utf-8", "replace") + "\n"
     except Exception:
         text = raw.decode("utf-8", "replace")
-    found = set()
+    found = []  # in the order they appear in the email
     for match in LINK_RE.findall(text.replace("&amp;", "&")):
-        found.add(match.rstrip(".,;:!?)"))
-    return sorted(found)
+        link = match.rstrip(".,;:!?)")
+        if link not in found:
+            found.append(link)
+    return found
 
 
 def _recent_sample_uids(server):
@@ -179,7 +181,8 @@ def list_messages(address, password):
             present = [uid for uid in chunk if uid in heads]
             if present:
                 for uid, _, literal in _fetch_items(server, present, "(UID BODY.PEEK[]<0.150000>)"):
-                    links[uid] = _links_in(literal)
+                    # Only the first link is the new pack. Later links are usually a parent folder or older weeks.
+                    links[uid] = _links_in(literal)[:1]
             for uid in chunk:
                 if uid not in heads:
                     continue
