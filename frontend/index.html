@@ -1453,7 +1453,7 @@
   .cmp-list {
     display: flex; flex-direction: column; gap: 6px;
     background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; padding: 12px;
-    max-height: 760px; overflow-y: auto;
+    max-height: 460px; overflow-y: auto;
   }
   .cmp-list-head { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 8px; }
   .cmp-empty { font-size: 13px; color: var(--fog); padding: 8px 4px; }
@@ -1532,15 +1532,15 @@
   .share-empty { padding: 16px; font-size: 14px; color: var(--fog); }
 
   /* Recent activity sits beside the campaigns on wide screens, below them on narrow ones */
-  .cmp-side { order: -1; display: flex; flex-direction: column; gap: 10px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; padding: 14px; min-width: 0; align-self: start; }
+  .cmp-left { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .cmp-side { display: flex; flex-direction: column; gap: 10px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; padding: 14px; min-width: 0; }
   .cmp-side .activity-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .cmp-side .tool-card { padding: 12px; gap: 10px; background: none; border: 0; border-top: 1px solid var(--graphite); border-radius: 0; }
   .cmp-side .tool-card:first-child { border-top: 0; padding-top: 0; }
   @media (min-width: 1180px) {
-    .cmp-layout { grid-template-columns: 240px 280px minmax(0, 1fr); }
+    .cmp-layout { grid-template-columns: 300px minmax(0, 1fr); }
   }
   @media (max-width: 1179px) {
-    .cmp-side { grid-column: 1 / -1; order: 0; }
   }
 
   /* ── CAMPAIGN VARIABLES ── */
@@ -3922,6 +3922,7 @@ function CampaignsTool({ token, onAuthError }) {
       <GmailConnect token={token} onAuthError={onAuthError} account={account} onChange={setAccount} />
 
       <div className="cmp-layout">
+        <div className="cmp-left">
         <aside className="cmp-list" aria-label="Your campaigns">
           <div className="cmp-list-head">
             <span className="cmp-section-title">Campaigns</span>
@@ -3972,7 +3973,11 @@ function CampaignsTool({ token, onAuthError }) {
             </div>
           ))}
         </aside>
-
+        <aside className="cmp-side" aria-label="Recent activity">
+          <span className="cmp-section-title">Recent activity</span>
+          <ActivityPanel activity={activity} />
+        </aside>
+        </div>
         {selected ? (
           <section className="cmp-panel" aria-label="Send this campaign">
             <div className="cmp-panel-head">
@@ -4151,10 +4156,6 @@ function CampaignsTool({ token, onAuthError }) {
             </div>
           </form>
         )}
-        <aside className="cmp-side" aria-label="Recent activity">
-          <span className="cmp-section-title">Recent activity</span>
-          <ActivityPanel activity={activity} />
-        </aside>
       </div>
     </section>
   );
