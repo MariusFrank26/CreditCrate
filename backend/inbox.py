@@ -139,6 +139,23 @@ def _fetch_items(server, uids, what):
                 yield int(match.group(1)), meta, item[1]
 
 
+def _links_in(raw):
+    """Dropbox and Drive links in an email's text. Decodes quoted-printable and base64 first,
+    so links split by line breaks or written as &amp; come out whole."""
+    text = ""
+    try:
+        for part in message_from_bytes(raw).walk():
+            if part.get_content_type() in ("text/plain", "text/html"):
+                payload = part.get_payload(decode=True) or b""
+                text += payload.decode(part.get_content_charset() or "utf-8", "replace") + "\n"
+    except Exception:
+        text = raw.decode("utf-8", "replace")
+    found = set()
+    for match in LINK_RE.findall(text.replace("&amp;", "&")):
+        found.add(match.rstrip(".,;:!?)"))
+    return sorted(found)
+
+
 def _recent_sample_uids(server):
     _, data = server.uid("SEARCH", "X-GM-RAW", f'"({SEARCH}) newer_than:{DAYS}d"')
     return [int(uid) for uid in data[0].split()]
@@ -161,8 +178,8 @@ def list_messages(address, password):
             links = {}
             present = [uid for uid in chunk if uid in heads]
             if present:
-                for uid, _, literal in _fetch_items(server, present, "(UID BODY.PEEK[TEXT]<0.40000>)"):
-                    links[uid] = sorted(set(LINK_RE.findall(literal.decode("utf-8", "replace"))))
+                for uid, _, literal in _fetch_items(server, present, "(UID BODY.PEEK[]<0.150000>)"):
+                    links[uid] = _links_in(literal)
             for uid in chunk:
                 if uid not in heads:
                     continue

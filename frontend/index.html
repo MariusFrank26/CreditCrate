@@ -1407,11 +1407,9 @@
   .inbox-download-all { margin-top: 0; }
   .inbox-menu { position: relative; }
   .inbox-dropdown {
-    position: absolute; right: 0; top: calc(100% + 8px); z-index: 30;
-    width: min(380px, 90vw); max-height: 320px; overflow-y: auto;
+    width: 100%; max-height: 260px; overflow-y: auto;
     display: flex; flex-direction: column; gap: 2px; padding: 6px;
     background: var(--obsidian); border: 1px solid var(--graphite); border-radius: 12px;
-    box-shadow: 0 20px 50px -20px rgba(0, 0, 0, .8);
   }
   .inbox-dropdown > p { padding: 10px 12px; }
   .inbox-dropdown-item {
@@ -3500,26 +3498,6 @@ function InboxTool({ token, onAuthError }) {
               <button type="button" className="back-btn" onClick={() => setPackMenuOpen(o => !o)} aria-expanded={packMenuOpen}>
                 Unopened packs ({unopenedPacks.length}) ▾
               </button>
-              {packMenuOpen && (
-                <div className="inbox-dropdown" role="menu">
-                  {unopenedPacks.length === 0 ? (
-                    <p className="history-meta">All packs are opened.</p>
-                  ) : unopenedPacks.map(pack => (
-                    <a
-                      key={pack.id}
-                      className="inbox-dropdown-item"
-                      href={pack.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      role="menuitem"
-                      onClick={() => { openPack(pack.link); setPackMenuOpen(false); }}
-                    >
-                      <span className="inbox-dropdown-name">{packSourceName(pack.link)} · {pack.name}</span>
-                      <span className="history-meta">{pack.subject}</span>
-                    </a>
-                  ))}
-                </div>
-              )}
             </div>
           )}
           {batch ? (
@@ -3540,6 +3518,26 @@ function InboxTool({ token, onAuthError }) {
           <button type="button" className="back-btn" onClick={() => run(load)} disabled={busy || !!batch}>Refresh</button>
         </div>
       </div>
+      {packMenuOpen && !demo && (
+        <div className="inbox-dropdown" role="menu">
+          {unopenedPacks.length === 0 ? (
+            <p className="history-meta">All packs are opened.</p>
+          ) : unopenedPacks.map(pack => (
+            <a
+              key={pack.id}
+              className="inbox-dropdown-item"
+              href={pack.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              role="menuitem"
+              onClick={() => { openPack(pack.link); setPackMenuOpen(false); }}
+            >
+              <span className="inbox-dropdown-name">{packSourceName(pack.link)} · {pack.name}</span>
+              <span className="history-meta">{pack.subject}</span>
+            </a>
+          ))}
+        </div>
+      )}
 
       {messages === null ? (
         <ToolLoading label="Scanning the last 7 days of email… this can take a minute." />
