@@ -16,178 +16,203 @@
     color-scheme: dark;
     --void: #08090a; --carbon: #0f1011; --obsidian: #161718; --graphite: #23252a; --smoke: #383b3f;
     --ash: #62666d; --fog: #8a8f98; --mist: #d0d6e0; --paper: #ffffff;
-    --sunshine: #f3d58b; --mint: #a3ddc2; --sky: #a9d8ef; --salmon: #f2a79c; --lilac: #c9b6ee;
+    --sunshine: #f3d58b; --mint: #a3ddc2; --sky: #a9d8ef; --salmon: #f2a79c;
     --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   html, body { min-height: 100%; background: var(--void); color: var(--mist); font-family: var(--sans); font-size: 16px; line-height: 1.6; letter-spacing: -0.011em; }
-  body { background:
-    radial-gradient(900px 500px at 75% -10%, rgba(243, 213, 139, .09), transparent 60%),
-    radial-gradient(700px 500px at 0% 20%, rgba(201, 182, 238, .07), transparent 60%),
-    var(--void); }
   a { color: var(--sky); }
+  .page { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
 
-  .page { max-width: 1040px; margin: 0 auto; padding: 28px 24px 96px; }
+  /* Top bar: brand, then Features and Pricing */
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px 0; flex-wrap: wrap; border-bottom: 1px solid var(--graphite); }
+  .left { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--paper); text-decoration: none; font-size: 18px; font-weight: 510; letter-spacing: -0.02em; }
+  .brand img { width: 28px; height: 28px; }
+  .nav { display: flex; gap: 22px; font-size: 14px; }
+  .nav a { color: var(--fog); text-decoration: none; }
+  .nav a:hover, .nav a[aria-current="page"] { color: var(--paper); }
+  .signin { font-size: 14px; color: var(--mist); text-decoration: none; border: 1px solid var(--smoke); border-radius: 999px; padding: 7px 16px; }
+  .signin:hover { color: var(--paper); border-color: var(--fog); }
 
-  /* Top bar, like the home page */
-  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0 36px; flex-wrap: wrap; }
-  .brand { display: flex; align-items: center; gap: 12px; color: var(--paper); text-decoration: none; font-size: 18px; font-weight: 510; letter-spacing: -0.02em; }
-  .brand img { width: 30px; height: 30px; }
-  .topnav { display: flex; gap: 18px; font-size: 14px; }
-  .topnav a { color: var(--fog); text-decoration: none; }
-  .topnav a:hover, .topnav a[aria-current="page"] { color: var(--paper); }
-
-  /* Hero */
+  /* Heading */
+  .hero { text-align: center; padding: 72px 0 40px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
-  h1 { font-size: clamp(36px, 5vw, 56px); font-weight: 510; letter-spacing: -0.03em; color: var(--paper); line-height: 1.05; margin-top: 14px; text-wrap: balance; }
-  .lead { font-size: 18px; color: var(--fog); margin-top: 16px; max-width: 56ch; }
+  h1 { font-size: clamp(36px, 5vw, 54px); font-weight: 600; letter-spacing: -0.035em; color: var(--paper); line-height: 1.08; margin-top: 14px; }
+  .lead { font-size: 18px; color: var(--fog); margin: 16px auto 0; max-width: 540px; }
 
   /* Monthly / yearly switch */
-  .cycle { display: inline-flex; margin-top: 32px; padding: 4px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 999px; }
-  .cycle button {
-    font-family: var(--sans); font-size: 14px; color: var(--fog); background: none; border: 0;
-    padding: 8px 16px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
-  }
+  .cycle { display: inline-flex; margin-top: 34px; padding: 4px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 999px; }
+  .cycle button { font-family: var(--sans); font-size: 14px; color: var(--fog); background: none; border: 0; padding: 9px 18px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
   .cycle button[aria-pressed="true"] { background: var(--paper); color: var(--void); }
-  .save { font-family: var(--mono); font-size: 11px; color: var(--void); background: var(--mint); border-radius: 999px; padding: 2px 8px; }
+  .save { font-size: 12px; font-weight: 600; color: #0c2a1d; background: var(--mint); border-radius: 999px; padding: 2px 8px; }
 
   /* Plans */
-  .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 28px; align-items: stretch; }
-  .plan {
-    position: relative; display: flex; flex-direction: column; gap: 18px;
-    background: var(--carbon); border: 1px solid var(--graphite); border-radius: 22px; padding: 30px;
-  }
-  .plan.featured {
-    border-color: rgba(243, 213, 139, .55);
-    background: linear-gradient(180deg, rgba(243, 213, 139, .07), var(--carbon) 60%);
-    box-shadow: 0 30px 80px -40px rgba(243, 213, 139, .35);
-  }
-  .tag { position: absolute; top: -12px; left: 30px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--void); background: var(--sunshine); padding: 5px 10px; border-radius: 999px; }
-  .plan-name { font-size: 16px; font-weight: 600; color: var(--paper); }
-  .plan-copy { font-size: 14px; color: var(--fog); }
-  .price-row { display: flex; align-items: baseline; gap: 8px; }
-  .price { font-size: 56px; font-weight: 600; letter-spacing: -0.04em; color: var(--paper); line-height: 1; font-variant-numeric: tabular-nums; }
-  .price-unit { font-size: 15px; color: var(--fog); }
-  .price-alt { font-size: 13px; color: var(--ash); min-height: 20px; }
-
-  ul.checks { list-style: none; display: flex; flex-direction: column; gap: 11px; font-size: 15px; color: var(--mist); border-top: 1px solid var(--graphite); padding-top: 18px; }
-  ul.checks li { display: flex; gap: 10px; align-items: flex-start; }
-  ul.checks li::before {
-    content: ""; flex: none; width: 16px; height: 16px; margin-top: 4px; border-radius: 50%;
-    background: radial-gradient(circle, var(--void) 0 3px, transparent 3.5px), var(--mint);
-  }
-  .plan.featured ul.checks li::before { background: radial-gradient(circle, var(--void) 0 3px, transparent 3.5px), var(--sunshine); }
-
-  .actions { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
-  .button {
-    font-family: var(--sans); font-size: 15px; font-weight: 510; border-radius: 12px; padding: 14px 18px;
-    cursor: pointer; border: 1px solid var(--smoke); background: none; color: var(--mist);
-    text-align: center; text-decoration: none; display: block; width: 100%;
-    transition: background-color .15s, color .15s, border-color .15s;
-  }
-  .button:hover { color: var(--paper); border-color: var(--fog); }
-  .button.primary { background: var(--paper); color: var(--void); border-color: var(--paper); }
-  .button.primary:hover { background: var(--sunshine); border-color: var(--sunshine); color: var(--void); }
-  .button:disabled { opacity: .45; cursor: default; }
-  .note { font-size: 13px; color: var(--ash); text-align: center; }
-
-  .msg { font-size: 14px; margin-top: 18px; color: var(--sunshine); min-height: 20px; }
+  .plans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 36px; align-items: stretch; }
+  .plan { position: relative; display: flex; flex-direction: column; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 18px; padding: 32px; }
+  .plan.featured { border-color: var(--paper); }
+  .badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: var(--void); background: var(--paper); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+  .plan-name { font-size: 17px; font-weight: 600; color: var(--paper); }
+  .plan-copy { font-size: 14px; color: var(--fog); margin-top: 6px; min-height: 42px; }
+  .price-row { display: flex; align-items: baseline; gap: 6px; margin-top: 22px; }
+  .price { font-size: 48px; font-weight: 600; letter-spacing: -0.04em; color: var(--paper); line-height: 1; font-variant-numeric: tabular-nums; }
+  .per { font-size: 15px; color: var(--fog); }
+  .price-note { font-size: 13px; color: var(--ash); margin-top: 8px; min-height: 20px; }
+  .cta { display: block; width: 100%; margin-top: 24px; font-family: var(--sans); font-size: 15px; font-weight: 600; text-align: center; text-decoration: none; border-radius: 10px; padding: 13px 16px; cursor: pointer; border: 1px solid var(--smoke); background: none; color: var(--paper); }
+  .cta:hover { border-color: var(--fog); }
+  .cta.primary { background: var(--paper); color: var(--void); border-color: var(--paper); }
+  .cta.primary:hover { background: #e9e9e9; }
+  .cta:disabled { opacity: .5; cursor: default; }
+  .includes { font-size: 14px; color: var(--mist); margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--graphite); display: flex; flex-direction: column; gap: 11px; list-style: none; }
+  .includes li { display: flex; gap: 10px; align-items: flex-start; }
+  .includes li::before { content: "✓"; color: var(--mint); font-weight: 600; flex: none; }
+  .msg { font-size: 14px; margin-top: 18px; color: var(--sunshine); min-height: 20px; text-align: center; }
   .msg.bad { color: var(--salmon); }
 
-  /* Questions */
-  .questions { margin-top: 64px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-  .question { background: var(--carbon); border: 1px solid var(--graphite); border-radius: 16px; padding: 22px; }
-  .question h3 { font-size: 15px; font-weight: 600; color: var(--paper); margin-bottom: 8px; }
-  .question p { font-size: 14px; color: var(--fog); }
+  /* Comparison table */
+  .compare { margin-top: 80px; }
+  .compare h2, .faq h2 { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; color: var(--paper); text-align: center; }
+  .table-wrap { margin-top: 28px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 18px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { padding: 15px 22px; border-bottom: 1px solid var(--graphite); text-align: center; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { font-size: 14px; font-weight: 600; color: var(--paper); }
+  tbody th { font-weight: 400; color: var(--mist); }
+  tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
+  .yes { color: var(--mint); font-weight: 600; }
+  .no { color: var(--ash); }
 
-  .fine { margin-top: 40px; font-size: 13px; color: var(--ash); max-width: 760px; line-height: 1.6; }
-  .fine a { color: var(--fog); }
+  /* FAQ */
+  .faq { margin-top: 80px; max-width: 760px; margin-left: auto; margin-right: auto; }
+  .faq details { border-bottom: 1px solid var(--graphite); }
+  .faq summary { list-style: none; cursor: pointer; padding: 20px 4px; font-size: 16px; font-weight: 500; color: var(--paper); display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; font-size: 22px; color: var(--fog); transition: transform .2s; }
+  .faq details[open] summary::after { transform: rotate(45deg); }
+  .faq details p { font-size: 15px; color: var(--fog); padding: 0 4px 20px; }
 
-  @media (max-width: 600px) {
+  /* Footer, like the home page */
+  .site-footer { margin-top: 96px; border-top: 1px solid var(--graphite); padding: 26px 0 40px; font-size: 13px; color: var(--ash); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .site-footer a { color: var(--fog); text-decoration: none; }
+  .site-footer a:hover { color: var(--paper); }
+  .fine { margin-top: 28px; font-size: 13px; color: var(--ash); text-align: center; line-height: 1.6; }
+
+  @media (max-width: 800px) {
+    .plans { grid-template-columns: minmax(0, 1fr); max-width: 480px; margin-left: auto; margin-right: auto; }
+    .hero { padding-top: 48px; }
+  }
+  @media (max-width: 560px) {
     .plan { padding: 26px 22px; }
-    .price { font-size: 46px; }
+    .price { font-size: 42px; }
+    th, td { padding: 12px 12px; font-size: 14px; }
   }
 </style>
 </head>
 <body>
-<main class="page">
+<div class="page">
   <header class="topbar">
-    <a class="brand" href="index.html"><img src="logo.svg" alt="" />CreditCrate</a>
-    <nav class="topnav" aria-label="Site">
-      <a href="index.html#features">Features</a>
-      <a href="pricing.html" aria-current="page">Pricing</a>
-      <a href="privacy.html">Privacy</a>
-      <a href="terms.html">Terms</a>
-    </nav>
+    <div class="left">
+      <a class="brand" href="index.html"><img src="logo.svg" alt="" />CreditCrate</a>
+      <nav class="nav" aria-label="Site">
+        <a href="index.html#features">Features</a>
+        <a href="pricing.html" aria-current="page">Pricing</a>
+      </nav>
+    </div>
+    <a class="signin" href="index.html">Sign in</a>
   </header>
 
-  <p class="eyebrow">Pricing</p>
-  <h1>Try everything free. Then keep it for $5 a month.</h1>
-  <p class="lead">Every tool is included from the first day. No card is needed to start, and you can cancel any time.</p>
-
-  <div class="cycle" role="group" aria-label="Billing period">
-    <button type="button" id="cycle-month" aria-pressed="true" data-cycle="month">Monthly</button>
-    <button type="button" id="cycle-year" aria-pressed="false" data-cycle="year">Yearly <span class="save">2 months free</span></button>
-  </div>
+  <section class="hero">
+    <p class="eyebrow">Pricing</p>
+    <h1>Simple pricing for producers</h1>
+    <p class="lead">Start with a free 7-day trial, with every tool included. Choose Pro when you're ready to keep going.</p>
+    <div class="cycle" role="group" aria-label="Billing period">
+      <button type="button" aria-pressed="true" data-cycle="month">Monthly</button>
+      <button type="button" aria-pressed="false" data-cycle="year">Yearly <span class="save">Save 17%</span></button>
+    </div>
+  </section>
 
   <div class="plans">
     <section class="plan" aria-labelledby="free-name">
       <p class="plan-name" id="free-name">Free trial</p>
-      <p class="plan-copy">Everything in CreditCrate for your first week.</p>
-      <div class="price-row"><span class="price">$0</span><span class="price-unit">for 7 days</span></div>
-      <p class="price-alt">No card needed</p>
-      <ul class="checks">
-        <li>Credits search and contact lookups</li>
+      <p class="plan-copy">Try everything for your first week.</p>
+      <div class="price-row"><span class="price">$0</span><span class="per">for 7 days</span></div>
+      <p class="price-note">No card needed</p>
+      <a class="cta" href="index.html">Start free trial</a>
+      <ul class="includes">
+        <li>All six tools</li>
+        <li>Gmail sending from your own account</li>
+        <li>Sample inbox with downloads</li>
         <li>Contacts, packs and campaigns</li>
-        <li>Sample inbox from your own Gmail</li>
-        <li>Deal Desk</li>
       </ul>
-      <div class="actions">
-        <a class="button" href="index.html">Start the free trial</a>
-      </div>
     </section>
 
     <section class="plan featured" aria-labelledby="pro-name">
-      <span class="tag">Recommended</span>
+      <span class="badge">Most popular</span>
       <p class="plan-name" id="pro-name">Pro</p>
-      <p class="plan-copy">Keeps everything running after the trial.</p>
-      <div class="price-row"><span class="price" id="pro-price">$5</span><span class="price-unit" id="pro-unit">per month</span></div>
-      <p class="price-alt" id="pro-alt">Billed monthly. Cancel any time.</p>
-      <ul class="checks">
+      <p class="plan-copy">Everything in the trial, kept running after it ends.</p>
+      <div class="price-row"><span class="price" id="pro-price">$5</span><span class="per" id="pro-per">per month</span></div>
+      <p class="price-note" id="pro-note">Billed monthly. Cancel any time.</p>
+      <button type="button" class="cta primary" id="checkout">Get Pro · $5 a month</button>
+      <ul class="includes">
         <li>Everything in the free trial</li>
-        <li>Keeps working after the trial ends</li>
+        <li>No interruption after 7 days</li>
         <li>Cancel any time</li>
       </ul>
-      <div class="actions">
-        <button type="button" class="button primary" id="checkout">Get Pro · $5 a month</button>
-        <p class="note">You'll sign in first if you aren't already.</p>
-      </div>
     </section>
   </div>
-
   <p class="msg" id="status" role="status"></p>
 
-  <section class="questions" aria-label="Questions about pricing">
-    <div class="question">
-      <h3>What happens after 7 days?</h3>
+  <section class="compare" aria-labelledby="compare-heading">
+    <h2 id="compare-heading">Compare plans</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th scope="col">Feature</th><th scope="col">Free trial</th><th scope="col">Pro</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Credits search</th><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Contacts</th><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Packs</th><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Sample inbox</th><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Campaigns from your Gmail</th><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Deal Desk</th><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Length</th><td>7 days</td><td>Ongoing</td></tr>
+          <tr><th scope="row">Card needed to start</th><td class="no">No</td><td class="no">Only when you choose Pro</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="faq" aria-labelledby="faq-heading">
+    <h2 id="faq-heading">Questions</h2>
+    <details>
+      <summary>What happens after 7 days?</summary>
       <p>The tools lock until you choose Pro. Your contacts, packs and campaigns are kept, so nothing is lost.</p>
-    </div>
-    <div class="question">
-      <h3>Can I cancel?</h3>
+    </details>
+    <details>
+      <summary>Can I cancel?</summary>
       <p>Yes, any time. You keep Pro until the end of the period you've paid for.</p>
-    </div>
-    <div class="question">
-      <h3>Do I need a card for the trial?</h3>
+    </details>
+    <details>
+      <summary>Do I need a card for the trial?</summary>
       <p>No. You only pay if you choose Pro.</p>
-    </div>
+    </details>
+    <details>
+      <summary>Do I need my own Gmail?</summary>
+      <p>Yes. Campaigns and the sample inbox use your own Gmail account, connected with an app password, so mail goes out from your address.</p>
+    </details>
   </section>
 
   <p class="fine">
     Payments are handled by Stripe. Prices are in US dollars; sales tax or VAT may be added at checkout where it applies.
-    Your subscription renews automatically until you cancel. Read the <a href="privacy.html">privacy page</a> for how your data is handled.
-    Terms and refund rules are still to be written.
+    Your subscription renews automatically until you cancel. Terms and refund rules are still to be written.
   </p>
-</main>
+
+  <footer class="site-footer">
+    <span>CreditCrate © 2026</span>
+    <span><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></span>
+  </footer>
+</div>
 
 <script>
 const API = "https://api.creditcrate.app/api";
@@ -196,18 +221,18 @@ const status = document.getElementById("status");
 const checkout = document.getElementById("checkout");
 let cycle = "month";
 
-const PRICES = {
-  month: { price: "$5", unit: "per month", alt: "Billed monthly. Cancel any time.", label: "Get Pro · $5 a month" },
-  year: { price: "$50", unit: "per year", alt: "Billed yearly. That's $4.17 a month, two months free.", label: "Get Pro · $50 a year" },
+const PLANS = {
+  month: { price: "$5", per: "per month", note: "Billed monthly. Cancel any time.", label: "Get Pro · $5 a month" },
+  year: { price: "$50", per: "per year", note: "Billed yearly. That's $4.17 a month, two months free.", label: "Get Pro · $50 a year" },
 };
 
 function showCycle(next) {
   cycle = next;
   document.querySelectorAll("[data-cycle]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.cycle === next)));
-  const p = PRICES[next];
+  const p = PLANS[next];
   document.getElementById("pro-price").textContent = p.price;
-  document.getElementById("pro-unit").textContent = p.unit;
-  document.getElementById("pro-alt").textContent = p.alt;
+  document.getElementById("pro-per").textContent = p.per;
+  document.getElementById("pro-note").textContent = p.note;
   checkout.textContent = p.label;
 }
 

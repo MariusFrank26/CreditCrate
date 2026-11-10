@@ -700,8 +700,8 @@ DEMO_PRODUCERS = [
     ('Noah "40" Shebib', ["Noah 40 Shebib", "40 Shebib", "Noah Shebib"], {"40", "noah40shebib", "noahshebib", "40shebib", "shebib"}),
     ("Boi-1da", ["Boi-1da", "Boi 1da"], {"boi1da"}),
     ("London Cyr", ["London Cyr"], {"londoncyr"}),
-    ("Cash Cobain", ["Cash Cobain"], {"cashcobain"}),
-    ("Conductor Williams", ["Conductor Williams"], {"conductorwilliams"}),
+    ("Gordo", ["Gordo"], {"gordo"}),
+    ("Cardo", ["Cardo"], {"cardo"}),
     ("Oz", ["Oz"], {"oz"}),
 ]
 _demo_cache = {"at": 0.0, "data": None}
@@ -739,8 +739,17 @@ def demo_artwork():
     complete = True
     try:
         album = next((a for a in find_albums("Iceman Drake") if a.get("name", "").lower() == "iceman"), None)
-        if album:
-            data["album"] = {"name": album["name"], "artist": album.get("artist", ""), "image_url": album.get("cover_art")}
+        if album and album.get("cover_art"):
+            data["album"] = {"name": album["name"], "artist": album.get("artist", ""), "image_url": album["cover_art"]}
+        else:
+            # Fall back to the artwork of one of its songs, which is the album cover for album tracks
+            resp = requests.get(f"{GENIUS_BASE}/search", headers=HEADERS, params={"q": "Make Them Cry Drake", "per_page": 10}, timeout=10)
+            resp.raise_for_status()
+            for hit in resp.json()["response"]["hits"]:
+                song = hit["result"]
+                if (song.get("primary_artist") or {}).get("name", "").lower() == "drake" and song.get("song_art_image_url"):
+                    data["album"] = {"name": "Iceman", "artist": "Drake", "image_url": song["song_art_image_url"]}
+                    break
     except Exception as e:
         complete = False
         logger.warning(f"Demo album cover could not be loaded: {e}")

@@ -594,7 +594,9 @@
   .features { margin-top: 32px; }
   .features-back { display: inline-block; margin-bottom: 16px; }
   .features-cta { margin-top: 56px; display: flex; justify-content: center; }
+  .header-left { display: flex; align-items: center; gap: 32px; min-width: 0; flex-wrap: wrap; }
   .site-nav { display: flex; gap: 18px; font-size: 14px; }
+  .site-nav-brand { padding-top: 8px; }
   .site-nav a { color: var(--fog); text-decoration: none; }
   .site-nav a:hover, .site-nav a[aria-current="page"] { color: var(--paper); }
   .features-title {
@@ -1636,7 +1638,7 @@
   .dm-query { flex: 1; color: var(--paper); }
   .dm-search b, .dm-pill { font-size: 12px; font-weight: 600; color: #ffffff; background: #0a84ff; border-radius: 999px; padding: 5px 12px; }
   .dm-pill { align-self: flex-start; cursor: default; }
-  .dm-pill-wide { align-self: stretch; text-align: center; padding: 10px 12px; font-size: 13px; }
+  .dm-pill-wide { align-self: stretch; text-align: center; padding: 10px 12px; font-size: 13px; background: var(--paper); color: var(--void); }
   .dm-kicker { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); margin-top: 4px; }
   .dm-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--graphite); }
   .dm-row:last-child { border-bottom: 0; }
@@ -1675,7 +1677,7 @@
   .dm-camp { display: flex; flex-direction: column; padding: 7px 9px; border-radius: 8px; border: 1px solid transparent; }
   .dm-camp.is-on { background: var(--graphite); border-color: var(--smoke); }
   .dm-act { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 12px; color: var(--mist); }
-  .dm-act b { font-size: 11px; color: var(--void); background: var(--sunshine); border-radius: 999px; padding: 1px 7px; }
+  .dm-act b { font-size: 11px; color: var(--paper); background: var(--smoke); border-radius: 999px; padding: 1px 7px; }
   .dm-compose { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .dm-pinned { display: flex; gap: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--graphite); }
   .dm-pin { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -4611,8 +4613,8 @@ const DEMO_PRODUCERS = [
   { name: "Noah \"40\" Shebib", initials: "40", tone: "#c9b6ee" },
   { name: "Boi-1da", initials: "B1", tone: "#a9d8ef" },
   { name: "London Cyr", initials: "LC", tone: "#a3ddc2" },
-  { name: "Cash Cobain", initials: "CC", tone: "#f2a79c" },
-  { name: "Conductor Williams", initials: "CW", tone: "#f3d58b" },
+  { name: "Gordo", initials: "GO", tone: "#f2a79c" },
+  { name: "Cardo", initials: "CA", tone: "#f3d58b" },
   { name: "Oz", initials: "OZ", tone: "#9fb4f2" },
 ];
 
@@ -5125,20 +5127,20 @@ function App() {
     )}
     <div className={token ? "page signed-in" : "page"}>
       <header>
-        <h1 className="brand">
-          <img className="brand-mark" src="logo.svg" alt="" width="56" height="56" />
-          CreditCrate
-          <span className="eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
-        </h1>
-        <div className="header-actions">
+        <div className="header-left">
+          <h1 className="brand">
+            <img className="brand-mark" src="logo.svg" alt="" width="56" height="56" />
+            CreditCrate
+            <span className="eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+          </h1>
           {!token && (
-            <nav className="site-nav" aria-label="Site">
+            <nav className="site-nav site-nav-brand" aria-label="Site">
               <a href="#features" aria-current={page === "features" ? "page" : undefined}>Features</a>
               <a href="pricing.html">Pricing</a>
-              <a href="privacy.html">Privacy</a>
-              <a href="terms.html">Terms</a>
             </nav>
           )}
+        </div>
+        <div className="header-actions">
           <div className="header-status" role="status">
             <span className={`status-dot ${apiStatus}`} aria-hidden="true"></span>
             {apiStatus === "online" ? "Service online" : apiStatus === "offline" ? "Service offline" : "Checking service…"}
@@ -5414,7 +5416,7 @@ function App() {
 
       <footer className="site-footer">
         <div className="site-footer-row">
-          <span>CreditCrate © 2026 · <a href="pricing.html">Pricing</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></span>
+          <span>CreditCrate © 2026 · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></span>
         </div>
       </footer>
     </div>
