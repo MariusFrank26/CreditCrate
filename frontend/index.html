@@ -498,8 +498,28 @@
   .link-count { color: var(--ash); white-space: nowrap; }
   .link-track { display: block; height: 8px; margin-top: 6px; border-radius: 999px; background: var(--graphite); overflow: hidden; }
   .link-fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #a3ddc2, #6fd3a4); transition: width .6s ease; }
+  .quota { display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; }
+  .quota-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .quota-count { font-family: var(--mono); font-size: 20px; color: var(--paper); }
+  .quota-label { font-size: 13px; color: var(--fog); }
+  .quota-bar { height: 8px; border-radius: 999px; background: var(--graphite); overflow: hidden; }
+  .quota-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #f3d58b, #f2a79c); transition: width .6s ease; }
+  .quota-bar > span.is-full { background: linear-gradient(90deg, #f2a79c, #e8776b); }
+  .quota-next { font-size: 14px; color: var(--fog); }
+  .quota-next b { color: var(--sunshine, #f3d58b); font-weight: 600; }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .metric {
+    position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 6px;
+    padding: 16px 16px 14px 18px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px;
+  }
+  .metric::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
+  .metric-label { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ash); }
+  .metric-value { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; color: var(--paper); line-height: 1.1; }
+  .metric-value small { font-size: 14px; font-weight: 500; color: var(--fog); margin-left: 3px; }
+  .metric-hint { font-size: 12px; color: var(--ash); line-height: 1.4; }
   @media (max-width: 720px) {
     .ring-row { grid-template-columns: minmax(0, 1fr); }
+    .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .funnel-row { grid-template-columns: 56px minmax(0, 1fr) 84px; }
   }
   .opens-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--ash); }
@@ -4681,21 +4701,27 @@ function CampaignsTool({ token, onAuthError }) {
                     </div>
                   </div>
                 )}
-                {stats.done_at ? (
-                  <>
-                    <p className="panel-copy">Next campaign can be started {whenText(stats.done_at)}</p>
-                    <p className="panel-copy">Done sending by {whenText(stats.done_at)}</p>
-                  </>
-                ) : stats.total > 0 ? (
-                  <p className="panel-copy">Everyone has it. The next campaign can be started now.</p>
-                ) : null}
-                {stats.remaining > 0 && stats.can_send_at && (
-                  <p className="panel-copy">
-                    {stats.can_send_at > Date.now() / 1000
-                      ? `Emails can be sent again on ${whenText(stats.can_send_at)}`
-                      : "Emails can be sent now"}
+                <div className="quota">
+                  <div className="quota-top">
+                    <span className="quota-count">{stats.day_used} of {stats.day_limit}</span>
+                    <span className="quota-label">sent in the last 24 hours</span>
+                  </div>
+                  <div className="quota-bar" role="img" aria-label={`${stats.day_used} of ${stats.day_limit} sent in the last 24 hours`}>
+                    <span className={stats.day_used >= stats.day_limit ? "is-full" : ""} style={{ width: `${Math.min(100, (100 * stats.day_used) / stats.day_limit)}%` }} />
+                  </div>
+                  <p className="quota-next">
+                    Next campaign can be started{" "}
+                    <b>{stats.done_at ? whenText(stats.done_at) : "now"}</b>
                   </p>
-                )}
+                  {stats.remaining > 0 && stats.can_send_at && (
+                    <p className="quota-next">
+                      {stats.can_send_at > Date.now() / 1000
+                        ? <>Emails can be sent again on <b>{whenText(stats.can_send_at)}</b></>
+                        : <>Emails can be sent <b>now</b></>}
+                    </p>
+                  )}
+                  {stats.done_at && <p className="panel-copy">Done sending by {whenText(stats.done_at)}</p>}
+                </div>
                 {stats.tracking ? (
                   <>
                     <CampaignAnalytics stats={stats} />
@@ -4836,7 +4862,9 @@ function Funnel({ sent, opened, clicked }) {
 function CampaignAnalytics({ stats }) {
   const sent = stats.sent || 0;
   const median = stats.median_open_hours;
-  const medianText = median == null ? "—" : median >= 48 ? `${(median / 24).toFixed(1)} days` : `${median} h`;
+  const medianText = median == null ? "—" : median >= 48
+    ? <>{(median / 24).toFixed(1)}<small> days</small></>
+    : <>{median}<small> hours</small></>;
   return (
     <>
       <div className="ring-row">
@@ -4845,13 +4873,24 @@ function CampaignAnalytics({ stats }) {
         <Ring part={stats.clicked} whole={stats.opened} label="Click to open" detail="Of those who opened" color="#f3d58b" />
       </div>
       <Funnel sent={sent} opened={stats.opened} clicked={stats.clicked} />
-      <div className="stat-grid stat-grid-compact">
-        <StatTile label="Time to open" value={medianText} hint="Median, from the send" />
-        <StatTile label="Not opened" value={Math.max(0, sent - stats.opened)} hint="Sent, no open seen yet" />
-        <StatTile label="Unsubscribed" value={stats.unsubscribed} hint="After getting this one" />
-        <StatTile label="Failed" value={stats.failed} hint="Could not be sent" />
+      <div className="metric-grid">
+        <MetricTile label="Time to open" value={medianText} hint="Median, from the send to the first open" color="#f3d58b" />
+        <MetricTile label="Not opened" value={Math.max(0, sent - stats.opened)} hint="Sent, but no open seen yet" color="#c9b6ee" />
+        <MetricTile label="Unsubscribed" value={stats.unsubscribed} hint="Left after getting this one" color="#f2a79c" />
+        <MetricTile label="Failed" value={stats.failed} hint="Gmail could not deliver" color="#a9d8ef" />
       </div>
     </>
+  );
+}
+
+// A number with a coloured edge, for the figures under the rings
+function MetricTile({ label, value, hint, color }) {
+  return (
+    <div className="metric" style={{ "--accent": color }}>
+      <span className="metric-label">{label}</span>
+      <span className="metric-value">{value}</span>
+      <span className="metric-hint">{hint}</span>
+    </div>
   );
 }
 

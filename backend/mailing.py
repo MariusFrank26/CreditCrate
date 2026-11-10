@@ -826,8 +826,11 @@ def campaign_stats(campaign_id):
     address = account[0] if account else None
     done_at = _done_estimate(address, remaining) if remaining > 0 else None
     can_send_at = _free_again_at(address) if remaining > 0 else None
+    free_now, _ = _window_state(address)
     return jsonify({
         "can_send_at": can_send_at,  # when more emails can go out under the daily limit
+        "day_used": gmail.DAILY_LIMIT - free_now,  # emails the account sent in the last 24 hours
+        "day_limit": gmail.DAILY_LIMIT,
         "status": campaign["status"],
         "tracking": bool(campaign["track"]),
         "sent": sent,
