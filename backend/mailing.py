@@ -433,17 +433,21 @@ def create_campaign():
 @bp.route("/api/campaigns/<int:campaign_id>", methods=["DELETE"])
 @accounts.login_required
 def delete_campaign(campaign_id):
-    # Only drafts can be deleted. Sent campaigns keep their history.
+    # A campaign can be deleted unless it is still sending. Deleting a sent campaign also removes its results.
+    owner = accounts.current_email()
     with _conn() as conn:
         row = conn.execute(
             "SELECT status, attachment_path FROM mail_campaigns WHERE id = ? AND owner = ?",
-            (campaign_id, accounts.current_email()),
+            (campaign_id, owner),
         ).fetchone()
         if not row:
             return jsonify({"error": "Campaign not found."}), 404
-        if row["status"] not in (None, "draft"):
-            return jsonify({"error": "Only drafts can be deleted."}), 409
-        conn.execute("DELETE FROM mail_campaigns WHERE id = ? AND owner = ?", (campaign_id, accounts.current_email()))
+        if row["status"] == "sending":
+            return jsonify({"error": "This campaign is still sending. Delete it once it has finished."}), 409
+        conn.execute("DELETE FROM mail_queue WHERE campaign_id = ?", (campaign_id,))
+        # Opens and clicks go with the campaign. The send records stay, because the daily limit counts real sends.
+        conn.execute("DELETE FROM mail_events WHERE campaign_id = ?", (campaign_id,))
+        conn.execute("DELETE FROM mail_campaigns WHERE id = ? AND owner = ?", (campaign_id, owner))
     if row["attachment_path"]:  # the attached file goes with the draft
         try:
             os.remove(row["attachment_path"])

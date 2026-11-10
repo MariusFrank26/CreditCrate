@@ -4449,10 +4449,13 @@ function CampaignsTool({ token, onAuthError }) {
   // Removes a draft after a confirmation. Sent campaigns cannot be removed.
   async function deleteDraft(c) {
     setDraftMenu(null);
+    const isDraft = !c.status || c.status === "draft";
     const ok = await askConfirm({
-      title: "Delete this draft?",
-      message: `“${c.name || c.subject}” will be deleted. This cannot be undone.`,
-      confirmLabel: "Delete draft",
+      title: isDraft ? "Delete this draft?" : "Delete this campaign?",
+      message: isDraft
+        ? `“${c.name || c.subject}” will be deleted. This cannot be undone.`
+        : `“${c.name || c.subject}” and its results (who opened and clicked) will be deleted. This cannot be undone.`,
+      confirmLabel: isDraft ? "Delete draft" : "Delete campaign",
       danger: true,
     });
     if (!ok) return;
@@ -4620,7 +4623,7 @@ function CampaignsTool({ token, onAuthError }) {
       {draftTarget && (
         <div className="cmp-menu" role="menu" style={{ left: draftMenu.x, top: draftMenu.y }}>
           <button type="button" role="menuitem" className="cmp-menu-item is-danger" onClick={() => deleteDraft(draftTarget)}>
-            Delete Draft
+            {!draftTarget.status || draftTarget.status === "draft" ? "Delete Draft" : "Delete campaign"}
           </button>
         </div>
       )}
@@ -4724,7 +4727,7 @@ function CampaignsTool({ token, onAuthError }) {
                 className={`cmp-item${active ? " is-active" : ""}`}
                 onClick={() => { setSelectedId(String(c.id)); setPreview(null); }}
                 onContextMenu={e => {
-                  if (c.status && c.status !== "draft") return;
+                  if (c.status === "sending") return; // a campaign can be deleted once it has finished
                   e.preventDefault();
                   setDraftMenu({ id: c.id, x: e.clientX, y: e.clientY });
                 }}
