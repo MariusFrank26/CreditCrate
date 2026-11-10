@@ -3508,7 +3508,20 @@ function GmailConnect({ token, onAuthError, account, onChange }) {
         <div className="gmail-row">
           <div>
             <p className="gmail-title">Sending from {account.address}</p>
-            <p className="panel-copy">{account.sent_today} of {account.daily_limit} sent in the last 24 hours</p>
+            <div className="quota quota-account">
+              <div className="quota-top">
+                <span className="quota-count">{account.sent_today} of {account.daily_limit}</span>
+                <span className="quota-label">sent in the last 24 hours</span>
+              </div>
+              <div className="quota-bar" role="img" aria-label={`${account.sent_today} of ${account.daily_limit} sent in the last 24 hours`}>
+                <span className={account.sent_today >= account.daily_limit ? "is-full" : ""} style={{ width: `${Math.min(100, (100 * account.sent_today) / account.daily_limit)}%` }} />
+              </div>
+              {account.next_start && (
+                <p className="quota-next">
+                  Next campaign can be started <b>{account.next_start > Date.now() / 1000 ? whenText(account.next_start) : "now"}</b>
+                </p>
+              )}
+            </div>
           </div>
           <button type="button" className="back-btn" onClick={disconnect} disabled={busy}>Disconnect</button>
         </div>
@@ -4352,11 +4365,16 @@ function CampaignsTool({ token, onAuthError }) {
       if (document.visibilityState !== "visible") return;
       callApi("/activity", token).then(setActivity).catch(() => {});
     };
-    const id = setInterval(refreshActivity, 15000);
-    document.addEventListener("visibilitychange", refreshActivity);
+    const refreshAccount = () => {
+      if (document.visibilityState !== "visible") return;
+      callApi("/mail/account", token).then(setAccount).catch(() => {});
+    };
+    const refreshAll = () => { refreshActivity(); refreshAccount(); };
+    const id = setInterval(refreshAll, 15000);
+    document.addEventListener("visibilitychange", refreshAll);
     return () => {
       clearInterval(id);
-      document.removeEventListener("visibilitychange", refreshActivity);
+      document.removeEventListener("visibilitychange", refreshAll);
     };
   }, [token]);
 
@@ -4702,17 +4720,6 @@ function CampaignsTool({ token, onAuthError }) {
                   </div>
                 )}
                 <div className="quota">
-                  <div className="quota-top">
-                    <span className="quota-count">{stats.day_used} of {stats.day_limit}</span>
-                    <span className="quota-label">sent in the last 24 hours</span>
-                  </div>
-                  <div className="quota-bar" role="img" aria-label={`${stats.day_used} of ${stats.day_limit} sent in the last 24 hours`}>
-                    <span className={stats.day_used >= stats.day_limit ? "is-full" : ""} style={{ width: `${Math.min(100, (100 * stats.day_used) / stats.day_limit)}%` }} />
-                  </div>
-                  <p className="quota-next">
-                    Next campaign can be started{" "}
-                    <b>{stats.done_at ? whenText(stats.done_at) : "now"}</b>
-                  </p>
                   {stats.remaining > 0 && stats.can_send_at && (
                     <p className="quota-next">
                       {stats.can_send_at > Date.now() / 1000

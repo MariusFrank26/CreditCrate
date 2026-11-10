@@ -654,7 +654,16 @@ def _account_status(owner):
     if not account:
         return {"connected": False, "daily_limit": gmail.DAILY_LIMIT, "sent_today": 0}
     address = account[0]
-    return {"connected": True, "address": address, "daily_limit": gmail.DAILY_LIMIT, "sent_today": _sent_today(address)}
+    # The next campaign can start once the campaign now sending (if any) is done
+    busy = _busy_campaign(owner, address, -1)
+    now = time.time()
+    return {
+        "connected": True,
+        "address": address,
+        "daily_limit": gmail.DAILY_LIMIT,
+        "sent_today": _sent_today(address),
+        "next_start": busy[1] if busy else now,
+    }
 
 
 def _log_send(campaign_id, email, sender, status, error):
