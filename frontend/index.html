@@ -1631,7 +1631,7 @@
   .demo-caption p { font-size: 13px; color: var(--fog); line-height: 1.5; }
   .demo-caption a { flex: none; font-size: 13px; color: #0a84ff; text-decoration: none; }
   .demo-caption a:hover { text-decoration: underline; }
-  .demo-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 8px; min-height: 330px; }
+  .demo-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 8px; height: 520px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--smoke) transparent; }
   .dm-search { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: var(--graphite); border-radius: 10px; color: var(--ash); font-size: 14px; }
   .dm-query { flex: 1; color: var(--paper); }
   .dm-search b, .dm-pill { font-size: 12px; font-weight: 600; color: #ffffff; background: #0a84ff; border-radius: 999px; padding: 5px 12px; }
@@ -1696,7 +1696,42 @@
   .dm-pack { background: rgba(243, 213, 139, .12); border: 1px solid rgba(243, 213, 139, .4); }
   .dm-pack span { color: var(--sunshine); }
   .dm-pack b { background: var(--sunshine); color: var(--void); }
-  @media (max-width: 560px) { .demo-body { min-height: 0; } }
+  .dm-muted { color: var(--ash); }
+  .dm-chevron { color: var(--ash); font-size: 18px; }
+  .dm-email { font-size: 12px; font-style: italic; color: var(--ash); flex: none; }
+  .dm-email.is-found { font-style: normal; color: var(--paper); background: var(--graphite); border-radius: 6px; padding: 3px 8px; }
+  .dm-cover-sm img { width: 60%; height: auto; }
+  .dm-cover-sm { display: grid; place-items: center; }
+  .dm-latest { display: flex; gap: 14px; align-items: center; padding: 14px; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 14px; }
+  .dm-latest-cover { width: 96px; height: 96px; border-radius: 14px; flex: none; display: grid; place-items: center; background: linear-gradient(135deg, var(--graphite), var(--obsidian)); }
+  .dm-latest-cover img { width: 56%; height: auto; }
+  .dm-latest-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .dm-covers .dm-cover-faded { opacity: .45; }
+  .dm-inbox { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 0; border: 1px solid var(--graphite); border-radius: 12px; overflow: hidden; }
+  .dm-convs { background: var(--carbon); border-right: 1px solid var(--graphite); display: flex; flex-direction: column; }
+  .dm-conv { display: flex; align-items: center; gap: 8px; padding: 9px 8px; background: none; border: 0; border-bottom: 1px solid var(--graphite); color: inherit; text-align: left; cursor: pointer; font-family: var(--sans); }
+  .dm-conv.is-on { background: var(--graphite); }
+  .dm-conv .dm-avatar { width: 30px; height: 30px; font-size: 10px; }
+  .dm-conv-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+  .dm-count { font-size: 10px; font-weight: 600; color: #ffffff; background: #0a84ff; border-radius: 999px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 5px; }
+  .dm-inbox .dm-thread { padding: 10px; background: var(--void); min-height: 0; }
+  .dm-zip { align-self: flex-start; font-size: 11px; font-weight: 600; color: #ffffff; background: #0a84ff; border-radius: 999px; padding: 5px 10px; }
+  .dm-row-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .dm-status { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--smoke); color: var(--fog); }
+  .dm-field-tall { min-height: 110px; line-height: 1.5; }
+  .dm-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .dm-stats span { background: var(--carbon); border: 1px solid var(--graphite); border-radius: 10px; padding: 10px; font-size: 11px; color: var(--ash); text-transform: uppercase; letter-spacing: .06em; }
+  .dm-stats b { display: block; font-size: 20px; color: var(--paper); font-weight: 600; text-transform: none; letter-spacing: 0; }
+  .dm-tabs { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--graphite); border-radius: 10px; overflow: hidden; }
+  .dm-tabs span { font-size: 12px; text-align: center; padding: 9px 4px; color: var(--fog); border-right: 1px solid var(--graphite); }
+  .dm-tabs span:last-child { border-right: 0; }
+  .dm-tabs span.is-on { color: var(--paper); background: var(--graphite); }
+  .dm-form, .dm-paper { display: flex; flex-direction: column; gap: 8px; min-width: 0; background: var(--carbon); border: 1px solid var(--graphite); border-radius: 12px; padding: 14px; }
+  .dm-paper { background: var(--void); }
+  .dm-paper-copy { font-size: 13px; color: var(--fog); line-height: 1.5; }
+  .dm-form .dm-field span { font-size: 9px; }
+  .dm-split-2 > * { min-width: 0; }
+  @media (max-width: 560px) { .demo-body { height: 460px; } .dm-inbox { grid-template-columns: 120px minmax(0, 1fr); } }
   .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--ash); text-transform: uppercase; letter-spacing: .08em; }
   .hero-title {
     margin-top: 16px;
@@ -2413,8 +2448,7 @@ function LandingExtras() {
   ];
   return (
     <>
-      <section className="trust" aria-labelledby="trust-heading">
-        <h2 id="trust-heading" className="trust-title">Built to stay out of spam, and out of your files</h2>
+      <section className="trust" aria-label="How CreditCrate works with your mail">
         <ul className="trust-list">
           {points.map(([title, copy]) => (
             <li key={title} className="trust-item">
@@ -4536,167 +4570,203 @@ function GmailGate({ token, account, onChange, onSignOut }) {
 
 // The landing page's preview: a screen with a title bar to choose a tool. Each one shows how it works.
 const DEMO_TOOLS = [
-  { id: "credits", label: "Credits", copy: "Search an album and see every producer, engineer and mixer, with the public contact they've shared." },
-  { id: "contacts", label: "Contacts", copy: "Keep everyone in one list. Import a CSV and filter by role or tag." },
-  { id: "packs", label: "Packs", copy: "Packs from your senders show up like messages. Open one, or save it to your shelf. Only the link is stored." },
+  { id: "credits", label: "Credits", copy: "Search an album and see who made it, with the public contact they've shared." },
+  { id: "contacts", label: "Contacts", copy: "Everyone you work with in one list. Import a CSV, or save people straight from a credit search." },
+  { id: "packs", label: "Packs", copy: "Save a Dropbox or Drive folder as a pack. Only the link is stored, never the files." },
   { id: "inbox", label: "Inbox", copy: "Your samples from the last 7 days, grouped by sender. Downloads come straight from Gmail." },
-  { id: "campaigns", label: "Campaigns", copy: "Write once, check who gets it or pick a tag, then preview before anything is sent." },
-  { id: "deal", label: "Deal Desk", copy: "Split sheets, agreements and invoices. It all stays in your browser." },
+  { id: "campaigns", label: "Campaigns", copy: "Write once, choose who gets it, preview, then send from your own Gmail." },
+  { id: "deal", label: "Deal Desk", copy: "Split sheets, agreements and invoices. Everything stays in your browser." },
 ];
 
-// Made-up people and releases for the preview. They are not real contacts.
-const DEMO_PEOPLE = [
-  { id: "marcus", name: "Marcus Hale", roles: "Producer", tags: "drill, uk", initials: "MH", tone: "#c9b6ee" },
-  { id: "dana", name: "Dana Okafor", roles: "Mixer", tags: "trap, rnb", initials: "DO", tone: "#a9d8ef" },
-  { id: "kira", name: "Kira Lind", roles: "Engineer", tags: "rnb", initials: "KL", tone: "#a3ddc2" },
-  { id: "ion", name: "Ion Brandt", roles: "Mastering", tags: "trap", initials: "IB", tone: "#f2a79c" },
-  { id: "jonah", name: "Jonah Reyes", roles: "Producer", tags: "drill", initials: "JR", tone: "#f3d58b" },
+// Producers from the Iceman credits. Only names and roles are shown; no contact details are invented.
+const DEMO_PRODUCERS = [
+  { name: "Noah \"40\" Shebib", initials: "40", tone: "#c9b6ee" },
+  { name: "Boi-1da", initials: "B1", tone: "#a9d8ef" },
+  { name: "Tay Keith", initials: "TK", tone: "#a3ddc2" },
+  { name: "Cash Cobain", initials: "CC", tone: "#f2a79c" },
+  { name: "Conductor Williams", initials: "CW", tone: "#f3d58b" },
+  { name: "Oz", initials: "OZ", tone: "#9fb4f2" },
 ];
 
 function HeroDemo() {
   const [tool, setTool] = useState("credits");
-  const [picked, setPicked] = useState(new Set(["marcus", "dana"]));
-  const [filter, setFilter] = useState("All");
+  const [picked, setPicked] = useState(new Set(["Boi-1da", "Tay Keith"]));
+  const [chatWith, setChatWith] = useState("Jonah");
   const current = DEMO_TOOLS.find(t => t.id === tool);
-  const tagFilters = ["All", "Drill", "Trap", "RnB"];
 
-  function togglePerson(id) {
+  function togglePerson(name) {
     setPicked(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
       return next;
     });
   }
 
-  function body() {
-    if (tool === "credits") {
-      return (
-        <>
-          <div className="dm-search"><span>⌕</span><span className="dm-query">Iceman</span><b>Search</b></div>
-          <div className="dm-album">
-            <span className="dm-cover-sm" />
-            <span className="dm-grow">
-              <span className="dm-name">Iceman</span>
-              <span className="dm-meta">Drake · 2026</span>
-            </span>
-            <span className="dm-meta">4 credits</span>
-          </div>
-          {[
-            ["Track", "Make Them Cry", "3 credits", "01", "#c9b6ee"],
-            ["Track", "Dust", "2 credits", "02", "#a9d8ef"],
-            ["Track", "Whisper My Name", "4 credits", "03", "#a3ddc2"],
-          ].map(([role, name, handle, initials, tone]) => (
-            <div key={name} className="dm-row">
-              <span className="dm-avatar" style={{ background: tone }}>{initials}</span>
-              <span className="dm-grow">
-                <span className="dm-name">{name}</span>
-                <span className="dm-meta">{handle}</span>
-              </span>
-              <em className="dm-role">{role}</em>
-            </div>
-          ))}
-        </>
-      );
-    }
-    if (tool === "contacts") {
-      const shown = DEMO_PEOPLE.filter(p => filter === "All" || p.tags.toLowerCase().includes(filter.toLowerCase()));
-      return (
-        <>
-          <div className="dm-chips">
-            {tagFilters.map(f => (
-              <button key={f} type="button" className={`dm-chip${filter === f ? " is-on" : ""}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>{f}</button>
-            ))}
-          </div>
-          <p className="dm-kicker">{shown.length} of {DEMO_PEOPLE.length} contacts · CSV import</p>
-          {shown.map(p => (
-            <div key={p.id} className="dm-row">
-              <span className="dm-avatar" style={{ background: p.tone }}>{p.initials}</span>
-              <span className="dm-grow">
-                <span className="dm-name">{p.name}</span>
-                <span className="dm-meta">{p.tags}</span>
-              </span>
-              <em className="dm-role">{p.roles}</em>
-            </div>
-          ))}
-        </>
-      );
-    }
-    if (tool === "packs") {
-      return (
-        <>
-          <div className="dm-pinned">
-            <span className="dm-pin"><span className="dm-avatar dm-avatar-lg" style={{ background: "#f3d58b" }}>JR</span><b className="dm-count dm-count-pack">2</b><em>Jonah</em></span>
-            <span className="dm-pin"><span className="dm-avatar dm-avatar-lg" style={{ background: "#c9b6ee" }}>MH</span><b className="dm-count">1</b><em>Marcus</em></span>
-          </div>
-          <div className="dm-thread">
-            <p className="dm-day">Jonah Reyes</p>
-            <div className="dm-bubble dm-packcard">
-              <span className="dm-pack-cover"><img src="logo.svg" alt="" /></span>
-              <span className="dm-grow"><span className="dm-name">Iceman stems</span><span className="dm-meta">Dropbox · shared folder</span></span>
-              <b className="dm-action">Open</b>
-            </div>
-            <div className="dm-bubble dm-packcard">
-              <span className="dm-pack-cover"><img src="logo.svg" alt="" /></span>
-              <span className="dm-grow"><span className="dm-name">Iceman drum kit</span><span className="dm-meta">Google Drive · 38 files</span></span>
-              <b className="dm-action">Open</b>
-            </div>
-          </div>
-          <button type="button" className="dm-dbx">Choose from Dropbox</button>
-        </>
-      );
-    }
-    if (tool === "inbox") {
-      return (
-        <div className="dm-thread">
-          <p className="dm-day">Tue 4 Nov</p>
-          <div className="dm-bubble">Iceman stems are up. Make Them Cry and Dust are in there 🔥</div>
-          <div className="dm-bubble dm-file"><span>Make_Them_Cry_stems.wav<em>24 MB</em></span><b>Download</b></div>
-          <div className="dm-bubble dm-file"><span>Dust_mix_v3.wav<em>9 MB</em></span><b>Download</b></div>
-          <div className="dm-bubble dm-pack"><span>Dropbox pack<em>Jonah Reyes</em></span><b>Open pack ↗</b></div>
-        </div>
-      );
-    }
-    if (tool === "campaigns") {
-      return (
-        <div className="dm-split-2">
-          <div className="dm-side">
-            <p className="dm-kicker">Campaigns</p>
-            <div className="dm-camp is-on"><span className="dm-name">Iceman stems</span><span className="dm-meta">42 sent · 31 opened</span></div>
-            <div className="dm-camp"><span className="dm-name">Dust vocals</span><span className="dm-meta">38 sent · 19 opened</span></div>
-            <p className="dm-kicker">Recently opened</p>
-            <div className="dm-act"><span>Marcus</span><span className="dm-meta">opened · 2h</span></div>
-            <div className="dm-act"><span>Dana</span><span className="dm-meta">clicked · 5h</span></div>
-            <p className="dm-kicker">Top openers</p>
-            <div className="dm-act"><span>Marcus</span><b>9</b></div>
-            <div className="dm-act"><span>Dana</span><b>6</b></div>
-          </div>
-          <div className="dm-compose">
-            <div className="dm-field"><span>Subject</span>Iceman stems are out</div>
-            <div className="dm-field"><span>Message</span>Hi {"{{first_name}}"}, new drum kit is up. Grab it here: {"{{pack_link}}"}</div>
-            <p className="dm-kicker">Who gets it · {picked.size} chosen</p>
-            <div className="dm-chips">
-              {DEMO_PEOPLE.slice(0, 4).map(p => (
-                <button key={p.id} type="button" className={`dm-check${picked.has(p.id) ? " is-on" : ""}`} aria-pressed={picked.has(p.id)} onClick={() => togglePerson(p.id)}>
-                  <span>{picked.has(p.id) ? "✓" : ""}</span>{p.name.split(" ")[0]}
-                </button>
-              ))}
-            </div>
-            <b className="dm-pill dm-pill-wide">Preview {picked.size} {picked.size === 1 ? "person" : "people"}</b>
-          </div>
-        </div>
-      );
-    }
+  function credits() {
     return (
       <>
-        <div className="dm-row"><span className="dm-grow"><span className="dm-name">Mix session · Iceman</span><span className="dm-meta">Dana Okafor · 6 hrs</span></span><span className="dm-price">€300</span></div>
-        <div className="dm-row"><span className="dm-grow"><span className="dm-name">Mastering</span><span className="dm-meta">Ion Brandt · album</span></span><span className="dm-price">€120</span></div>
-        <div className="dm-split"><span style={{ width: "50%", background: "#c9b6ee" }} /><span style={{ width: "30%", background: "#a3ddc2" }} /><span style={{ width: "20%", background: "#f3d58b" }} /></div>
-        <p className="dm-kicker">Producer 50% · Artist 30% · Writer 20%</p>
-        <div className="dm-row"><span className="dm-grow"><span className="dm-name">Invoice #0042</span><span className="dm-meta">Due 14 Nov 2026</span></span><span className="dm-price">€420</span></div>
+        <div className="dm-search"><span>⌕</span><span className="dm-query">Iceman</span><b>Search</b></div>
+        <div className="dm-album">
+          <span className="dm-cover-sm"><img src="logo.svg" alt="" /></span>
+          <span className="dm-grow">
+            <span className="dm-name">Iceman</span>
+            <span className="dm-meta">Drake · 2026</span>
+          </span>
+          <span className="dm-meta">{DEMO_PRODUCERS.length} credits</span>
+        </div>
+        {DEMO_PRODUCERS.map((p, i) => (
+          <div key={p.name} className="dm-row">
+            <span className="dm-grow">
+              <span className="dm-name">{p.name}</span>
+              <span className="dm-meta">{i % 2 === 0 ? "Instagram" : "–"}</span>
+            </span>
+            <em className="dm-role">Producer</em>
+            <span className={`dm-email${i === 0 ? " is-found" : ""}`}>{i === 0 ? "Copy" : "not found"}</span>
+          </div>
+        ))}
       </>
     );
   }
+
+  function contacts() {
+    return (
+      <>
+        <div className="dm-search"><span>⌕</span><span className="dm-query dm-muted">Search</span></div>
+        <div className="dm-chips">
+          {["All", "CSV", "Credits", "By hand"].map((f, i) => (
+            <span key={f} className={`dm-chip${i === 0 ? " is-on" : ""}`}>{f}</span>
+          ))}
+        </div>
+        <p className="dm-kicker">{DEMO_PRODUCERS.length} people</p>
+        {DEMO_PRODUCERS.map(p => (
+          <div key={p.name} className="dm-row">
+            <span className="dm-avatar" style={{ background: p.tone }}>{p.initials}</span>
+            <span className="dm-grow">
+              <span className="dm-name">{p.name}</span>
+              <span className="dm-meta">not found</span>
+            </span>
+            <span className="dm-chevron">›</span>
+          </div>
+        ))}
+      </>
+    );
+  }
+
+  function packs() {
+    return (
+      <>
+        <p className="dm-kicker">1 pack</p>
+        <div className="dm-latest">
+          <span className="dm-latest-cover"><img src="logo.svg" alt="" /></span>
+          <span className="dm-latest-text">
+            <span className="dm-kicker">Latest pack</span>
+            <span className="dm-name">Iceman stems</span>
+            <span className="dm-meta">dropbox.com · Today</span>
+          </span>
+        </div>
+        <p className="dm-kicker">Examples</p>
+        <div className="dm-covers">
+          {["Drum loops", "Vocal chops"].map(n => (
+            <div key={n} className="dm-cover dm-cover-faded"><span className="dm-cover-sm"><img src="logo.svg" alt="" /></span><span>{n}</span></div>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  function inbox() {
+    const threads = [
+      { name: "Jonah Reyes", last: "Fresh idea from today", time: "3:00 PM", count: 2, tone: "#a3ddc2" },
+      { name: "Maya Brooks", last: "Loops from the session", time: "Nov 9", count: 5, tone: "#c9b6ee" },
+      { name: "Sol Ramirez", last: "Starters v2", time: "Nov 8", count: 4, tone: "#a9d8ef" },
+    ];
+    return (
+      <div className="dm-inbox">
+        <div className="dm-convs">
+          {threads.map(t => (
+            <button key={t.name} type="button" className={`dm-conv${chatWith === t.name.split(" ")[0] ? " is-on" : ""}`} onClick={() => setChatWith(t.name.split(" ")[0])}>
+              <span className="dm-avatar" style={{ background: t.tone }}>{t.name.split(" ").map(w => w[0]).join("")}</span>
+              <span className="dm-grow">
+                <span className="dm-name">{t.name}</span>
+                <span className="dm-meta">{t.last}</span>
+              </span>
+              <span className="dm-conv-side"><span className="dm-meta">{t.time}</span><b className="dm-count">{t.count}</b></span>
+            </button>
+          ))}
+        </div>
+        <div className="dm-thread">
+          <p className="dm-day">Tue, Nov 10</p>
+          <div className="dm-bubble">2 new ideas from today's session</div>
+          <div className="dm-bubble dm-file"><span>Idea - Big 124 BPM.mp3<em>8 MB</em></span><b>Download</b></div>
+          <div className="dm-bubble dm-file"><span>Idea - Back It Up 136 BPM.mp3<em>5 MB</em></span><b>Download</b></div>
+          <b className="dm-zip">Download all 2 as a zip</b>
+        </div>
+      </div>
+    );
+  }
+
+  function campaigns() {
+    return (
+      <div className="dm-split-2">
+        <div className="dm-side">
+          <p className="dm-kicker">Campaigns</p>
+          <div className="dm-camp is-on"><span className="dm-row-top"><span className="dm-name">Iceman stems</span><span className="dm-status">Sent</span></span><span className="dm-meta">42 sent · 31 opened</span></div>
+          <div className="dm-camp"><span className="dm-row-top"><span className="dm-name">New drums</span><span className="dm-status">Draft</span></span><span className="dm-meta">Not sent yet</span></div>
+          <p className="dm-kicker">Recently opened</p>
+          <div className="dm-act"><span>Boi-1da</span><span className="dm-meta">opened · 2h</span></div>
+          <div className="dm-act"><span>Tay Keith</span><span className="dm-meta">clicked · 5h</span></div>
+          <p className="dm-kicker">Top openers</p>
+          <div className="dm-act"><span>Boi-1da</span><b>9</b></div>
+          <div className="dm-act"><span>Tay Keith</span><b>6</b></div>
+        </div>
+        <div className="dm-compose">
+          <p className="dm-kicker">New campaign</p>
+          <div className="dm-field"><span>Subject</span>Iceman stems are out</div>
+          <div className="dm-field dm-field-tall"><span>Message</span>Hi {"{{name}}"},<br />New drum kit is up. Grab it here: {"{{pack_link}}"}</div>
+          <div className="dm-chips">
+            {DEMO_PRODUCERS.slice(0, 4).map(p => (
+              <button key={p.name} type="button" className={`dm-check${picked.has(p.name) ? " is-on" : ""}`} aria-pressed={picked.has(p.name)} onClick={() => togglePerson(p.name)}>
+                <span>{picked.has(p.name) ? "✓" : ""}</span>{p.name.split(" ")[0]}
+              </button>
+            ))}
+          </div>
+          <b className="dm-pill dm-pill-wide">Preview {picked.size} {picked.size === 1 ? "person" : "people"}</b>
+        </div>
+      </div>
+    );
+  }
+
+  function deal() {
+    return (
+      <>
+        <div className="dm-stats">
+          <span><b>0</b>Saved</span><span><b>0</b>Splits</span><span><b>0</b>Invoices</span>
+        </div>
+        <div className="dm-tabs">
+          <span className="is-on">Split sheet</span><span>Producer agreement</span><span>Invoice</span><span>Saved</span>
+        </div>
+        <div className="dm-split-2">
+          <div className="dm-form">
+            <p className="dm-name">Split sheet</p>
+            <div className="dm-field"><span>Song title</span>Iceman</div>
+            <div className="dm-field"><span>Artist</span>Drake</div>
+            <p className="dm-kicker">Contributors · each column totals 100%</p>
+            <div className="dm-field"><span>Name · Role · PRO · Publishing %</span>Producer 1 · Producer · None · 50%</div>
+            <div className="dm-field"><span>Name · Role · PRO · Publishing %</span>Producer 2 · Producer · None · 50%</div>
+          </div>
+          <div className="dm-paper">
+            <p className="dm-name">Split sheet</p>
+            <p className="dm-meta">Untitled · Dated 2026-11-10</p>
+            <p className="dm-paper-copy">The undersigned agree to the ownership splits above for the musical composition (publishing) and the sound recording (master).</p>
+            <p className="dm-meta">Generated with Deal Desk. This is not legal advice.</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const bodies = { credits, contacts, packs, inbox, campaigns, deal };
 
   return (
     <div className="demo" aria-label="Preview of the tools">
@@ -4714,7 +4784,7 @@ function HeroDemo() {
         <p>{current.copy}</p>
         <a href="#features">See all features →</a>
       </div>
-      <div className="demo-body" role="tabpanel">{body()}</div>
+      <div className="demo-body" role="tabpanel">{bodies[tool]()}</div>
     </div>
   );
 }
