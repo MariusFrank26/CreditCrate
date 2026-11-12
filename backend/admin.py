@@ -44,7 +44,7 @@ def admin_only(view):
 
 
 def _load_users():
-    with sqlite3.connect(accounts.DB_PATH) as conn:
+    with accounts.db() as conn:
         conn.row_factory = sqlite3.Row
         users = [dict(r) for r in conn.execute(
             "SELECT email, created_at, email_verified_at, plan, trial_ends_at, plan_expires_at FROM users"
@@ -184,7 +184,7 @@ def admin_set_plan():
         return jsonify({"error": "You cannot end your own trial from here."}), 400
 
     now = time.time()
-    with sqlite3.connect(accounts.DB_PATH) as conn:
+    with accounts.db() as conn:
         conn.row_factory = sqlite3.Row
         if not conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
             return jsonify({"error": "No account with that email."}), 404
@@ -212,7 +212,7 @@ def admin_set_plan():
 @bp.route("/api/admin/newsletter", methods=["GET"])
 @admin_only
 def admin_newsletter():
-    with sqlite3.connect(accounts.DB_PATH) as conn:
+    with accounts.db() as conn:
         conn.row_factory = sqlite3.Row
         rows = [dict(r) for r in conn.execute(
             "SELECT email, created_at FROM newsletter_signups ORDER BY created_at DESC"

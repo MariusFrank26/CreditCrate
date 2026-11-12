@@ -89,6 +89,7 @@ class Sender:
         message["To"] = to
         message["Subject"] = subject
         message["List-Unsubscribe"] = f"<{unsubscribe_url}>"
+        message["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"  # lets mail apps unsubscribe in one tap
         message.set_content(text)
         message.add_alternative(html_body, subtype="html")
         if attachment:

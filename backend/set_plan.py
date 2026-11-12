@@ -20,7 +20,7 @@ if len(sys.argv) < 3:
 email = accounts.normalize_email(sys.argv[1])
 plan = sys.argv[2]
 
-with accounts.sqlite3.connect(accounts.DB_PATH) as conn:
+with accounts.db() as conn:
     exists = conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone()
     if not exists:
         sys.exit(f"No account for {email}.")

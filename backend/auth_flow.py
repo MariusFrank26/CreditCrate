@@ -12,8 +12,6 @@ and a reset link stops working as soon as the password has changed.
 
 import logging
 import os
-import sqlite3
-import time
 
 import requests
 from flask import Blueprint, jsonify, redirect, request
@@ -29,7 +27,6 @@ VERIFY_SALT = "creditcrate-verify"
 RESET_SALT = "creditcrate-reset"
 VERIFY_SECONDS = 48 * 3600
 RESET_SECONDS = 3600
-_hits = {}
 
 
 class MailNotConfigured(Exception):
@@ -63,19 +60,8 @@ def send_platform_mail(to, subject, text):
         raise RuntimeError(f"Resend {resp.status_code}: {resp.text[:200]}")
 
 
-def _limited(key, limit, window):
-    """True if this key has used up its allowance in the last `window` seconds."""
-    now = time.time()
-    recent = [t for t in _hits.get(key, []) if now - t < window]
-    if len(recent) >= limit:
-        _hits[key] = recent
-        return True
-    _hits[key] = recent + [now]
-    return False
-
-
 def _account_exists(email):
-    with sqlite3.connect(accounts.DB_PATH) as conn:
+    with accounts.db() as conn:
         return conn.execute("SELECT password_hash FROM users WHERE email = ?", (email,)).fetchone()
 
 
@@ -115,8 +101,8 @@ def signup():
     if data.get("accept_terms") is not True:
         return jsonify({"error": "Please accept the privacy policy and terms to continue."}), 400
 
-    ip = request.headers.get("CF-Connecting-IP") or request.remote_addr or "unknown"
-    if _limited(f"signup-ip:{ip}", 5, 3600):
+    ip = accounts.client_ip()
+    if accounts.limited(f"signup-ip:{ip}", 5, 3600):
         return jsonify({"error": "Too many sign-ups from this connection. Try again later."}), 429
 
     if _account_exists(email):
@@ -125,7 +111,11 @@ def signup():
         # Not verified yet: same answer as a new sign-up, and the sign-in page can send a new link
         return jsonify({"sent": True})
 
-    accounts.create_user(email, password)  # unverified until the link is opened
+    if not accounts.create_user(email, password, replace=False):
+        # Another request created this account a moment ago, so it must not change the password
+        if accounts.is_verified(email):
+            return jsonify({"error": "You already have an account. Sign in instead."}), 409
+        return jsonify({"sent": True})
     try:
         _send_verification(email)
     except MailNotConfigured:
@@ -139,7 +129,7 @@ def signup():
 
 
 def _delete_account(email):
-    with sqlite3.connect(accounts.DB_PATH) as conn:
+    with accounts.db() as conn:
         conn.execute("DELETE FROM users WHERE email = ? AND email_verified_at IS NULL", (email,))
 
 
@@ -156,7 +146,7 @@ def verify():
 @bp.route("/api/verify/resend", methods=["POST"])
 def resend_verification():
     email = accounts.normalize_email((request.get_json(silent=True) or {}).get("email"))
-    if accounts.is_valid_email(email) and not _limited(f"verify:{email}", 3, 3600):
+    if accounts.is_valid_email(email) and not accounts.limited(f"verify:{email}", 3, 3600):
         row = _account_exists(email)
         if row and not accounts.is_verified(email):
             try:
@@ -169,7 +159,7 @@ def resend_verification():
 @bp.route("/api/password/forgot", methods=["POST"])
 def forgot_password():
     email = accounts.normalize_email((request.get_json(silent=True) or {}).get("email"))
-    if accounts.is_valid_email(email) and not _limited(f"reset:{email}", 3, 3600):
+    if accounts.is_valid_email(email) and not accounts.limited(f"reset:{email}", 3, 3600):
         row = _account_exists(email)
         if row:
             try:

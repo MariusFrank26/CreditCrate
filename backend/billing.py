@@ -22,7 +22,6 @@ from flask import Blueprint, request, jsonify
 
 import accounts
 import admin
-import gmail
 import mailing
 
 logger = logging.getLogger(__name__)
@@ -40,6 +39,9 @@ _db_path = None
 def register(app, db_path):
     global _db_path
     _db_path = db_path
+    with sqlite3.connect(db_path) as conn:
+        # Stripe can send the same event twice; each event id is only applied once
+        conn.execute("CREATE TABLE IF NOT EXISTS stripe_events (id TEXT PRIMARY KEY, received_at REAL)")
     app.register_blueprint(bp)
 
 
@@ -161,6 +163,12 @@ def stripe_webhook():
     if not verify_stripe_signature(payload, request.headers.get("Stripe-Signature", ""), secret):
         return jsonify({"error": "Bad signature."}), 400
     event = json.loads(payload)
+    event_id = event.get("id") or ""
+    if not event_id:
+        return jsonify({"error": "The event has no id."}), 400
+    with sqlite3.connect(_db_path) as conn:
+        if conn.execute("SELECT 1 FROM stripe_events WHERE id = ?", (event_id,)).fetchone():
+            return jsonify({"ok": True, "duplicate": True})
     kind = event.get("type")
     obj = event.get("data", {}).get("object", {})
     now = time.time()
@@ -177,4 +185,7 @@ def stripe_webhook():
         if period_end:
             _set_paid_until(obj.get("customer"), None, period_end + PAID_GRACE_SECONDS)
 
+    # Recorded only after it was applied, so a failed attempt is retried by Stripe
+    with sqlite3.connect(_db_path) as conn:
+        conn.execute("INSERT OR IGNORE INTO stripe_events (id, received_at) VALUES (?, ?)", (event_id, time.time()))
     return jsonify({"ok": True})

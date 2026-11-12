@@ -6,10 +6,10 @@ Newsletter sign-ups are stored in the same SQLite file.
 """
 
 import os
+import sqlite3
 import re
 import time
 import secrets
-import sqlite3
 import logging
 from functools import wraps
 
@@ -35,7 +35,7 @@ _tokens = URLSafeSerializer(AUTH_SECRET, salt="creditcrate-auth")
 
 
 def init_db():
-    with sqlite3.connect(DB_PATH) as conn:
+    with db() as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 email TEXT PRIMARY KEY,
@@ -69,36 +69,45 @@ def is_valid_email(email):
     return len(email) <= 254 and EMAIL_RE.match(email) is not None
 
 
-def create_user(email, password, verified=False):
-    """Creates the account, or replaces the password of an existing one. New accounts start unverified
-    unless verified=True (the owner's own script), and the trial starts now either way."""
+def create_user(email, password, verified=False, replace=True):
+    """Creates the account. New accounts start unverified unless verified=True (the owner's own script),
+    and the trial starts now either way. replace=True also changes the password of an existing account
+    (the reset and the owner's script use that). With replace=False an existing account is left alone.
+    Returns True when a new account was created."""
     email = normalize_email(email)
     if not is_valid_email(email):
         raise ValueError("Not a valid email address.")
     if len(password) < MIN_PASSWORD_LENGTH:
         raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters.")
     now = time.time()
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("""
+    action = "DO UPDATE SET password_hash = excluded.password_hash" if replace else "DO NOTHING"
+    with db() as conn:
+        cursor = conn.execute(f"""
             INSERT INTO users (email, password_hash, created_at, trial_ends_at, email_verified_at) VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(email) DO UPDATE SET password_hash = excluded.password_hash
+            ON CONFLICT(email) {action}
         """, (email, generate_password_hash(password), now, now + TRIAL_DAYS * 86400, now if verified else None))
+        return cursor.rowcount == 1
+
+
+def db():
+    """A connection to the shared SQLite file. Use it in a `with` block."""
+    return sqlite3.connect(DB_PATH)
 
 
 def is_verified(email):
-    with sqlite3.connect(DB_PATH) as conn:
+    with db() as conn:
         row = conn.execute("SELECT email_verified_at FROM users WHERE email = ?", (normalize_email(email),)).fetchone()
     return bool(row and row[0])
 
 
 def mark_verified(email):
-    with sqlite3.connect(DB_PATH) as conn:
+    with db() as conn:
         conn.execute("UPDATE users SET email_verified_at = COALESCE(email_verified_at, ?) WHERE email = ?",
                      (time.time(), normalize_email(email)))
 
 
 def verify_login(email, password):
-    with sqlite3.connect(DB_PATH) as conn:
+    with db() as conn:
         row = conn.execute("SELECT password_hash FROM users WHERE email = ?", (normalize_email(email),)).fetchone()
     return row is not None and check_password_hash(row[0], password)
 
@@ -122,13 +131,13 @@ def _signed_in():
     email = current_email()
     if not email:
         return False
-    with sqlite3.connect(DB_PATH) as conn:
+    with db() as conn:
         return conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone() is not None
 
 
 def access_status(email):
     """The account's plan: 'pro' while paid up, 'trial' for the first 7 days, otherwise 'expired'."""
-    with sqlite3.connect(DB_PATH) as conn:
+    with db() as conn:
         row = conn.execute("SELECT plan, trial_ends_at, plan_expires_at FROM users WHERE email = ?", (email,)).fetchone()
     if not row:
         return {"plan": "none", "active": False, "expires_at": None}
@@ -145,6 +154,30 @@ def plan_for(plan, trial_ends_at, plan_expires_at, now=None):
     if trial_ends_at and trial_ends_at > now:
         return {"plan": "trial", "active": True, "expires_at": trial_ends_at}
     return {"plan": "expired", "active": False, "expires_at": trial_ends_at}
+
+
+_hits = {}  # key -> times of recent attempts, for limited()
+_last_prune = 0.0
+
+
+def limited(key, limit, window):
+    """True when this key has used up its allowance in the last `window` seconds. An allowed attempt is counted."""
+    global _last_prune
+    now = time.time()
+    recent = [t for t in _hits.get(key, []) if now - t < window]
+    if len(recent) >= limit:
+        _hits[key] = recent
+        return True
+    _hits[key] = recent + [now]
+    if now - _last_prune > 3600:  # forget keys with no attempt in the last hour, so the table stays small
+        _last_prune = now
+        for old_key in [k for k, times in _hits.items() if not times or now - max(times) > 3600]:
+            del _hits[old_key]
+    return False
+
+
+def client_ip():
+    return request.headers.get("CF-Connecting-IP") or request.remote_addr or "unknown"
 
 
 def login_required(view):
@@ -175,7 +208,7 @@ def signed_in(view):
 
 
 def add_newsletter_signup(email):
-    with sqlite3.connect(DB_PATH) as conn:
+    with db() as conn:
         conn.execute(
             "INSERT OR IGNORE INTO newsletter_signups (email, created_at) VALUES (?, ?)",
             (normalize_email(email), time.time()),

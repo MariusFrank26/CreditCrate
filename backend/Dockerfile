@@ -18,4 +18,5 @@ COPY . .
 EXPOSE 5000
 
 # 7. App starten
-CMD ["python", "app.py"]
+# gunicorn: one worker, so the campaign sender runs in exactly one process. Threads serve requests.
+CMD ["gunicorn", "--workers", "1", "--threads", "8", "--bind", "0.0.0.0:5000", "--timeout", "120", "--graceful-timeout", "25", "app:app"]

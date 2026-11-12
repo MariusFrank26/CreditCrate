@@ -9,6 +9,7 @@ Einmaliges Setup für Instagram (Instaloader-Session statt RapidAPI):
        bei jedem Start wiederverwendet (kein erneuter Login pro Request).
 """
 
+from functools import wraps
 import os
 import re
 import time
@@ -459,6 +460,9 @@ def get_contact_email(genius_id, name, profile):
 def login():
     data = request.get_json(silent=True) or {}
     email = accounts.normalize_email(data.get("email"))
+    # Every attempt counts, right or wrong, so passwords cannot be guessed at speed
+    if accounts.limited(f"login-email:{email}", 10, 900) or accounts.limited(f"login-ip:{accounts.client_ip()}", 30, 900):
+        return jsonify({"error": "Too many sign-in attempts. Try again in 15 minutes."}), 429
     if not accounts.verify_login(email, data.get("password") or ""):
         return jsonify({"error": "Wrong email or password."}), 401
     if not accounts.is_verified(email):
@@ -472,12 +476,25 @@ def newsletter():
     email = accounts.normalize_email(data.get("email"))
     if not accounts.is_valid_email(email):
         return jsonify({"error": "Enter a valid email address."}), 400
+    if accounts.limited(f"newsletter-ip:{accounts.client_ip()}", 5, 3600):
+        return jsonify({"error": "Too many sign-ups from this connection. Try again later."}), 429
     accounts.add_newsletter_signup(email)
     return jsonify({"ok": True})
 
 
+def _search_limit(view):
+    """Each signed-in account can run 60 searches an hour: every search costs a Genius API call."""
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if accounts.limited(f"search:{accounts.current_email()}", 60, 3600):
+            return jsonify({"error": "You have run many searches in the last hour. Try again later."}), 429
+        return view(*args, **kwargs)
+    return wrapper
+
+
 @app.route("/api/search", methods=["GET"])
 @accounts.login_required
+@_search_limit
 def search_album():
     album = request.args.get("album", "").strip()
     artist = request.args.get("artist", "").strip()
@@ -578,6 +595,7 @@ def start_inbox_scan():
 
 @app.route("/api/search/start", methods=["POST"])
 @accounts.login_required
+@_search_limit
 def start_search():
     query = ((request.get_json(silent=True) or {}).get("q") or "").strip()
     if not query:
@@ -602,6 +620,7 @@ def _run_credits_job(job_id, album_id):
 
 @app.route("/api/album/<int:album_id>/credits/start", methods=["POST"])
 @accounts.login_required
+@_search_limit
 def start_album_credits(album_id):
     job_id = secrets.token_urlsafe(16)
     now = time.time()
