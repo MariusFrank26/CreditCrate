@@ -560,6 +560,9 @@
   .people-filters button { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--smoke); background: none; color: var(--mist); cursor: pointer; }
   .people-filters button[aria-pressed="true"] { background: var(--paper); color: var(--void); border-color: var(--paper); }
   .people-name { display: block; color: var(--paper); }
+  .people-remove { margin-left: 8px; font: inherit; font-size: 11px; padding: 3px 9px; border-radius: 999px; border: 1px solid rgba(242, 167, 156, .5); background: none; color: var(--salmon); cursor: pointer; }
+  .people-remove:hover:not(:disabled) { background: rgba(242, 167, 156, .08); }
+  .people-remove:disabled { opacity: .4; cursor: default; }
   .people-email { display: block; font-size: 12px; color: var(--ash); }
   .people-link { display: inline-block; margin: 0 6px 4px 0; font-size: 12px; color: var(--mist); border: 1px solid var(--graphite); border-radius: 6px; padding: 2px 6px; }
   .panel-form { margin-top: 20px; }
@@ -1185,6 +1188,7 @@
     font-size: 16px; font-weight: 510;
   }
   .ios-action-quiet { background: var(--graphite); color: var(--paper); border: none; cursor: pointer; font-family: var(--sans); }
+  .ios-action-quiet.is-danger { color: var(--salmon); }
   .ios-form { display: flex; flex-direction: column; gap: 14px; }
   .ios-divider { height: 1px; background: var(--graphite); }
   @keyframes ios-fade { from { opacity: 0; } to { opacity: 1; } }
@@ -3034,7 +3038,7 @@ function sectionLetter(c) {
 const CONTACT_EXAMPLES = ["Producer 1", "Producer 2", "Producer 3", "Producer 4"];
 const PACK_EXAMPLES = ["September 2026 Samples", "October 2026 Samples", "November 2026 Samples"];
 
-function ContactSheet({ contact, onClose }) {
+function ContactSheet({ contact, busy, onClose, onRemove }) {
   const rows = [
     ["Email", contact.email],
     ["Roles", contact.roles],
@@ -3061,6 +3065,7 @@ function ContactSheet({ contact, onClose }) {
           ))}
         </div>
         <a className="ios-action" href={`mailto:${contact.email}`}>Send email</a>
+        <button type="button" className="ios-action ios-action-quiet is-danger" onClick={() => onRemove(contact)} disabled={busy}>Remove contact</button>
         <button type="button" className="ios-action ios-action-quiet" onClick={onClose}>Done</button>
       </div>
     </div>
@@ -3084,6 +3089,23 @@ function ContactsTool({ token, onAuthError }) {
   async function load() {
     const data = await callApi("/contacts", token);
     setContacts(data.contacts);
+  }
+
+  // Removes one contact after a confirmation. Unsubscribed people are never shown here, so they cannot be removed.
+  async function removeContact(contact) {
+    const ok = await askConfirm({
+      title: "Remove this contact?",
+      message: `${displayName(contact)} (${contact.email}) will be removed from your contacts. Past campaign results stay as they are. This cannot be undone.`,
+      confirmLabel: "Remove",
+      danger: true,
+    });
+    if (!ok) return;
+    run(async () => {
+      await callApi(`/contacts/${encodeURIComponent(contact.email)}`, token, { method: "DELETE" });
+      setSelected(null);
+      setMessage("Contact removed.");
+      await load();
+    });
   }
 
   useEffect(() => { run(load); }, []);
@@ -3219,7 +3241,7 @@ function ContactsTool({ token, onAuthError }) {
         </div>
       )}
 
-      {selected && <ContactSheet contact={selected} onClose={() => setSelected(null)} />}
+      {selected && <ContactSheet contact={selected} busy={busy} onClose={() => setSelected(null)} onRemove={removeContact} />}
 
       {adding && (
         <div className="ios-sheet-wrap">
@@ -4502,6 +4524,22 @@ function CampaignsTool({ token, onAuthError }) {
     setStats(await callApi(`/campaigns/${id}/stats`, token));
   }
 
+  // Removes a person's name and details. The address stays on the unsubscribe list, so they are never emailed again.
+  async function removeUnsubscribedDetails(person) {
+    const ok = await askConfirm({
+      title: "Remove this person's details?",
+      message: `${person.email} stays on the unsubscribe list, so they will never be emailed again. Their name and other details are deleted.`,
+      confirmLabel: "Remove details",
+      danger: true,
+    });
+    if (!ok) return;
+    run(async () => {
+      await callApi(`/contacts/${encodeURIComponent(person.email)}`, token, { method: "DELETE" });
+      setMessage("Details removed. The address stays on the unsubscribe list.");
+      await loadPeople(selectedId);
+    });
+  }
+
   async function loadPeople(id) {
     const data = await callApi(`/campaigns/${id}/people`, token);
     setPeople(data.people);
@@ -4933,7 +4971,7 @@ function CampaignsTool({ token, onAuthError }) {
                       </>
                     )}
                     <span className="cmp-section-title">People</span>
-                    <CampaignPeople people={people} />
+                    <CampaignPeople people={people} busy={busy} onRemoveDetails={removeUnsubscribedDetails} />
                     <p className="panel-copy">
                       Opens are estimates. Some mail apps load images automatically, so they can count opens nobody read.
                     </p>
@@ -5146,7 +5184,7 @@ const PEOPLE_FILTERS = [
 const PEOPLE_PAGE = 50;
 
 // Who opened, who clicked and which links, with filters for who to follow up with
-function CampaignPeople({ people }) {
+function CampaignPeople({ people, busy, onRemoveDetails }) {
   const [filter, setFilter] = useState("all");
   const [shown, setShown] = useState(PEOPLE_PAGE);
   if (people === null) return <p className="panel-copy">Loading people…</p>;
@@ -5191,6 +5229,11 @@ function CampaignPeople({ people }) {
                   <td>
                     {p.status === "failed" ? "Failed" : "Sent"}
                     {p.unsubscribed && " · Unsubscribed"}
+                    {p.unsubscribed && onRemoveDetails && (
+                      <button type="button" className="people-remove" onClick={() => onRemoveDetails(p)} disabled={busy}>
+                        Remove details
+                      </button>
+                    )}
                   </td>
                   <td>{p.opens ? `${p.opens}× · ${whenText(p.first_open)}` : "—"}</td>
                   <td>

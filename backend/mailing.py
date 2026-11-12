@@ -298,6 +298,28 @@ def import_contacts():
     return jsonify({"saved": saved, "skipped": skipped})
 
 
+@bp.route("/api/contacts/<email>", methods=["DELETE"])
+@accounts.login_required
+def delete_contact(email):
+    owner = accounts.current_email()
+    email = accounts.normalize_email(email)
+    with _conn() as conn:
+        row = conn.execute("SELECT unsubscribed_at FROM mail_contacts WHERE owner = ? AND email = ?", (owner, email)).fetchone()
+        if not row:
+            return jsonify({"error": "Contact not found."}), 404
+        if row["unsubscribed_at"]:
+            # The address stays, so this person is never emailed again, even if imported later.
+            # Their name and other details are deleted.
+            conn.execute(
+                "UPDATE mail_contacts SET name = '', instagram = '', roles = '', tags = '', album = '', source = 'unsubscribed' "
+                "WHERE owner = ? AND email = ?",
+                (owner, email),
+            )
+            return jsonify({"ok": True, "kept_on_unsubscribe_list": True})
+        conn.execute("DELETE FROM mail_contacts WHERE owner = ? AND email = ?", (owner, email))
+    return jsonify({"ok": True})
+
+
 @bp.route("/api/contacts", methods=["GET"])
 @accounts.login_required
 def list_contacts():
