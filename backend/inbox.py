@@ -163,6 +163,30 @@ def _recent_sample_uids(server):
     return [int(uid) for uid in data[0].split()]
 
 
+BOUNCE_QUERY = '"(from:mailer-daemon OR from:postmaster) newer_than:2d"'
+EMAIL_IN_TEXT = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+
+
+def bounced_addresses(address, password, sent_to):
+    """The people we sent to (sent_to, lowercase emails) who appear in a recent delivery-failure email."""
+    server = _connect(address, password)
+    try:
+        _, data = server.uid("SEARCH", "X-GM-RAW", BOUNCE_QUERY)
+        uids = data[0].split() if data and data[0] else []
+        found = set()
+        for uid in uids[-200:]:  # shortcut: at most 200 failure emails per check, raise if a busy account needs more
+            _, fetched = server.uid("FETCH", uid, "(BODY.PEEK[])")
+            raw = fetched[0][1] if fetched and isinstance(fetched[0], tuple) else b""
+            for part in message_from_bytes(raw).walk():
+                if part.is_multipart():
+                    continue
+                payload = part.get_payload(decode=True) or b""
+                found |= set(EMAIL_IN_TEXT.findall(payload.decode("utf-8", "replace").lower())) & sent_to
+        return found
+    finally:
+        server.logout()
+
+
 def list_messages(address, password):
     """Every email from the last DAYS days with sample attachments or sharing links, newest first."""
     server = _connect(address, password)

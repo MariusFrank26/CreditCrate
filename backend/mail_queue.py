@@ -16,6 +16,7 @@ import mailing
 logger = logging.getLogger(__name__)
 
 
+_last_bounce_check = 0.0
 _queue_lock = threading.Lock()  # guards claiming and enqueueing rows
 
 
@@ -305,6 +306,7 @@ def _resume_partial():
 def _worker_loop():
     """The one background thread that sends queued email, one message at a time.
     An unexpected error is logged and the loop carries on, so the sender keeps running."""
+    global _last_bounce_check
     senders = {}
     try:
         while not _stop.is_set():
@@ -314,6 +316,10 @@ def _worker_loop():
                     _close_senders(senders)  # idle: do not hold Gmail connections open
                     _reconcile()
                     _resume_partial()
+                    # shortcut: bounces are checked only while nothing is being sent, every 30 minutes; a long campaign delays it
+                    if time.time() - _last_bounce_check > 1800:
+                        _last_bounce_check = time.time()
+                        mailing.record_bounces()
                     _stop.wait(2)
                     continue
                 _send_queued(item, senders)

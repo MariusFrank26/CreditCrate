@@ -181,6 +181,7 @@ def init_db():
             )
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS mail_queue_status ON mail_queue (status, id)")
+        conn.execute("CREATE TABLE IF NOT EXISTS mail_bounces (owner TEXT, email TEXT, detected_at REAL, PRIMARY KEY (owner, email))")
         columns = {row[1] for row in conn.execute("PRAGMA table_info(mail_campaigns)")}
         if "track" not in columns:
             conn.execute("ALTER TABLE mail_campaigns ADD COLUMN track INTEGER DEFAULT 1")
@@ -573,8 +574,9 @@ def _recipients(conn, campaign_id, owner, role, tag, emails=None):
         SELECT email, name, instagram, roles FROM mail_contacts
         WHERE owner = ? AND unsubscribed_at IS NULL
           AND email NOT IN (SELECT email FROM mail_sends WHERE campaign_id = ? AND status IN ('sent', 'failed'))
+          AND email NOT IN (SELECT email FROM mail_bounces WHERE owner = ?)
     """
-    args = [owner, campaign_id]
+    args = [owner, campaign_id, owner]
     if role:
         query += " AND roles LIKE ?"
         args.append(f"%{role}%")
@@ -673,6 +675,29 @@ def _load_account(owner):
     with _conn() as conn:
         row = conn.execute("SELECT address, password_enc FROM mail_accounts WHERE owner = ?", (owner,)).fetchone()
     return (row["address"], row["password_enc"]) if row else None
+
+
+def record_bounces():
+    """Checks each connected Gmail for delivery failures to people we sent to in the last two weeks."""
+    import inbox  # imported here because inbox imports this module
+    now = time.time()
+    with _conn() as conn:
+        rows = conn.execute("SELECT owner, address, password_enc FROM mail_accounts").fetchall()
+    for row in rows:
+        with _conn() as conn:
+            sent_to = {r[0] for r in conn.execute(
+                "SELECT DISTINCT email FROM mail_sends WHERE sender = ? AND status = 'sent' AND sent_at > ?",
+                (row["address"], now - 14 * 86400))}
+        if not sent_to:
+            continue
+        try:
+            found = inbox.bounced_addresses(row["address"], gmail.decrypt_password(row["password_enc"]), sent_to)
+        except Exception as e:  # a bad password or a Gmail error: try again at the next check
+            logger.warning(f"Bounce check skipped for {row['address']}: {e}")
+            continue
+        with _conn() as conn:
+            conn.executemany("INSERT OR IGNORE INTO mail_bounces (owner, email, detected_at) VALUES (?, ?, ?)",
+                             [(row["owner"], address, now) for address in found])
 
 
 def _sent_today(address):
@@ -835,6 +860,11 @@ def campaign_stats(campaign_id):
         failed = conn.execute(
             "SELECT COUNT(*) FROM mail_sends WHERE campaign_id = ? AND status = 'failed'", (campaign_id,)
         ).fetchone()[0]
+        bounced = conn.execute(
+            "SELECT COUNT(*) FROM mail_sends s WHERE s.campaign_id = ? AND s.status = 'sent' "
+            "AND s.email IN (SELECT email FROM mail_bounces WHERE owner = ?)",
+            (campaign_id, accounts.current_email()),
+        ).fetchone()[0]
         unsubscribed = conn.execute(
             "SELECT COUNT(*) FROM mail_sends s JOIN mail_contacts m ON m.owner = ? AND m.email = s.email "
             "WHERE s.campaign_id = ? AND s.status = 'sent' AND m.unsubscribed_at IS NOT NULL",
@@ -887,6 +917,7 @@ def campaign_stats(campaign_id):
         "click_events": clicks["events"],
         "links": links,
         "failed": failed,
+        "bounced": bounced,
         "unsubscribed": unsubscribed,
         "median_open_hours": median_open_hours,
         "opens_by_hour": by_hour,  # opens in each hour after the first send, for the chart
@@ -904,12 +935,13 @@ def campaign_people(campaign_id):
         people = [dict(r) for r in conn.execute(
             "SELECT s.email, s.status, s.error, s.sent_at, COALESCE(NULLIF(m.name, ''), s.email) AS name, "
             "m.unsubscribed_at IS NOT NULL AS unsubscribed, "
+            "EXISTS (SELECT 1 FROM mail_bounces b WHERE b.owner = ? AND b.email = s.email) AS bounced, "
             "(SELECT COUNT(*) FROM mail_events e WHERE e.campaign_id = s.campaign_id AND e.email = s.email AND e.kind = 'open') AS opens, "
             "(SELECT MIN(e.created_at) FROM mail_events e WHERE e.campaign_id = s.campaign_id AND e.email = s.email AND e.kind = 'open') AS first_open, "
             "(SELECT COUNT(*) FROM mail_events e WHERE e.campaign_id = s.campaign_id AND e.email = s.email AND e.kind = 'click') AS clicks "
             "FROM mail_sends s LEFT JOIN mail_contacts m ON m.owner = ? AND m.email = s.email "
             "WHERE s.campaign_id = ? ORDER BY clicks DESC, opens DESC, name",
-            (owner, campaign_id),
+            (owner, owner, campaign_id),
         )]
         link_rows = conn.execute(
             "SELECT email, url, COUNT(*) AS clicks FROM mail_events WHERE campaign_id = ? AND kind = 'click' "

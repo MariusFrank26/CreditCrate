@@ -5114,7 +5114,7 @@ function CampaignAnalytics({ stats }) {
         <MetricTile label="Time to open" value={medianText} hint="Median, from the send to the first open" color="#f3d58b" />
         <MetricTile label="Not opened" value={Math.max(0, sent - stats.opened)} hint="Sent, but no open seen yet" color="#c9b6ee" />
         <MetricTile label="Unsubscribed" value={stats.unsubscribed} hint="Left after getting this one" color="#f2a79c" />
-        <MetricTile label="Failed" value={stats.failed} hint="Gmail could not deliver" color="#a9d8ef" />
+        <MetricTile label="Bounced" value={stats.bounced} hint={`Undeliverable later · ${stats.failed} refused when sent`} color="#a9d8ef" />
       </div>
     </>
   );
@@ -5229,6 +5229,7 @@ function CampaignPeople({ people, busy, onRemoveDetails }) {
                   <td>
                     {p.status === "failed" ? "Failed" : "Sent"}
                     {p.unsubscribed && " · Unsubscribed"}
+                    {p.bounced && " · Bounced"}
                     {p.unsubscribed && onRemoveDetails && (
                       <button type="button" className="people-remove" onClick={() => onRemoveDetails(p)} disabled={busy}>
                         Remove details
