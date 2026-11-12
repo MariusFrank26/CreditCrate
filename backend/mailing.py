@@ -3,7 +3,7 @@ Mailing for the hub: contacts, sample and beat packs, and campaigns.
 
 Sending goes through the signed-in user's own Gmail account (see gmail.py). A
 preview only reports who would be reached. Sending also needs confirm=true in the
-request, so a stray request can't mail anyone, and a daily cap of 500 applies.
+request, so a stray request can't mail anyone, and a daily cap of 300 applies.
 
 Every email carries an unsubscribe link and the sender's postal address. Anyone
 who unsubscribed is never mailed again, including when they are imported again.

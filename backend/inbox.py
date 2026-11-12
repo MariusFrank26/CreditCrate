@@ -167,9 +167,25 @@ BOUNCE_QUERY = '"(from:mailer-daemon OR from:postmaster) newer_than:2d"'
 EMAIL_IN_TEXT = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 
 
+_bounce_sessions = {}  # address -> open Gmail connection, reused between bounce checks
+
+
+def _bounce_session(address, password):
+    server = _bounce_sessions.get(address)
+    if server is not None:
+        try:
+            server.noop()  # cheap check that Gmail still has the connection open
+            return server
+        except Exception:
+            pass
+    server = _connect(address, password)
+    _bounce_sessions[address] = server
+    return server
+
+
 def bounced_addresses(address, password, sent_to):
     """The people we sent to (sent_to, lowercase emails) who appear in a recent delivery-failure email."""
-    server = _connect(address, password)
+    server = _bounce_session(address, password)
     try:
         _, data = server.uid("SEARCH", "X-GM-RAW", BOUNCE_QUERY)
         uids = data[0].split() if data and data[0] else []
@@ -183,8 +199,9 @@ def bounced_addresses(address, password, sent_to):
                 payload = part.get_payload(decode=True) or b""
                 found |= set(EMAIL_IN_TEXT.findall(payload.decode("utf-8", "replace").lower())) & sent_to
         return found
-    finally:
-        server.logout()
+    except Exception:
+        _bounce_sessions.pop(address, None)  # the next check signs in again
+        raise
 
 
 def list_messages(address, password):

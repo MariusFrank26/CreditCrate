@@ -308,12 +308,15 @@ def _worker_loop():
     An unexpected error is logged and the loop carries on, so the sender keeps running."""
     global _last_bounce_check
     senders = {}
+    last_sent = 0.0
     try:
         while not _stop.is_set():
             try:
                 item = _next_queued()
                 if item is None:
-                    _close_senders(senders)  # idle: do not hold Gmail connections open
+                    # Gmail connection is kept for 10 minutes after the last email, so one sign-in covers a campaign
+                    if senders and time.time() - last_sent > 600:
+                        _close_senders(senders)
                     _reconcile()
                     _resume_partial()
                     # shortcut: bounces are checked only while nothing is being sent, every 30 minutes; a long campaign delays it
@@ -323,8 +326,9 @@ def _worker_loop():
                     _stop.wait(2)
                     continue
                 _send_queued(item, senders)
+                last_sent = time.time()
                 _finish_if_done(item["campaign_id"])
-                # A mailing.random pause between emails, like a person sending by hand
+                # A random pause between emails, like a person sending by hand
                 _stop.wait(random.uniform(*mailing.SEND_INTERVAL_SECONDS))
             except Exception:
                 logger.exception("Campaign sender hit an error; carrying on")

@@ -20,7 +20,7 @@ from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 
 GMAIL_HOST = "smtp.gmail.com"
 GMAIL_PORT = 465
-DAILY_LIMIT = 500
+DAILY_LIMIT = 300  # kept well under Gmail's own limit, so the account is less likely to be locked
 
 
 class CredentialError(Exception):
