@@ -180,6 +180,11 @@
         <div><button type="submit" class="primary" id="password-save">Change password</button></div>
       </form>
       <div id="password-result"></div>
+      <div class="row">
+        <p class="plan-text">Forgot your password? We'll email you a link to choose a new one.</p>
+        <button type="button" id="send-reset">Email me a reset link</button>
+      </div>
+      <div id="reset-result"></div>
     </section>
 
     <section class="card" data-accent="session" aria-labelledby="session-heading">
@@ -319,6 +324,20 @@ function signOut() {
   try { localStorage.removeItem(TOKEN_KEY); } catch {}
   location.href = "index.html";
 }
+
+$("send-reset").addEventListener("click", async () => {
+  const button = $("send-reset");
+  button.disabled = true;
+  try {
+    await api("/password/forgot", { method: "POST", body: JSON.stringify({ email: $("account-email").textContent }) });
+    show($("reset-result"), "If this account exists, a reset link is on its way to your email.", true);
+  } catch (e) {
+    if (e.expired) return signOut();
+    show($("reset-result"), e.message, false);
+  } finally {
+    button.disabled = false;
+  }
+});
 
 $("sign-out").addEventListener("click", signOut);
 load();
